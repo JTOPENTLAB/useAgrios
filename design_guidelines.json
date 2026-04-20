@@ -1,0 +1,139 @@
+{
+  "project_name": "AgriFlow",
+  "theme": "Light",
+  "archetype": "Organic & Earthy with High-Contrast Fintech structural elements",
+  "design_philosophy": "Shopify + Stripe + Uber + Plaid + TikTok for agriculture. Bold, trustworthy, modern, premium, practical, African-rooted, global-standard.",
+  "colors": {
+    "primary": {
+      "DEFAULT": "#0F5132",
+      "light": "#198754",
+      "dark": "#064E3B",
+      "foreground": "#FFFFFF"
+    },
+    "accent": {
+      "DEFAULT": "#F59E0B",
+      "light": "#FBBF24",
+      "dark": "#D97706",
+      "foreground": "#18181B"
+    },
+    "background": {
+      "DEFAULT": "#FAFAFA",
+      "surface": "#FFFFFF",
+      "card": "#FFFFFF"
+    },
+    "text": {
+      "heading": "#18181B",
+      "body": "#71717A",
+      "muted": "#A1A1AA"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "info": "#3B82F6",
+      "error": "#EF4444"
+    },
+    "border": {
+      "DEFAULT": "#E4E4E7",
+      "focus": "#198754"
+    }
+  },
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "heading_google_url": "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,500,700&display=swap",
+    "body_font": "Manrope",
+    "body_google_url": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap",
+    "rules": {
+      "h1": "font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#18181B]",
+      "h2": "font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#18181B]",
+      "h3": "font-heading text-xl sm:text-2xl font-bold text-[#18181B]",
+      "body": "font-sans text-base text-[#71717A] leading-relaxed",
+      "overline": "font-sans text-xs font-bold uppercase tracking-wider text-[#198754]"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "px-4 sm:px-6 lg:px-8",
+    "section_spacing": "py-20 lg:py-32",
+    "card_padding": "p-6 sm:p-8",
+    "grid_system": "Grid cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 for standard layout. Dashboard uses grid-cols-1 md:grid-cols-4 lg:grid-cols-12 tight gaps (gap-4 or gap-6)."
+  },
+  "components": {
+    "cards": {
+      "default": "bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100",
+      "hover": "hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300",
+      "escrow_card": "bg-white rounded-2xl border-l-4 border-l-[#F59E0B] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"
+    },
+    "buttons": {
+      "primary": "bg-[#0F5132] text-white rounded-full px-8 py-3.5 font-semibold shadow-sm hover:bg-[#064E3B] transition-all hover:shadow-md",
+      "secondary": "bg-white text-[#0F5132] border border-[#0F5132] rounded-full px-8 py-3.5 font-semibold hover:bg-zinc-50 transition-colors",
+      "accent": "bg-[#F59E0B] text-white rounded-full px-8 py-3.5 font-semibold hover:bg-[#D97706] transition-colors",
+      "ghost": "text-[#71717A] hover:text-[#18181B] hover:bg-zinc-100 rounded-full px-4 py-2 transition-colors"
+    },
+    "badges": {
+      "verified": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#198754]/10 text-[#0F5132] text-sm font-semibold",
+      "pending": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#D97706] text-sm font-semibold",
+      "in_transit": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 text-sm font-semibold"
+    },
+    "inputs": {
+      "default": "bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#0F5132]/20 focus:border-[#0F5132] transition-all placeholder:text-zinc-400"
+    }
+  },
+  "image_urls": [
+    {
+      "category": "hero",
+      "description": "Hero section background or main focal image representing African agriculture",
+      "url": "https://images.unsplash.com/photo-1596788068873-9ffd5cacd4c4?auto=format&fit=crop&w=1536&q=80"
+    },
+    {
+      "category": "farmer_profile",
+      "description": "High-quality portrait of a local African farmer for testimonials or profile placeholders",
+      "url": "https://images.pexels.com/photos/34705724/pexels-photo-34705724.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "category": "farmer_profile_2",
+      "description": "Secondary portrait of a local African farmer for marketplace listings",
+      "url": "https://images.pexels.com/photos/16786653/pexels-photo-16786653.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "category": "produce_wholesale",
+      "description": "Fresh agriculture produce ready for wholesale distribution",
+      "url": "https://images.pexels.com/photos/36853837/pexels-photo-36853837.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "category": "produce_vegetables",
+      "description": "Fresh vegetables packed for market sale",
+      "url": "https://images.pexels.com/photos/13711819/pexels-photo-13711819.jpeg?auto=compress&cs=tinysrgb&w=800"
+    },
+    {
+      "category": "logistics_truck",
+      "description": "Modern logistics delivery truck for logistics dashboard",
+      "url": "https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      "category": "trust_logos",
+      "description": "Placeholder for payment gateway logos (Flutterwave/Paystack style)",
+      "url": "https://images.unsplash.com/photo-1613243555988-441166d4d6fd?auto=format&fit=crop&w=400&q=80"
+    }
+  ],
+  "icons": {
+    "library": "lucide-react",
+    "style": "stroke-width 2, rounded edges. Use primary green (#0F5132) for emphasis and active states."
+  },
+  "interactions_and_motion": {
+    "hover": "Subtle translate-y (-translate-y-1) on marketplace cards, button background darkening with ease-in-out transition.",
+    "page_load": "Staggered fade-up (opacity 0 to 1, translate-y 10px to 0) for dashboard widgets and marketplace grid items.",
+    "escrow_flow": "Use horizontal step connectors with animated progress bars. Green (#10B981) for completed, Amber (#F59E0B) for active current step."
+  },
+  "instructions_to_main_agent": [
+    "Initialize Tailwind config with extended colors (primary #0F5132, accent #F59E0B) and fonts (font-heading: 'Cabinet Grotesk', font-sans: 'Manrope').",
+    "Add both 'Cabinet Grotesk' from Fontshare and 'Manrope' from Google Fonts to index.html or global css.",
+    "Prioritize data clarity in dashboards: use grid layouts with tight gaps (gap-4 or gap-6) and white cards over a #FAFAFA background.",
+    "Style standard Shadcn components to match the 'AgriFlow' vibe: customize with rounded-2xl corners, soft shadows shadow-[0_8px_30px_rgb(0,0,0,0.04)], and zero harsh borders.",
+    "Create a custom visual timeline component for the Escrow/Delivery status. It needs to look highly trustworthy.",
+    "Never use generic AI purple or teal colors. Stick strictly to the Premium Green, Charcoal, and Gold Accent palette to maintain the African-fintech premium feel.",
+    "Ensure ALL interactive elements (buttons, inputs, links, tabs) have descriptive data-testid attributes for automated testing (e.g., data-testid='buyer-marketplace-link')."
+  ],
+  "accessibility": {
+    "contrast": "Ensure text over primary green buttons is #FFFFFF for high contrast. Focus states must have an explicit ring ring-2 ring-[#0F5132]/20.",
+    "reduced_motion": "Wrap custom animations with CSS media queries or framer-motion settings to respect prefers-reduced-motion."
+  }
+}
