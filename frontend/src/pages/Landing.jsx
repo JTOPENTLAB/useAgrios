@@ -204,6 +204,56 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* This is for you if */}
+      <section className="py-20 bg-[#FAFAFA]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mb-10">
+            <div className="text-xs font-bold uppercase tracking-wider text-brand mb-3">This is for you if…</div>
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-ink">Built for the people who move African food.</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 af-stagger">
+            {[
+              { who: "Farmers", says: "You grow the crop. We get you paid in 24h.", color: "bg-brand/5 border-brand/10" },
+              { who: "Buyers", says: "Source verified supply with escrow protection.", color: "bg-gold/5 border-gold/20" },
+              { who: "Transporters", says: "Steady pickups, clear payouts, better routes.", color: "bg-blue-50 border-blue-100" },
+              { who: "Aggregators", says: "Move volume with structured trade tools.", color: "bg-zinc-50 border-zinc-100" },
+            ].map((p) => (
+              <div key={p.who} className={`rounded-2xl border p-6 ${p.color}`} data-testid={`persona-${p.who.toLowerCase()}`}>
+                <div className="text-xs font-bold uppercase tracking-wider text-ink-muted">You are a</div>
+                <div className="font-heading font-extrabold text-2xl mt-1 text-ink">{p.who}</div>
+                <div className="text-sm text-ink-soft mt-3 leading-relaxed">{p.says}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 bg-white border-y border-zinc-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mb-10">
+            <div className="text-xs font-bold uppercase tracking-wider text-brand mb-3">The ground truth</div>
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-ink">What operators are saying.</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 af-stagger">
+            {[
+              { q: "AgriFlow paid me in 12 hours. The market never pays me in 12 hours.", n: "Adebayo O.", r: "Farmer · Ogun" },
+              { q: "We source 40 tons of cassava monthly now with zero payment disputes. Escrow is magic.", n: "Chioma O.", r: "Buyer · Lagos" },
+              { q: "Clear pickups, clear routes, clear money. I've tripled my monthly income.", n: "Ibrahim T.", r: "Transporter · Lagos" },
+            ].map((t) => (
+              <div key={t.n} className="af-card p-6" data-testid={`testimonial-${t.n.replace(/\W/g, "")}`}>
+                <div className="text-3xl text-brand leading-none">"</div>
+                <p className="text-ink text-base leading-relaxed">{t.q}</p>
+                <div className="mt-5 pt-5 border-t border-zinc-100">
+                  <div className="font-heading font-bold text-ink">{t.n}</div>
+                  <div className="text-xs text-ink-muted">{t.r}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section id="trust" className="py-20 lg:py-28">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

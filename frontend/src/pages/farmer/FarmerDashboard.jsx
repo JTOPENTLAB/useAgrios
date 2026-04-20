@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sprout, ShoppingBag, Wallet, TrendingUp, PlusCircle, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { Sprout, ShoppingBag, Wallet, TrendingUp, PlusCircle, Sparkles, Gift, Copy } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
 import StatCard from "@/components/StatCard";
+import { useAuth } from "@/context/AuthContext";
 
 export default function FarmerDashboard() {
+  const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [orders, setOrders] = useState([]);
   const [wallet, setWallet] = useState(null);
@@ -18,6 +21,13 @@ export default function FarmerDashboard() {
       api.get("/offers/farmer").then((r) => setOffers(r.data)),
     ]).catch(() => {});
   }, []);
+
+  const copyRef = () => {
+    if (user?.referral_code) {
+      navigator.clipboard.writeText(user.referral_code);
+      toast.success("Referral code copied");
+    }
+  };
 
   const activeListings = listings.filter((l) => l.status === "active").length;
   const pendingOffers = offers.filter((o) => o.status === "pending").length;
@@ -50,6 +60,19 @@ export default function FarmerDashboard() {
         <StatCard label="Active listings" value={activeListings} sub={`${listings.length} total`} tone="blue" />
         <StatCard label="Lifetime earnings" value={fmtNGN(earnings)} sub={`${completed} completed`} tone="zinc" />
       </div>
+
+      {user?.referral_code && (
+        <div className="af-card p-5 border-l-4 border-l-gold flex flex-col sm:flex-row items-start sm:items-center gap-4" data-testid="referral-card">
+          <div className="w-11 h-11 rounded-xl bg-gold/10 text-gold-dark grid place-items-center"><Gift className="w-5 h-5" /></div>
+          <div className="flex-1">
+            <div className="font-heading font-bold text-ink">Earn ₦5,000 per referral</div>
+            <div className="text-xs text-ink-muted mt-1">Share your code. When your friend signs up and completes their first order, you both earn ₦5,000 wallet credit.</div>
+          </div>
+          <button onClick={copyRef} className="af-btn-accent text-sm" data-testid="copy-referral-btn">
+            <Copy className="w-4 h-4" /> {user.referral_code}
+          </button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="af-card p-6 lg:col-span-2">

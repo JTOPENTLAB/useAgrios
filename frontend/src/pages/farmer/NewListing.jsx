@@ -10,6 +10,7 @@ const SAMPLE_IMG = "https://images.pexels.com/photos/13711819/pexels-photo-13711
 export default function NewListing() {
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [priceTip, setPriceTip] = useState(null);
   const [form, setForm] = useState({
     crop: "",
@@ -24,6 +25,24 @@ export default function NewListing() {
   const upd = (k) => (e) => {
     const v = ["quantity_kg", "price_per_kg"].includes(k) ? Number(e.target.value) : e.target.value;
     setForm((f) => ({ ...f, [k]: v }));
+  };
+
+  const uploadImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    setUploading(true);
+    try {
+      const { data } = await api.post("/uploads", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      // Use absolute URL so <img> can load directly
+      setForm((f) => ({ ...f, image_url: `${API_BASE.replace(/\/api$/, "")}${data.url}` }));
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const aiPrice = async () => {
@@ -95,7 +114,14 @@ export default function NewListing() {
             <textarea className="af-input min-h-[100px]" value={form.description} onChange={upd("description")} placeholder="Quality notes, harvest time, pickup details…" data-testid="description-input" />
           </Field>
           <Field label="Image URL">
-            <input className="af-input" value={form.image_url} onChange={upd("image_url")} data-testid="image-input" />
+            <div className="flex gap-2">
+              <input className="af-input flex-1" value={form.image_url} onChange={upd("image_url")} data-testid="image-input" />
+              <label className={`af-btn-secondary cursor-pointer !py-3 ${uploading ? "opacity-50 pointer-events-none" : ""}`} data-testid="upload-btn">
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                <input type="file" accept="image/*" className="hidden" onChange={uploadImage} />
+                {uploading ? "Uploading" : "Upload"}
+              </label>
+            </div>
           </Field>
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={busy} className="af-btn-primary" data-testid="publish-btn">

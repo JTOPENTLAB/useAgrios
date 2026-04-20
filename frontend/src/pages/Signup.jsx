@@ -20,6 +20,8 @@ export default function Signup() {
     phone: "",
     business_name: "",
     location: "",
+    referral_code: "",
+    farm_size_hectares: "",
   });
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +31,11 @@ export default function Signup() {
     e.preventDefault();
     setBusy(true);
     try {
-      await signup({ ...form, role });
+      const payload = { ...form, role };
+      if (payload.farm_size_hectares) payload.farm_size_hectares = Number(payload.farm_size_hectares);
+      else delete payload.farm_size_hectares;
+      if (!payload.referral_code) delete payload.referral_code;
+      await signup(payload);
       toast.success("Welcome to AgriFlow!");
       nav("/app");
     } catch (err) {
@@ -95,6 +101,16 @@ export default function Signup() {
                 <input className="af-input" value={form.business_name} onChange={upd("business_name")} data-testid="signup-business" />
               </div>
             )}
+            {role === "farmer" && (
+              <div>
+                <label className="text-sm font-semibold text-ink-soft mb-1 block">Farm size (hectares)</label>
+                <input type="number" min="0" step="0.1" className="af-input" value={form.farm_size_hectares} onChange={upd("farm_size_hectares")} placeholder="e.g. 5" data-testid="signup-farm-size" />
+              </div>
+            )}
+            <div className={role === "farmer" ? "" : "sm:col-span-2"}>
+              <label className="text-sm font-semibold text-ink-soft mb-1 block">Referral code <span className="text-ink-muted font-normal">(optional)</span></label>
+              <input className="af-input" placeholder="AF-XXXXXX" value={form.referral_code} onChange={(e) => upd("referral_code")({ target: { value: e.target.value.toUpperCase() } })} data-testid="signup-referral" />
+            </div>
             <div className="sm:col-span-2 pt-2">
               <button disabled={busy} className="af-btn-primary w-full" data-testid="signup-submit">
                 {busy ? "Creating…" : "Create account"}

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
+import string
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -15,8 +17,19 @@ from typing import Any, Literal, Optional
 
 import bcrypt
 import jwt
+import requests
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -33,6 +46,54 @@ JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_HOURS = int(os.environ.get("JWT_EXPIRE_HOURS", "168"))
 COMMISSION_PCT = float(os.environ.get("COMMISSION_PCT", "5"))
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+
+# Object storage
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+APP_NAME = "agriflow"
+storage_key: Optional[str] = None
+
+
+def init_storage() -> Optional[str]:
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_LLM_KEY:
+        return None
+    try:
+        r = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+        r.raise_for_status()
+        storage_key = r.json()["storage_key"]
+        return storage_key
+    except Exception as e:
+        logging.exception("Storage init failed: %s", e)
+        return None
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not initialized")
+    r = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data,
+        timeout=120,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def get_object(path: str) -> tuple[bytes, str]:
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not initialized")
+    r = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key},
+        timeout=60,
+    )
+    r.raise_for_status()
+    return r.content, r.headers.get("Content-Type", "application/octet-stream")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
@@ -80,6 +141,8 @@ class SignupIn(BaseModel):
     phone: Optional[str] = None
     business_name: Optional[str] = None
     location: Optional[str] = None
+    referral_code: Optional[str] = None
+    farm_size_hectares: Optional[float] = None
 
 
 class LoginIn(BaseModel):
@@ -97,6 +160,8 @@ class UserOut(BaseDoc):
     location: Optional[str] = None
     kyc_status: str = "unverified"
     verified: bool = False
+    referral_code: Optional[str] = None
+    farm_size_hectares: Optional[float] = None
     created_at: str
 
 
@@ -301,6 +366,7 @@ async def signup(body: SignupIn):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     uid = new_id()
+    ref_code = "AF-" + "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     doc = {
         "id": uid,
         "email": body.email.lower(),
@@ -310,10 +376,18 @@ async def signup(body: SignupIn):
         "phone": body.phone,
         "business_name": body.business_name,
         "location": body.location,
+        "farm_size_hectares": body.farm_size_hectares,
         "kyc_status": "unverified",
         "verified": False,
+        "referral_code": ref_code,
+        "referred_by": None,
         "created_at": utcnow(),
     }
+    # Apply referral if provided
+    if body.referral_code:
+        referrer = await db.users.find_one({"referral_code": body.referral_code.strip().upper()})
+        if referrer:
+            doc["referred_by"] = referrer["id"]
     await db.users.insert_one(doc.copy())
     await ensure_wallet(uid)
     user_view = {k: v for k, v in doc.items() if k != "password_hash"}
@@ -449,6 +523,7 @@ async def create_offer(body: OfferCreate, user: dict = Depends(require_roles("bu
         "created_at": utcnow(),
     }
     await db.offers.insert_one(doc.copy())
+    await notify(l["farmer_id"], "New offer received", f"{user['full_name']} offered ₦{body.price_per_kg:,.0f}/kg for {body.quantity_kg}kg of {l['crop']}.", "offer", doc["id"])
     return serialize(doc)
 
 
@@ -593,6 +668,7 @@ async def fund_escrow(order_id: str, user: dict = Depends(require_roles("buyer")
         "created_at": utcnow(),
     }
     await db.logistics_jobs.insert_one(job.copy())
+    await notify(o["farmer_id"], "Order funded", f"Escrow funded for your {o['crop']} order. Logistics pending.", "order", order_id)
     return {"ok": True, "order_id": order_id, "status": "escrow_funded"}
 
 
@@ -642,6 +718,22 @@ async def confirm_delivery(order_id: str, user: dict = Depends(require_roles("bu
             "$push": {"timeline": {"ts": utcnow(), "event": "completed", "by": "buyer"}},
         },
     )
+    await notify(o["farmer_id"], "Payment released 🎉", f"₦{o['farmer_amount']:,.0f} added to your wallet for order {order_id[:8].upper()}.", "order", order_id)
+    await notify(o["buyer_id"], "Order completed", f"Delivery confirmed. Thanks for using AgriFlow!", "order", order_id)
+    # Referral bonus on buyer's FIRST completed order
+    buyer = await db.users.find_one({"id": o["buyer_id"]}, {"_id": 0})
+    if buyer and buyer.get("referred_by") and not buyer.get("referral_bonus_given"):
+        completed_count = await db.orders.count_documents({"buyer_id": o["buyer_id"], "status": "completed"})
+        if completed_count == 1:
+            bonus = 5000.0
+            await db.wallets.update_one({"user_id": o["buyer_id"]}, {"$inc": {"available": bonus}})
+            await ensure_wallet(buyer["referred_by"])
+            await db.wallets.update_one({"user_id": buyer["referred_by"]}, {"$inc": {"available": bonus}})
+            await ledger(o["buyer_id"], "referral_bonus", bonus, "credit", order_id, "First-order referral bonus")
+            await ledger(buyer["referred_by"], "referral_bonus", bonus, "credit", order_id, "Referred buyer completed first order")
+            await db.users.update_one({"id": o["buyer_id"]}, {"$set": {"referral_bonus_given": True}})
+            await notify(o["buyer_id"], "Referral bonus credited", f"₦{bonus:,.0f} added for your first completed order.", "referral", order_id)
+            await notify(buyer["referred_by"], "Referral paid", f"₦{bonus:,.0f} credited — your referral just completed their first order.", "referral", order_id)
     return {"ok": True, "status": "completed"}
 
 
@@ -1039,6 +1131,425 @@ async def health():
     return {"status": "ok", "time": utcnow()}
 
 
+# ---------------- Notifications ----------------
+async def notify(user_id: str, title: str, body: str, kind: str = "info", ref: Optional[str] = None) -> None:
+    if not user_id:
+        return
+    await db.notifications.insert_one(
+        {
+            "id": new_id(),
+            "user_id": user_id,
+            "title": title,
+            "body": body,
+            "kind": kind,
+            "ref": ref,
+            "read": False,
+            "created_at": utcnow(),
+        }
+    )
+
+
+@api.get("/notifications")
+async def list_notifications(user: dict = Depends(current_user)):
+    items = (
+        await db.notifications.find({"user_id": user["id"]}, {"_id": 0})
+        .sort("created_at", -1)
+        .to_list(50)
+    )
+    unread = await db.notifications.count_documents({"user_id": user["id"], "read": False})
+    return {"items": items, "unread": unread}
+
+
+@api.post("/notifications/{nid}/read")
+async def mark_read(nid: str, user: dict = Depends(current_user)):
+    await db.notifications.update_one(
+        {"id": nid, "user_id": user["id"]}, {"$set": {"read": True}}
+    )
+    return {"ok": True}
+
+
+@api.post("/notifications/read-all")
+async def mark_all_read(user: dict = Depends(current_user)):
+    await db.notifications.update_many({"user_id": user["id"], "read": False}, {"$set": {"read": True}})
+    return {"ok": True}
+
+
+# ---------------- File upload ----------------
+ALLOWED_MIME = {
+    "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf",
+}
+MAX_UPLOAD_MB = 5
+
+
+@api.post("/uploads")
+async def upload_file(file: UploadFile = File(...), user: dict = Depends(current_user)):
+    ct = file.content_type or "application/octet-stream"
+    if ct not in ALLOWED_MIME:
+        raise HTTPException(400, f"Unsupported file type: {ct}")
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(400, f"File too large (max {MAX_UPLOAD_MB}MB)")
+    ext = (file.filename or "bin").rsplit(".", 1)[-1].lower()
+    path = f"{APP_NAME}/uploads/{user['id']}/{uuid.uuid4()}.{ext}"
+    result = put_object(path, data, ct)
+    file_id = new_id()
+    await db.files.insert_one(
+        {
+            "id": file_id,
+            "user_id": user["id"],
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": ct,
+            "size": result.get("size", len(data)),
+            "is_deleted": False,
+            "created_at": utcnow(),
+        }
+    )
+    public_url = f"/api/files/{result['path']}"
+    return {"id": file_id, "path": result["path"], "url": public_url, "size": len(data)}
+
+
+@api.get("/files/{path:path}")
+async def download_file(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(404, "File not found")
+    data, ctype = get_object(path)
+    return Response(
+        content=data,
+        media_type=record.get("content_type", ctype),
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+# ---------------- Credit scoring ----------------
+async def compute_credit_score(user_id: str) -> dict:
+    """Score 300-850 based on behaviour. Weighted signals."""
+    u = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not u:
+        return {"score": 300, "band": "D", "signals": {}}
+    farm_size = float(u.get("farm_size_hectares") or 0)
+    listings_count = await db.listings.count_documents({"farmer_id": user_id})
+    completed_orders = await db.orders.count_documents({"farmer_id": user_id, "status": "completed"})
+    disputes = await db.disputes.count_documents({"raised_by": user_id})
+    agg = await db.orders.aggregate(
+        [
+            {"$match": {"farmer_id": user_id, "status": "completed"}},
+            {"$group": {"_id": None, "gmv": {"$sum": "$total"}}},
+        ]
+    ).to_list(1)
+    gmv = agg[0]["gmv"] if agg else 0
+    prev_loans = await db.loans.count_documents({"farmer_id": user_id, "status": "repaid"})
+    defaulted = await db.loans.count_documents({"farmer_id": user_id, "status": "defaulted"})
+    verified = 1 if u.get("verified") else 0
+
+    signals = {
+        "farm_size_hectares": farm_size,
+        "listings": listings_count,
+        "completed_orders": completed_orders,
+        "gmv": round(gmv, 2),
+        "previous_repaid_loans": prev_loans,
+        "defaulted_loans": defaulted,
+        "disputes_raised": disputes,
+        "verified": bool(verified),
+    }
+    # Simple weighted sum
+    score = 400
+    score += min(farm_size, 20) * 8  # +160 max
+    score += min(listings_count, 20) * 3  # +60
+    score += min(completed_orders, 30) * 6  # +180
+    score += min(gmv / 1000_000, 5) * 10  # +50 per NGN 1M, max 50
+    score += prev_loans * 25  # +25 each
+    score += verified * 30
+    score -= defaulted * 120
+    score -= disputes * 10
+    score = int(max(300, min(850, score)))
+    if score >= 720:
+        band = "A"
+    elif score >= 640:
+        band = "B"
+    elif score >= 560:
+        band = "C"
+    else:
+        band = "D"
+    return {"score": score, "band": band, "signals": signals}
+
+
+# ---------------- Loans ----------------
+class LoanApply(BaseModel):
+    amount: float = Field(gt=0)
+    purpose: str
+    term_months: int = Field(ge=1, le=24)
+
+
+class LoanDecision(BaseModel):
+    action: Literal["approve", "reject"]
+    interest_rate_pct: float = 10.0
+    notes: Optional[str] = ""
+
+
+class LoanRepayIn(BaseModel):
+    amount: float = Field(gt=0)
+
+
+def _repay_schedule(principal: float, rate_pct: float, months: int, start_iso: str) -> list[dict]:
+    total = round(principal * (1 + rate_pct / 100), 2)
+    monthly = round(total / months, 2)
+    start = datetime.fromisoformat(start_iso) if isinstance(start_iso, str) else datetime.now(timezone.utc)
+    out = []
+    remaining = total
+    for i in range(1, months + 1):
+        due = start + timedelta(days=30 * i)
+        amt = monthly if i < months else round(remaining, 2)
+        remaining = round(remaining - amt, 2)
+        out.append({"installment": i, "due_date": due.isoformat(), "amount": amt, "paid": False})
+    return out
+
+
+@api.get("/loans/score")
+async def get_my_score(user: dict = Depends(require_roles("farmer"))):
+    return await compute_credit_score(user["id"])
+
+
+@api.post("/loans/apply")
+async def apply_loan(body: LoanApply, user: dict = Depends(require_roles("farmer"))):
+    score = await compute_credit_score(user["id"])
+    loan_id = new_id()
+    doc = {
+        "id": loan_id,
+        "farmer_id": user["id"],
+        "farmer_name": user["full_name"],
+        "amount": body.amount,
+        "purpose": body.purpose,
+        "term_months": body.term_months,
+        "credit_score": score["score"],
+        "credit_band": score["band"],
+        "credit_signals": score["signals"],
+        "status": "pending",
+        "created_at": utcnow(),
+    }
+    await db.loans.insert_one(doc.copy())
+    await notify(user["id"], "Loan application received", f"₦{body.amount:,.0f} for {body.purpose}. We'll review within 24h.", "loan", loan_id)
+    return serialize(doc)
+
+
+@api.get("/loans/mine")
+async def my_loans(user: dict = Depends(require_roles("farmer"))):
+    items = (
+        await db.loans.find({"farmer_id": user["id"]}, {"_id": 0})
+        .sort("created_at", -1)
+        .to_list(100)
+    )
+    return items
+
+
+@api.get("/loans")
+async def all_loans(user: dict = Depends(require_roles("admin"))):
+    items = await db.loans.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return items
+
+
+@api.get("/loans/{loan_id}")
+async def get_loan(loan_id: str, user: dict = Depends(current_user)):
+    loan = await db.loans.find_one({"id": loan_id}, {"_id": 0})
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+    if user["role"] != "admin" and loan["farmer_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    return loan
+
+
+@api.post("/loans/{loan_id}/decision")
+async def decide_loan(loan_id: str, body: LoanDecision, user: dict = Depends(require_roles("admin"))):
+    loan = await db.loans.find_one({"id": loan_id})
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+    if loan["status"] != "pending":
+        raise HTTPException(400, "Loan already decided")
+    if body.action == "reject":
+        await db.loans.update_one(
+            {"id": loan_id},
+            {"$set": {"status": "rejected", "notes": body.notes, "decided_at": utcnow(), "decided_by": user["id"]}},
+        )
+        await notify(loan["farmer_id"], "Loan decision", "Your loan application was not approved. See details in your loan page.", "loan", loan_id)
+        return {"ok": True, "status": "rejected"}
+    # approve
+    schedule = _repay_schedule(loan["amount"], body.interest_rate_pct, loan["term_months"], utcnow())
+    await db.loans.update_one(
+        {"id": loan_id},
+        {
+            "$set": {
+                "status": "approved",
+                "interest_rate_pct": body.interest_rate_pct,
+                "total_repayable": round(loan["amount"] * (1 + body.interest_rate_pct / 100), 2),
+                "outstanding": round(loan["amount"] * (1 + body.interest_rate_pct / 100), 2),
+                "schedule": schedule,
+                "notes": body.notes,
+                "decided_at": utcnow(),
+                "decided_by": user["id"],
+            }
+        },
+    )
+    await notify(
+        loan["farmer_id"],
+        "Loan approved 🎉",
+        f"Your ₦{loan['amount']:,.0f} loan was approved at {body.interest_rate_pct}% for {loan['term_months']} months.",
+        "loan",
+        loan_id,
+    )
+    return {"ok": True, "status": "approved"}
+
+
+@api.post("/loans/{loan_id}/disburse")
+async def disburse_loan(loan_id: str, user: dict = Depends(require_roles("admin"))):
+    loan = await db.loans.find_one({"id": loan_id})
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+    if loan["status"] != "approved":
+        raise HTTPException(400, "Loan must be approved first")
+    await ensure_wallet(loan["farmer_id"])
+    await db.wallets.update_one(
+        {"user_id": loan["farmer_id"]}, {"$inc": {"available": loan["amount"]}}
+    )
+    await ledger(
+        loan["farmer_id"],
+        "loan_disbursement",
+        loan["amount"],
+        "credit",
+        loan_id,
+        f"Loan disbursed: {loan['purpose']}",
+    )
+    await db.loans.update_one(
+        {"id": loan_id}, {"$set": {"status": "disbursed", "disbursed_at": utcnow()}}
+    )
+    await notify(loan["farmer_id"], "Loan disbursed", f"₦{loan['amount']:,.0f} is now in your wallet.", "loan", loan_id)
+    return {"ok": True, "status": "disbursed"}
+
+
+@api.post("/loans/{loan_id}/repay")
+async def repay_loan(loan_id: str, body: LoanRepayIn, user: dict = Depends(require_roles("farmer"))):
+    loan = await db.loans.find_one({"id": loan_id})
+    if not loan or loan["farmer_id"] != user["id"]:
+        raise HTTPException(404, "Loan not found")
+    if loan["status"] not in ("disbursed", "partially_repaid"):
+        raise HTTPException(400, "Loan is not in a repayable state")
+    w = await ensure_wallet(user["id"])
+    if w["available"] < body.amount:
+        raise HTTPException(400, "Insufficient wallet balance")
+    outstanding = float(loan.get("outstanding", 0))
+    pay = min(body.amount, outstanding)
+    await db.wallets.update_one(
+        {"user_id": user["id"]}, {"$inc": {"available": -pay}}
+    )
+    await ledger(user["id"], "loan_repayment", pay, "debit", loan_id, "Loan repayment")
+    new_outstanding = round(outstanding - pay, 2)
+    new_status = "repaid" if new_outstanding <= 0 else "partially_repaid"
+    # Update schedule rows
+    sched = loan.get("schedule", [])
+    remaining = pay
+    for row in sched:
+        if row["paid"] or remaining <= 0:
+            continue
+        row["paid"] = True
+        row["paid_at"] = utcnow()
+        remaining -= row["amount"]
+    await db.loans.update_one(
+        {"id": loan_id},
+        {"$set": {"outstanding": new_outstanding, "status": new_status, "schedule": sched}},
+    )
+    await notify(user["id"], "Repayment recorded", f"₦{pay:,.0f} applied. Outstanding: ₦{new_outstanding:,.0f}.", "loan", loan_id)
+    return {"ok": True, "status": new_status, "outstanding": new_outstanding}
+
+
+# ---------------- Analytics ----------------
+@api.get("/analytics/prices")
+async def analytics_prices(user: dict = Depends(current_user)):
+    pipeline = [
+        {"$match": {"status": "active"}},
+        {
+            "$group": {
+                "_id": "$crop",
+                "avg_price": {"$avg": "$price_per_kg"},
+                "min_price": {"$min": "$price_per_kg"},
+                "max_price": {"$max": "$price_per_kg"},
+                "total_qty": {"$sum": "$quantity_kg"},
+                "listings": {"$sum": 1},
+            }
+        },
+        {"$sort": {"avg_price": -1}},
+    ]
+    rows = await db.listings.aggregate(pipeline).to_list(50)
+    return [
+        {
+            "crop": r["_id"],
+            "avg_price": round(r["avg_price"], 2),
+            "min_price": round(r["min_price"], 2),
+            "max_price": round(r["max_price"], 2),
+            "total_qty_kg": r["total_qty"],
+            "listings": r["listings"],
+        }
+        for r in rows
+    ]
+
+
+@api.get("/analytics/demand")
+async def analytics_demand(user: dict = Depends(current_user)):
+    pipeline = [
+        {"$group": {"_id": "$crop", "orders": {"$sum": 1}, "gmv": {"$sum": "$total"}}},
+        {"$sort": {"gmv": -1}},
+    ]
+    rows = await db.orders.aggregate(pipeline).to_list(50)
+    return [{"crop": r["_id"], "orders": r["orders"], "gmv": round(r["gmv"], 2)} for r in rows]
+
+
+@api.get("/analytics/weather")
+async def analytics_weather(user: dict = Depends(current_user)):
+    # Mocked but structured — ready to wire a real provider later.
+    return {
+        "updated_at": utcnow(),
+        "regions": [
+            {"region": "Ogun", "temp_c": 29, "rainfall_mm_7d": 45, "alert": None},
+            {"region": "Benue", "temp_c": 32, "rainfall_mm_7d": 12, "alert": "Low rainfall — consider irrigation"},
+            {"region": "Oyo", "temp_c": 30, "rainfall_mm_7d": 38, "alert": None},
+            {"region": "Kano", "temp_c": 35, "rainfall_mm_7d": 4, "alert": "Heat stress risk"},
+            {"region": "Kaduna", "temp_c": 28, "rainfall_mm_7d": 55, "alert": None},
+        ],
+    }
+
+
+# ---------------- Video script library ----------------
+VIDEO_TEMPLATES = [
+    {"id": "v01", "title": "Fresh Harvest — Tomato", "hook": "Still buying tomatoes at market price?", "beats": ["Farm-fresh visuals", "Grade A proof", "Price on screen", "CTA: DM to order"]},
+    {"id": "v02", "title": "Bulk Stock Available", "hook": "500 bags. One farm. Ready to move.", "beats": ["Warehouse pan shot", "Quantity caption", "Location", "CTA: Escrow-protected"]},
+    {"id": "v03", "title": "Export-grade Yam", "hook": "This yam is passport-ready.", "beats": ["Close-up of produce", "Export grade badge", "Origin story", "CTA"]},
+    {"id": "v04", "title": "Farm-to-Market Story", "hook": "From my farm — to your warehouse in 24h.", "beats": ["Harvest", "Loading", "Transit", "Arrival"]},
+    {"id": "v05", "title": "Day-in-the-life", "hook": "5am. The day starts now.", "beats": ["Sunrise", "Workers", "Produce sorting", "CTA"]},
+    {"id": "v06", "title": "Trust & Verification", "hook": "Why 120 buyers trust us.", "beats": ["Verified badge", "Ratings", "Testimonial clip", "CTA"]},
+    {"id": "v07", "title": "Price drop alert", "hook": "This week only: cassava at ₦350/kg.", "beats": ["Big price overlay", "Quantity", "Deadline", "CTA"]},
+    {"id": "v08", "title": "New season crop", "hook": "First pepper harvest just landed.", "beats": ["Pepper close-up", "Fresh-picked caption", "Farm tour", "CTA"]},
+    {"id": "v09", "title": "Behind the scenes", "hook": "How we hit Grade A every time.", "beats": ["Process", "Tools", "Team", "CTA"]},
+    {"id": "v10", "title": "Customer unboxing", "hook": "Our buyer got their order. Watch.", "beats": ["Driver arrives", "Unboxing", "Smile", "CTA"]},
+    {"id": "v11", "title": "Proof of quantity", "hook": "Weigh it yourself.", "beats": ["Scale shot", "Qty caption", "Buyer witness", "CTA"]},
+    {"id": "v12", "title": "Logistics flex", "hook": "Abuja → Lagos in 14 hours.", "beats": ["Loading", "Driver", "GPS", "Delivered"]},
+    {"id": "v13", "title": "Escrow explainer", "hook": "Safe money. Safe produce.", "beats": ["Buyer funds", "Escrow locked", "Delivered", "Released"]},
+    {"id": "v14", "title": "Farmer testimonial", "hook": "AgriFlow paid me in 12 hours.", "beats": ["Farmer talking head", "Wallet shot", "Number", "CTA"]},
+    {"id": "v15", "title": "Regional sourcing", "hook": "Looking for Ogun-grown tomato?", "beats": ["Map animation", "Farm location", "Offers", "CTA"]},
+    {"id": "v16", "title": "Bulk deal of the week", "hook": "2,000kg. One price. One call.", "beats": ["Quantity", "Price", "Timer", "CTA"]},
+    {"id": "v17", "title": "Sustainability story", "hook": "Grown with less water — more love.", "beats": ["Drip irrigation", "Practice", "Farmer quote", "CTA"]},
+    {"id": "v18", "title": "Export announcement", "hook": "First container to Dubai. Let's go.", "beats": ["Container", "Paperwork", "Handshake", "CTA"]},
+    {"id": "v19", "title": "Farm team", "hook": "Meet the people behind your produce.", "beats": ["Team shot", "Names", "Roles", "CTA"]},
+    {"id": "v20", "title": "New buyer onboarding", "hook": "First order? Here's how it works.", "beats": ["Browse", "Offer", "Fund escrow", "Delivered"]},
+]
+
+
+@api.get("/video-templates")
+async def video_templates(user: dict = Depends(current_user)):
+    return VIDEO_TEMPLATES
+
+
+# ---------------- Hook: referral bonus on first completed order (amend confirm below is injected elsewhere) ----------------
+
+
 app.include_router(api)
 
 app.add_middleware(
@@ -1053,12 +1564,16 @@ app.add_middleware(
 # ---------------- Startup seed ----------------
 @app.on_event("startup")
 async def seed() -> None:
+    init_storage()
     await db.users.create_index("email", unique=True)
     await db.users.create_index("id", unique=True)
     await db.listings.create_index("id", unique=True)
     await db.orders.create_index("id", unique=True)
     await db.wallets.create_index("user_id", unique=True)
     await db.logistics_jobs.create_index("id", unique=True)
+    await db.loans.create_index("id", unique=True)
+    await db.notifications.create_index("user_id")
+    await db.files.create_index("storage_path")
 
     # Seed admin
     if not await db.users.find_one({"email": "admin@agriflow.ng"}):
@@ -1090,8 +1605,10 @@ async def seed() -> None:
                 "role": "farmer",
                 "phone": "+2348012345678",
                 "location": "Ogun State",
+                "farm_size_hectares": 12.5,
                 "verified": True,
                 "kyc_status": "verified",
+                "referral_code": "AF-DEMO01",
                 "created_at": utcnow(),
             }
         )
@@ -1158,6 +1675,7 @@ async def seed() -> None:
                 "location": "Lagos",
                 "verified": True,
                 "kyc_status": "verified",
+                "referral_code": "AF-DEMO02",
                 "created_at": utcnow(),
             }
         )

@@ -12,15 +12,19 @@ import FarmerListings from "@/pages/farmer/FarmerListings";
 import NewListing from "@/pages/farmer/NewListing";
 import FarmerOffers from "@/pages/farmer/FarmerOffers";
 import AiTools from "@/pages/farmer/AiTools";
+import FarmerLoans from "@/pages/farmer/FarmerLoans";
+import VideoScripts from "@/pages/farmer/VideoScripts";
 import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
 import ProductDetail from "@/pages/buyer/ProductDetail";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import OrderDetail from "@/pages/OrderDetail";
 import Wallet from "@/pages/Wallet";
+import Analytics from "@/pages/Analytics";
 import LogisticsJobs from "@/pages/logistics/LogisticsJobs";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminDisputes from "@/pages/admin/AdminDisputes";
+import AdminLoans from "@/pages/admin/AdminLoans";
 
 const Guard = ({ roles, children }) => {
   const { user, loading } = useAuth();
@@ -63,15 +67,19 @@ function App() {
               <Route path="farmer/listings" element={<Guard roles={["farmer"]}><FarmerListings /></Guard>} />
               <Route path="farmer/listings/new" element={<Guard roles={["farmer"]}><NewListing /></Guard>} />
               <Route path="farmer/offers" element={<Guard roles={["farmer"]}><FarmerOffers /></Guard>} />
+              <Route path="farmer/loans" element={<Guard roles={["farmer"]}><FarmerLoans /></Guard>} />
               <Route path="farmer/ai" element={<Guard roles={["farmer"]}><AiTools /></Guard>} />
+              <Route path="farmer/videos" element={<Guard roles={["farmer"]}><VideoScripts /></Guard>} />
               <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
               <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />
+              <Route path="analytics" element={<Guard><Analytics /></Guard>} />
               <Route path="jobs" element={<Guard roles={["logistics", "admin"]}><LogisticsJobs /></Guard>} />
               <Route path="admin" element={<Guard roles={["admin"]}><AdminDashboard /></Guard>} />
               <Route path="admin/users" element={<Guard roles={["admin"]}><AdminUsers /></Guard>} />
+              <Route path="admin/loans" element={<Guard roles={["admin"]}><AdminLoans /></Guard>} />
               <Route path="admin/disputes" element={<Guard roles={["admin"]}><AdminDisputes /></Guard>} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
