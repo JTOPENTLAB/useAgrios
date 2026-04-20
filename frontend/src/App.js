@@ -1,51 +1,82 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import "@/index.css";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import AppShell from "@/pages/AppShell";
+import FarmerDashboard from "@/pages/farmer/FarmerDashboard";
+import FarmerListings from "@/pages/farmer/FarmerListings";
+import NewListing from "@/pages/farmer/NewListing";
+import FarmerOffers from "@/pages/farmer/FarmerOffers";
+import AiTools from "@/pages/farmer/AiTools";
+import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
+import ProductDetail from "@/pages/buyer/ProductDetail";
+import BuyerOrders from "@/pages/buyer/BuyerOrders";
+import OrderDetail from "@/pages/OrderDetail";
+import Wallet from "@/pages/Wallet";
+import LogisticsJobs from "@/pages/logistics/LogisticsJobs";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminDisputes from "@/pages/admin/AdminDisputes";
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+const Guard = ({ roles, children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-10 text-ink-muted">Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/app" replace />;
+  return children;
+};
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
+const RoleHome = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" />;
+  if (user.role === "farmer") return <Navigate to="/app/farmer" replace />;
+  if (user.role === "buyer") return <Navigate to="/app/marketplace" replace />;
+  if (user.role === "logistics") return <Navigate to="/app/jobs" replace />;
+  if (user.role === "admin") return <Navigate to="/app/admin" replace />;
+  return <Navigate to="/login" replace />;
 };
 
 function App() {
   return (
     <div className="App">
+      <Toaster position="top-right" richColors closeButton />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/app"
+              element={
+                <Guard>
+                  <AppShell />
+                </Guard>
+              }
+            >
+              <Route index element={<RoleHome />} />
+              <Route path="farmer" element={<Guard roles={["farmer"]}><FarmerDashboard /></Guard>} />
+              <Route path="farmer/listings" element={<Guard roles={["farmer"]}><FarmerListings /></Guard>} />
+              <Route path="farmer/listings/new" element={<Guard roles={["farmer"]}><NewListing /></Guard>} />
+              <Route path="farmer/offers" element={<Guard roles={["farmer"]}><FarmerOffers /></Guard>} />
+              <Route path="farmer/ai" element={<Guard roles={["farmer"]}><AiTools /></Guard>} />
+              <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
+              <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
+              <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
+              <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
+              <Route path="wallet" element={<Guard><Wallet /></Guard>} />
+              <Route path="jobs" element={<Guard roles={["logistics", "admin"]}><LogisticsJobs /></Guard>} />
+              <Route path="admin" element={<Guard roles={["admin"]}><AdminDashboard /></Guard>} />
+              <Route path="admin/users" element={<Guard roles={["admin"]}><AdminUsers /></Guard>} />
+              <Route path="admin/disputes" element={<Guard roles={["admin"]}><AdminDisputes /></Guard>} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </div>
   );
