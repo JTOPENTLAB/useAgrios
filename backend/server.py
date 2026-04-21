@@ -1309,11 +1309,20 @@ async def admin_users(user: dict = Depends(require_roles("admin"))):
 
 
 @api.post("/admin/users/{user_id}/verify")
-async def admin_verify_user(user_id: str, user: dict = Depends(require_roles("admin"))):
+async def admin_verify_user(
+    user_id: str,
+    body: dict | None = None,
+    user: dict = Depends(require_roles("admin")),
+):
+    next_state = True
+    kyc = "verified"
+    if isinstance(body, dict) and "verified" in body:
+        next_state = bool(body.get("verified"))
+        kyc = "verified" if next_state else "pending"
     await db.users.update_one(
-        {"id": user_id}, {"$set": {"verified": True, "kyc_status": "verified"}}
+        {"id": user_id}, {"$set": {"verified": next_state, "kyc_status": kyc}}
     )
-    return {"ok": True}
+    return {"ok": True, "verified": next_state}
 
 
 @api.get("/admin/disputes")
@@ -2726,6 +2735,18 @@ async def _admin_audit(*, admin_id: str, action: str, resource_type: str, resour
 
 
 # ---- Health / readiness ----
+@app.get("/healthz")
+async def healthz():
+    """K8s liveness probe — unauthenticated, no DB dependency, no /api prefix."""
+    return {"ok": True, "service": "agrios-api"}
+
+
+@app.get("/health")
+async def health_root():
+    """Alias for /healthz to satisfy platform probes that hit /health."""
+    return {"ok": True, "service": "agrios-api"}
+
+
 @app.get("/api/health")
 async def health():
     return {"ok": True, "service": "agrios-api", "ts": datetime.now(timezone.utc).isoformat()}

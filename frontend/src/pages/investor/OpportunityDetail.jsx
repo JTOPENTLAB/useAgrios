@@ -242,7 +242,7 @@ export default function OpportunityDetail() {
           </div>
         )}
 
-        <FarmUpdatesTimeline updates={updates} />
+        <FarmUpdatesTimeline updates={opp.farm_updates || []} />
 
         <div className="af-card p-5">
           <h3 className="font-heading font-bold text-ink mb-3 flex items-center gap-2">
@@ -457,7 +457,7 @@ const RISK_ICON = {
   execution: Activity,
   reporting: FileText,
 };
-const RISK_LABEL = {
+const RISK_TYPE_LABEL = {
   weather: "Weather risk",
   market: "Market risk",
   execution: "Execution risk",
@@ -497,7 +497,7 @@ function RiskFactorsPanel({ factors, band }) {
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4 text-ink-muted" />
                   <div className="font-heading font-bold text-sm text-ink">
-                    {RISK_LABEL[f.type] || f.type}
+                    {RISK_TYPE_LABEL[f.type] || f.type}
                   </div>
                 </div>
                 <span

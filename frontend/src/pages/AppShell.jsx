@@ -66,6 +66,7 @@ const NAV = {
     { to: "/app/admin/disputes", label: "Disputes", icon: AlertTriangle },
     { to: "/app/admin/reconcile", label: "Reconcile", icon: HeartPulse },
     { to: "/app/admin/opportunities", label: "Opportunities", icon: Briefcase },
+    { to: "/app/admin/trust", label: "Trust ops", icon: Sparkles },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/jobs", label: "Logistics", icon: Truck },

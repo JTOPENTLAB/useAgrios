@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrendingUp, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { TrendingUp, Clock, ArrowRight, PieChart as PieIcon, CalendarDays } from "lucide-react";
 import api, { fmtMoney, fmtDate } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -8,6 +8,12 @@ const STATUS_CLS = {
   active: "bg-brand/10 text-brand border-brand/20",
   matured: "bg-gold/10 text-gold-ink border-gold/30",
   paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
+const BAND_COLORS = {
+  A: "#10b981", // emerald
+  B: "#F59E0B", // gold
+  C: "#ef4444", // rose
 };
 
 export default function InvestorPortfolio() {
@@ -23,6 +29,19 @@ export default function InvestorPortfolio() {
       api.get("/investments/mine").then((r) => setRows(r.data)),
     ]).finally(() => setLoading(false));
   }, []);
+
+  const upcomingPayouts = useMemo(() => {
+    const now = Date.now();
+    return rows
+      .filter((r) => r.status !== "paid" && r.maturity_at)
+      .map((r) => ({
+        ...r,
+        ts: new Date(r.maturity_at).getTime(),
+      }))
+      .filter((r) => !isNaN(r.ts) && r.ts >= now - 86400000 * 2)
+      .sort((a, b) => a.ts - b.ts)
+      .slice(0, 5);
+  }, [rows]);
 
   return (
     <div className="space-y-6" data-testid="investor-portfolio">
@@ -62,6 +81,16 @@ export default function InvestorPortfolio() {
           value={summary?.active_count || 0}
           testId="kpi-active"
         />
+      </div>
+
+      {/* Risk allocation + Upcoming payouts */}
+      <div className="grid lg:grid-cols-5 gap-4">
+        <RiskDonut
+          byBand={summary?.by_risk_band}
+          total={summary?.total_invested || 0}
+          currency={currency}
+        />
+        <UpcomingPayouts items={upcomingPayouts} currency={currency} />
       </div>
 
       {/* Investments list */}
@@ -155,6 +184,152 @@ function Kpi({ label, value, tone, testId }) {
         {label}
       </div>
       <div className="font-heading font-extrabold text-2xl mt-2">{value}</div>
+    </div>
+  );
+}
+
+function RiskDonut({ byBand, total, currency }) {
+  const bands = ["A", "B", "C"];
+  const data = bands.map((b) => ({ band: b, value: Number((byBand || {})[b] || 0) }));
+  const sum = data.reduce((a, d) => a + d.value, 0);
+  const size = 160;
+  const r = 64;
+  const cx = size / 2;
+  const cy = size / 2;
+  const strokeW = 22;
+  let offset = 0;
+  const circumference = 2 * Math.PI * r;
+
+  return (
+    <div
+      className="af-card p-6 lg:col-span-2"
+      data-testid="risk-donut-card"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <PieIcon className="w-4 h-4 text-brand" />
+        <h3 className="font-heading font-bold text-ink">Risk allocation</h3>
+      </div>
+      <div className="flex items-center gap-6 flex-wrap">
+        <div className="relative flex-shrink-0">
+          <svg width={size} height={size} className="-rotate-90">
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              stroke="#f4f4f5"
+              strokeWidth={strokeW}
+              fill="none"
+            />
+            {sum > 0 &&
+              data.map((d) => {
+                const len = (d.value / sum) * circumference;
+                const circle = (
+                  <circle
+                    key={d.band}
+                    cx={cx}
+                    cy={cy}
+                    r={r}
+                    stroke={BAND_COLORS[d.band]}
+                    strokeWidth={strokeW}
+                    fill="none"
+                    strokeDasharray={`${len} ${circumference - len}`}
+                    strokeDashoffset={-offset}
+                  />
+                );
+                offset += len;
+                return circle;
+              })}
+          </svg>
+          <div className="absolute inset-0 grid place-items-center text-center">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+                Invested
+              </div>
+              <div className="font-heading font-extrabold text-lg text-ink">
+                {fmtMoney(total || 0, currency)}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 min-w-[140px] space-y-2">
+          {data.map((d) => {
+            const pct = sum > 0 ? Math.round((d.value / sum) * 100) : 0;
+            return (
+              <div
+                key={d.band}
+                className="flex items-center justify-between text-sm"
+                data-testid={`risk-donut-band-${d.band}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ background: BAND_COLORS[d.band] }}
+                  />
+                  <span className="text-ink-soft">
+                    Risk <strong className="text-ink">{d.band}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-ink-muted">
+                  <span>{fmtMoney(d.value, currency)}</span>
+                  <span className="font-bold text-ink">{pct}%</span>
+                </div>
+              </div>
+            );
+          })}
+          {sum === 0 && (
+            <div className="text-xs text-ink-muted pt-2">
+              No allocations yet. Your breakdown appears as soon as you invest.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UpcomingPayouts({ items, currency }) {
+  return (
+    <div className="af-card p-6 lg:col-span-3" data-testid="upcoming-payouts-card">
+      <div className="flex items-center gap-2 mb-3">
+        <CalendarDays className="w-4 h-4 text-brand" />
+        <h3 className="font-heading font-bold text-ink">Upcoming payouts</h3>
+      </div>
+      {items.length === 0 ? (
+        <div className="py-8 text-center text-sm text-ink-muted">
+          No payouts scheduled. Active cycles will appear here as maturity approaches.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((r) => {
+            const days = Math.max(0, Math.ceil((r.ts - Date.now()) / 86400000));
+            return (
+              <div
+                key={r.id}
+                className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100"
+                data-testid={`payout-row-${r.id}`}
+              >
+                <div>
+                  <div className="font-heading font-bold text-sm text-ink truncate max-w-[320px]">
+                    {r.opportunity?.title || r.opportunity_id}
+                  </div>
+                  <div className="text-xs text-ink-muted mt-0.5">
+                    {r.opportunity?.crop || "—"} · matures in {days}d ·{" "}
+                    {fmtDate(r.maturity_at)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-heading font-bold text-ink">
+                    {fmtMoney(r.expected_payout, currency)}
+                  </div>
+                  <div className="text-[10px] text-brand font-bold uppercase">
+                    {r.expected_return_pct}%
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

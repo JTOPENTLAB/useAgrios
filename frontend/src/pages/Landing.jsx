@@ -179,11 +179,14 @@ export default function Landing() {
             <Link to="/trust" className="hover:text-ink" data-testid="nav-trust-link">
               Trust
             </Link>
+            <Link to="/how-it-works" className="hover:text-ink" data-testid="nav-how-link">
+              How it works
+            </Link>
             <a href="#platform" className="hover:text-ink">
               Platform
             </a>
             <a href="#how" className="hover:text-ink">
-              How it works
+              Details
             </a>
             <a href="#intelligence" className="hover:text-ink">
               Intelligence

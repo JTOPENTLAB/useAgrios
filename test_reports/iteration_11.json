@@ -1,0 +1,39 @@
+{
+  "summary": "AGRIOS Phase G review: backend health probes + opportunity hydration + admin verify + frontend Trust/HowItWorks/InvestorPortfolio/OpportunityDetail/AdminTrustOps. 10/10 pytest PASS (after fixing one critical tz-aware bug in phase_f.get_opportunity). All 6 frontend testid groups verified end-to-end. Admin verify POST captured live with correct {verified:true} body and row state transitioned to Revoke. No compile overlay; OpportunityDetail renders cleanly (RISK_LABEL crash gone).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /healthz, GET /health (root paths)", "issue": "Reachable on backend pod port 8001 (so K8s liveness/readiness probes will work), but the public preview ingress only routes /api/* to backend — these root paths return the SPA HTML when called via REACT_APP_BACKEND_URL. Not a code bug; document that external probes must use /api/health."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase_g.py",
+    "/app/test_reports/pytest/iteration_11_phase_g.xml"
+  ],
+  "action_items": [
+    "FIXED by T1 (datetime tz mismatch in /app/backend/routes/phase_f.py get_opportunity). Confirm fix is acceptable; consider doing the same normalization at DB-load layer so other endpoints don't repeat the pattern.",
+    "Optional: expose /healthz + /health behind /api/ prefix as well (e.g., /api/healthz aliasing /healthz) so K8s and external monitoring share one URL pattern via the public preview ingress."
+  ],
+  "critical_code_review_comments": [
+    "phase_f.py::get_opportunity — opportunity hydration mixes naive datetimes from MongoDB with tz-aware _now(); fixed by normalising created to UTC before subtraction. Same anti-pattern likely exists across the codebase wherever Mongo `created_at` is mixed with datetime.now(tz=utc). Recommend a single _to_utc(dt) helper and a fixture in seeders that always writes tz-aware datetimes.",
+    "phase_f.py — risk_factors and use_of_funds_breakdown defaults are synthesised on every read when missing; consider persisting on first read to keep responses deterministic and let admins edit them.",
+    "AdminTrustOps — Verify/Revoke is fully optimistic (no toast/loading state). Works today but double-clicks could fire 2 POSTs. Add disabled-while-pending or debounce.",
+    "/healthz + /health on root are not reachable via the K8s ingress in the preview env (ingress strips non-/api paths to frontend). For platform monitoring outside the cluster, alias them under /api/."
+  ],
+  "updated_files": [
+    "/app/backend/routes/phase_f.py (fixed naive/aware datetime subtraction in get_opportunity)",
+    "/app/backend/tests/test_phase_g.py (NEW — 10 pytest cases, 100% pass)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "investor@agriflow.ng/Invest@123, admin@agriflow.ng/Admin@12345 (per /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Tests reuse seeded opportunities + farmer users. Admin verify test toggles verified flag on first farmer found and restores it to true on teardown.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "RCA fix applied: /app/backend/routes/phase_f.py line ~175 was raising TypeError 'can't subtract offset-naive and offset-aware datetimes' → blocked GET /api/opportunities/{id} entirely with 500. Normalised `created` to tz-aware UTC before subtraction. After fix, OpportunityDetail page renders with use-of-funds-panel + risk-factors-panel + farm-updates-empty (or -timeline if updates exist). Backend test suite at /app/backend/tests/test_phase_g.py is the regression for Phase G — keep it in CI. /api/market/price-trend requires `?crop=` query param (it returns 422 without), this is intentional per Phase D spec — test passes Tomato. Note the public ingress quirk: /healthz and /health on the root are visible only inside the pod (port 8001) — externally they fall to the React SPA. K8s probes are fine because they hit the pod directly, but external uptime monitors must use /api/health.",
+  "rca of the issue": "Bug: GET /api/opportunities/{id} returned 500 TypeError. Root cause: phase_f.py::get_opportunity computes days_since = (_now() - created).days where _now() is tz-aware UTC and `created` came from MongoDB as a tz-naive datetime (PyMongo returns naive UTC by default). Reproduction: GET /api/opportunities/3b527301-f69a-4a0b-b384-06a06108d68a returned 500. Mitigation: After loading `created` (whether already datetime or parsed from ISO string), if tzinfo is None, replace with timezone.utc before subtraction. Verified by re-running pytest — get_opportunity now returns 200 with hydrated farm_updates/risk_factors/use_of_funds_breakdown."
+}

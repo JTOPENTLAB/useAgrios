@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import Landing from "@/pages/Landing";
 import TrustCenter from "@/pages/TrustCenter";
+import HowItWorks from "@/pages/HowItWorks";
 import Explore from "@/pages/Explore";
 import PublicListing from "@/pages/PublicListing";
 import Login from "@/pages/Login";
@@ -27,6 +28,7 @@ import OpportunityMarketplace from "@/pages/investor/OpportunityMarketplace";
 import OpportunityDetail from "@/pages/investor/OpportunityDetail";
 import InvestorPortfolio from "@/pages/investor/InvestorPortfolio";
 import AdminOpportunities from "@/pages/admin/AdminOpportunities";
+import AdminTrustOps from "@/pages/admin/AdminTrustOps";
 import FarmerRaiseFunding from "@/pages/farmer/FarmerRaiseFunding";
 import FarmerFundingRequests from "@/pages/farmer/FarmerFundingRequests";
 import Digest from "@/pages/Digest";
@@ -73,6 +75,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/trust" element={<TrustCenter />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/listing/:id" element={<PublicListing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -107,6 +110,7 @@ function App() {
               <Route path="opportunities/:id" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityDetail /></Guard>} />
               <Route path="portfolio" element={<Guard roles={["investor"]}><InvestorPortfolio /></Guard>} />
               <Route path="admin/opportunities" element={<Guard roles={["admin"]}><AdminOpportunities /></Guard>} />
+              <Route path="admin/trust" element={<Guard roles={["admin"]}><AdminTrustOps /></Guard>} />
               <Route path="farmer/fund" element={<Guard roles={["farmer"]}><FarmerRaiseFunding /></Guard>} />
               <Route path="farmer/funding-requests" element={<Guard roles={["farmer"]}><FarmerFundingRequests /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />

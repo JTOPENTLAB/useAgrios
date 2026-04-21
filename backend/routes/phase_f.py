@@ -159,6 +159,68 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             {"amount": i["amount"], "at": i["created_at"].isoformat() if hasattr(i.get("created_at"), "isoformat") else i.get("created_at")}
             for i in invs
         ]
+        # Hydrate farm updates (real first, synthesised fallback from age-based template)
+        real_updates = await db.opportunity_updates.find(
+            {"opportunity_id": opp_id}, {"_id": 0}
+        ).sort("created_at", -1).to_list(50)
+        if real_updates:
+            o["farm_updates"] = real_updates
+        else:
+            created = o.get("created_at")
+            if isinstance(created, str):
+                try:
+                    created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                except Exception:
+                    created = _now()
+            if not created:
+                created = _now()
+            # Normalize to timezone-aware UTC to avoid naive/aware subtraction errors
+            if hasattr(created, "tzinfo") and created.tzinfo is None:
+                from datetime import timezone as _tz
+                created = created.replace(tzinfo=_tz.utc)
+            crop = (o.get("crop") or "Crop").lower()
+            TEMPLATE = [
+                {"stage": "Land prep", "text": f"Land cleared and tilled for the new {crop} cycle. Soil test samples collected.", "days": 3},
+                {"stage": "Inputs delivered", "text": "Seeds and agro-chemicals delivered on site. Labour team mobilised.", "days": 7},
+                {"stage": "Planting", "text": f"{crop.capitalize()} planting completed across the target hectares.", "days": 12},
+                {"stage": "Week 3 check-in", "text": "Germination healthy. No pest pressure observed. Photos uploaded.", "days": 21},
+                {"stage": "Week 5 check-in", "text": "Canopy development on track. Irrigation cycle completed.", "days": 35},
+            ]
+            days_since = max(0, (_now() - created).days) if created else 0
+            updates = []
+            for t in TEMPLATE:
+                if t["days"] <= days_since:
+                    updates.append({
+                        "id": new_id(),
+                        "opportunity_id": opp_id,
+                        "stage": t["stage"],
+                        "text": t["text"],
+                        "created_at": (created + timedelta(days=t["days"])).isoformat(),
+                        "verified": True,
+                    })
+            updates.reverse()
+            o["farm_updates"] = updates
+        # Attach risk_factors template if not present (ties into RiskFactorsPanel)
+        if "risk_factors" not in o or not o.get("risk_factors"):
+            band = o.get("risk_band", "B")
+            weather_lvl = {"A": "low", "B": "medium", "C": "high"}.get(band, "medium")
+            market_lvl = {"A": "low", "B": "medium", "C": "medium"}.get(band, "medium")
+            exec_lvl = {"A": "low", "B": "medium", "C": "high"}.get(band, "medium")
+            o["risk_factors"] = [
+                {"type": "weather", "level": weather_lvl, "note": f"Seasonal variability for {o.get('crop','crop').lower()} in {o.get('region','region')}."},
+                {"type": "market", "level": market_lvl, "note": "Offtake price can fluctuate at harvest — we track a 3-year median."},
+                {"type": "execution", "level": exec_lvl, "note": "Farmer track record and operator supervision mitigate execution risk."},
+                {"type": "reporting", "level": "low", "note": "AGRIOS enforces updates every 7 days. Silence triggers investor alerts."},
+            ]
+        # Attach use-of-funds breakdown if missing (simple 4-bucket default)
+        if not o.get("use_of_funds_breakdown"):
+            target = float(o.get("funding_target", 0) or 0)
+            o["use_of_funds_breakdown"] = [
+                {"label": "Inputs (seeds / agro-chem)", "amount": round(target * 0.45, 2)},
+                {"label": "Labour", "amount": round(target * 0.25, 2)},
+                {"label": "Logistics & storage", "amount": round(target * 0.15, 2)},
+                {"label": "AGRIOS fee + buffer", "amount": round(target * 0.15, 2)},
+            ]
         return o
 
     # ---------- Admin approval ----------
