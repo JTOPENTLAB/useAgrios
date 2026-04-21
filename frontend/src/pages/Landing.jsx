@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Leaf, Shield, Wallet, Truck, Sparkles, Star, CheckCircle2 } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
+import RecentDealsFeed from "@/components/RecentDealsFeed";
 
 const stats = [
   { v: "2.1M+", l: "KG facilitated (pilot)" },
@@ -181,6 +182,9 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Recently completed deals marquee */}
+      <RecentDealsFeed />
+
       {/* Features */}
       <section id="features" className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -193,8 +197,7 @@ export default function Landing() {
               Six tightly-integrated engines that turn scattered farm-to-market activity into structured,
               trustworthy, high-velocity trade.
             </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 af-stagger">
+          </div>          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 af-stagger">
             {features.map((f) => (
               <div key={f.title} className="af-card af-card-hover p-6" data-testid={`feature-${f.title.toLowerCase().replace(/\s/g, "-")}`}>
                 <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand grid place-items-center mb-5">

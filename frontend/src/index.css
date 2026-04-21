@@ -110,3 +110,22 @@
 .timeline-line {
     background: linear-gradient(to right, #10B981 0%, #10B981 var(--progress, 0%), #E4E4E7 var(--progress, 0%), #E4E4E7 100%);
 }
+
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+    animation: marquee 40s linear infinite;
+    width: max-content;
+}
+
+.marquee-track:hover {
+    animation-play-state: paused;
+}
+
+.marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+}

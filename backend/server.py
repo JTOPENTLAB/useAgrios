@@ -1971,6 +1971,55 @@ async def public_stats():
     }
 
 
+@api.get("/stats/recent-deals")
+async def recent_deals():
+    """Anonymised living feed of recent on-platform orders for landing social proof."""
+    since_iso = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    items = (
+        await db.orders.find(
+            {
+                "created_at": {"$gte": since_iso},
+                "status": {"$in": ["escrow_funded", "in_logistics", "in_transit", "delivered", "completed"]},
+            },
+            {"_id": 0},
+        )
+        .sort("created_at", -1)
+        .limit(20)
+        .to_list(20)
+    )
+    now = datetime.now(timezone.utc)
+    out = []
+    for o in items:
+        try:
+            created = datetime.fromisoformat(o["created_at"])
+            seconds_ago = int((now - created).total_seconds())
+        except Exception:
+            seconds_ago = 0
+        # Anonymise: first name initial + first letter of last
+        fn = (o.get("farmer_name") or "A").split()
+        farmer_alias = f"{fn[0][0].upper()}.{fn[-1][0].upper()}." if len(fn) > 1 else fn[0]
+        dest = (o.get("delivery_address") or "").split(",")[0].strip() or "—"
+        # Pull origin from listing
+        listing = await db.listings.find_one({"id": o["listing_id"]}, {"_id": 0})
+        origin = (listing or {}).get("location", "—")
+        out.append(
+            {
+                "id": o["id"][:8],
+                "crop": o["crop"],
+                "quantity_kg": o["quantity_kg"],
+                "total": o["total"],
+                "currency": o.get("currency", "NGN"),
+                "country": o.get("country", "NG"),
+                "farmer_alias": farmer_alias,
+                "origin": origin,
+                "destination": dest,
+                "status": o["status"],
+                "seconds_ago": seconds_ago,
+            }
+        )
+    return out
+
+
 app.include_router(api)
 
 app.add_middleware(

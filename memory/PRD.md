@@ -87,6 +87,12 @@ See `/app/memory/test_credentials.md`.
 - Frontend: green "Reorder" button on every completed order row + on Order Detail header — one tap navigates to the new order
 - Tested: reorder of completed order #64749405 → new order #7cee0c3e auto-funded ₦850, escrow locked, logistics job spawned
 
+### Phase 2g — Living deal feed (Feb 21, 2026)
+- `GET /api/stats/recent-deals` — public; last 20 orders (escrow_funded+), anonymised: crop · qty · farmer initials (A.O.) · origin city · destination (first segment) · currency · status · seconds_ago
+- Landing marquee: pulsing LIVE dot + horizontal infinite-scroll cards below hero, edge mask gradient, 40s loop, pause-on-hover
+- Country flag emoji per deal; status icon (green ✓ for paid/delivered, blue truck for in-transit)
+- Auto-refresh every 45s — feed stays alive even if a user idles
+
 ## Deferred (Phase 3 backlog)
 
 ### P1
