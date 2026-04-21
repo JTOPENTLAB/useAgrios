@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Gift } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const ROLES = [
   { id: "farmer", title: "Farmer", desc: "List produce, get paid, access finance." },
@@ -12,6 +13,10 @@ const ROLES = [
 ];
 
 export default function Signup() {
+  useDocumentMeta({
+    title: "Sign up · AgriFlow — From Farm to Money",
+    description: "Join AgriFlow today. Buyers get ₦5,000 wallet credit on signup. Farmers list produce and get paid via escrow in 24 hours. Nigeria · Ghana · Kenya · Côte d'Ivoire.",
+  });
   const { signup } = useAuth();
   const nav = useNavigate();
   const [role, setRole] = useState("farmer");

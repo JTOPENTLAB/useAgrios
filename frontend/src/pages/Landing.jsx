@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Leaf, Shield, Wallet, Truck, Sparkles, Star, CheckCircle2 } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
 import RecentDealsFeed from "@/components/RecentDealsFeed";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const stats = [
   { v: "2.1M+", l: "KG facilitated (pilot)" },
@@ -137,6 +138,10 @@ function Stat({ label, value, testId }) {
 }
 
 export default function Landing() {
+  useDocumentMeta({
+    title: "AgriFlow — From Farm to Money | Africa's Agricultural Financial Infrastructure",
+    description: "Marketplace + wallet + escrow + logistics + AI for African agriculture. Launched in Nigeria. Buyers get ₦5,000 on signup — zero friction to source verified produce.",
+  });
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-ink" data-testid="landing-page">
       {/* Nav */}

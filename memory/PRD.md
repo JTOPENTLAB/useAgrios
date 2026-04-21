@@ -105,6 +105,16 @@ See `/app/memory/test_credentials.md`.
 - Gold banner on signup page when role=buyer selected, dynamic currency + amount per country pick
 - Landing hero teaser chip "🎁 Buyers get ₦5,000 on signup" under the CTA
 
+### Phase 2j — SEO, OpenGraph, Twitter cards, structured data (Feb 21, 2026)
+- Comprehensive meta tags in `public/index.html`: title, description, keywords, canonical URL
+- **OpenGraph** suite — `og:type`, `og:site_name`, `og:title`, `og:description`, `og:url`, `og:image` (1200×630), `og:image:width/height`, `og:image:alt`, `og:locale` + `og:locale:alternate` for en_NG / en_GH / en_KE / fr_CI
+- **Twitter Card** — `twitter:card=summary_large_image`, title, description, image, site, creator
+- **JSON-LD structured data** — Organization schema + WebSite schema with SearchAction (Google Sitelinks search box)
+- `/public/manifest.json` with brand theme color, standalone display, categories (business/finance/food)
+- `/public/robots.txt` + `/public/sitemap.xml` (3 public routes)
+- `useDocumentMeta` hook — updates `<title>` + description per route (Landing / Login / Signup all have unique titles now)
+- Verified: WhatsApp/Twitter/LinkedIn scraper previews will now show the AgriFlow brand, tagline "From Farm to Money", and a farmer hero image
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

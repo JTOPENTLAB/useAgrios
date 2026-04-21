@@ -2,8 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export default function Login() {
+  useDocumentMeta({
+    title: "Log in · AgriFlow",
+    description: "Log in to AgriFlow — Africa's Agricultural Financial Infrastructure. Marketplace, wallet, escrow, logistics and AI in one platform.",
+  });
   const { login } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");

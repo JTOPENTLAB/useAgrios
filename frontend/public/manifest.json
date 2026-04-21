@@ -1,0 +1,19 @@
+{
+  "short_name": "AgriFlow",
+  "name": "AgriFlow — From Farm to Money",
+  "description": "Africa's Agricultural Financial Infrastructure. Marketplace, wallet, escrow, logistics, and AI for farmers and buyers.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230F5132'/%3E%3Cpath d='M30 68c0-14 10-24 24-24h12v12c0 14-10 24-24 24H30V68z' fill='%23F59E0B'/%3E%3C/svg%3E",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0F5132",
+  "background_color": "#FAFAFA",
+  "orientation": "portrait-primary",
+  "categories": ["business", "finance", "food", "productivity"],
+  "lang": "en-NG"
+}
