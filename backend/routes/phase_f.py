@@ -262,11 +262,9 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         amount = float(body.amount)
         if amount < float(o.get("min_ticket", 0)):
             raise HTTPException(400, f"Minimum investment is {o['min_ticket']:,.0f}")
-        remaining = float(o["funding_target"]) - float(o.get("funding_raised", 0) or 0)
-        if amount > remaining + 0.01:
-            raise HTTPException(400, f"Only {remaining:,.0f} remaining to be raised")
 
-        # KYC tier enforcement (Phase H)
+        # KYC tier enforcement (Phase H) — evaluated BEFORE remaining-target check
+        # so users hit the actionable "Upgrade KYC" message when relevant.
         if kyc_tier_lookup and kyc_tiers:
             tier_key = kyc_tier_lookup(user)
             tier_cfg = kyc_tiers.get(tier_key, {})
@@ -283,6 +281,10 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
                     403,
                     f"Exceeds {tier_cfg.get('label','your')} tier limit. Remaining capacity: {tier_limit - used:,.0f}. Upgrade KYC tier to invest more.",
                 )
+
+        remaining = float(o["funding_target"]) - float(o.get("funding_raised", 0) or 0)
+        if amount > remaining + 0.01:
+            raise HTTPException(400, f"Only {remaining:,.0f} remaining to be raised")
 
         # Wallet debit
         wallet = await ensure_wallet(user["id"])

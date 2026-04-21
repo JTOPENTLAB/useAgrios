@@ -62,6 +62,30 @@ Tagline: **From Farm to Money.**
 
 ## Key business logic
 - **Commission**: 5% of order total (env `COMMISSION_PCT`)
+
+### Phase I — Social proof · Maturity automation · KYC tiers · Logistics earnings (Feb 21, 2026)
+- **New module** `/app/backend/routes/phase_h.py` (register() pattern, registered BEFORE phase_f so phase_f can consume KYC helpers).
+- **Investor social proof**:
+  - `GET /api/opportunities/{id}/social-proof` — last-24h investor count, volume, masked activity pills.
+  - `GET /api/opportunities/recently-matured?limit=N` — public carousel; real matured/closed opportunities first, 3-entry synthesised fallback when none exist (real_count=0 flag surfaced).
+  - Frontend: `<SocialProofStrip/>` on `OpportunityDetail` (emerald pulse strip with 3 masked amount·when pills), `<RecentlyMaturedCarousel/>` on `OpportunityMarketplace` and `InvestorHome`.
+- **Maturity + payout automation** (admin):
+  - `POST /api/admin/opportunities/{id}/mature` — flips opp + all active investments to `matured`, computes `realized_payout`, notifies each investor.
+  - `POST /api/admin/opportunities/{id}/payout` — credits every matured investment to its investor's wallet, writes `investment_payout` ledger entries, flips opp to `closed`.
+  - Frontend: `AdminOpportunities` page gains 2 new tabs (Matured · Closed), `mature-{id}` button on funded rows (prompts realized %), `payout-{id}` button on matured rows.
+- **Investor KYC tier limits**:
+  - `KYC_TIERS` config (unverified=₦0, bronze=₦500k, silver=₦5M, gold=₦100M).
+  - `GET /api/investor/kyc-status` — current tier, used/remaining capacity, full tier ladder.
+  - `POST /api/investor/kyc-upgrade` — auto-approved DEMO (no real KYC backend). Writes `kyc_upgrades` record + flips `users.kyc_tier`.
+  - Enforcement in `POST /api/opportunities/{id}/invest` — tier check runs BEFORE remaining-target check for actionable error messaging.
+  - Frontend: `<KycTierCard/>` on `InvestorPortfolio` with badge, usage bar, upgrade CTA (prompts for legal name + ID), 4-tier ladder.
+  - Demo investor now seeded at `kyc_tier='silver'` so they can place meaningful investments out of the box.
+- **Logistics partner earnings**:
+  - `GET /api/logistics/earnings?days=30|90|180` — returns total_earned, period_earned, delivered_count, active_count, on_time_pct (2-day heuristic), weekly bucketed series.
+  - Frontend: `/app/logistics/earnings` (new `LogisticsEarnings.jsx`) with KPI tiles + weekly bars + range toggles. Added to logistics nav sidebar.
+- **Tests**: `/app/backend/tests/test_phase_h.py` — 12/12 pytest pass (social-proof shape, recently-matured fallback, KYC status+upgrade, KYC 403 enforcement, full mature→payout flow, logistics earnings shape, 4 regression endpoints).
+- **Architecture decision**: Preferred extending via new `routes/phase_h.py` (register-pattern) instead of wholesale `server.py` refactor — zero risk to existing flows, fast to test. Full server.py split remains in P1 backlog.
+
 - **Loan interest**: set per-approval by admin (default 10%)
 - **Referral bonus**: ₦5,000 each side on first completed order after referral signup
 - **Max upload**: 5MB; allowed MIME: jpeg/png/webp/gif/pdf
