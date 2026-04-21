@@ -603,7 +603,19 @@ export default function Landing() {
       {/* ============ 7 + 8. FARMER + BUYER ============ */}
       <section className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="max-w-2xl mb-10">
+            <div className="text-xs font-bold uppercase tracking-wider text-brand mb-3">
+              Three sides. One platform.
+            </div>
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-ink">
+              Built for farmers, buyers, and investors.
+            </h2>
+            <p className="mt-4 text-ink-muted text-lg max-w-xl">
+              AGRIOS is the trust layer that connects the three sides of
+              agricultural trade — with money moving safely in the middle.
+            </p>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
             {/* Farmer card */}
             <div
               className="af-card p-8 lg:p-10 border-l-4 border-l-brand relative overflow-hidden"
@@ -666,6 +678,39 @@ export default function Landing() {
                   data-testid="buyer-cta"
                 >
                   Start sourcing <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Investor card (Phase F) */}
+            <div
+              className="af-card p-8 lg:p-10 border-l-4 border-l-emerald-600 relative overflow-hidden"
+              data-testid="role-card-investor"
+            >
+              <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 rounded-full px-3 py-1">
+                  <LineChart className="w-3.5 h-3.5" /> For Investors
+                </div>
+                <h3 className="font-heading font-extrabold text-3xl mt-5">
+                  Back real farms. Transparent returns.
+                </h3>
+                <p className="mt-3 text-ink-muted">
+                  Fund verified, admin-reviewed farm cycles. Watch every
+                  milestone, every payout, every naira.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  <RowBullet text="KYC-verified farmers with on-platform history." />
+                  <RowBullet text="Clear risk bands (A/B/C) and use-of-funds for every cycle." />
+                  <RowBullet text="Escrow-protected disbursements. Immutable ledger." />
+                  <RowBullet text="Portfolio dashboard with expected and realized returns." />
+                </ul>
+                <Link
+                  to="/signup"
+                  className="af-btn-primary mt-8"
+                  data-testid="investor-cta"
+                >
+                  Start investing <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>

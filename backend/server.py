@@ -109,7 +109,7 @@ app = FastAPI(title="AgriFlow API", version="0.1.0")
 api = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
-Role = Literal["farmer", "buyer", "logistics", "admin"]
+Role = Literal["farmer", "buyer", "logistics", "admin", "investor"]
 OrderStatus = Literal[
     "awaiting_payment",
     "escrow_funded",
@@ -2956,6 +2956,7 @@ async def admin_webhook_events(limit: int = 50, user: dict = Depends(require_rol
 
 # ---------------- Phase D: Scale + Moat routes (register on api before include) ----------------
 from routes import phase_d as _phase_d  # noqa: E402
+from routes import phase_f as _phase_f  # noqa: E402
 
 _phase_d_handles = _phase_d.register(
     api,
@@ -2966,6 +2967,17 @@ _phase_d_handles = _phase_d.register(
     new_id=new_id,
 )
 _check_alerts_for_listing = _phase_d_handles["check_alerts_for_listing"]
+
+_phase_f.register(
+    api,
+    db=db,
+    current_user=current_user,
+    require_roles=require_roles,
+    notify=notify,
+    new_id=new_id,
+    ensure_wallet=ensure_wallet,
+    ledger=ledger,
+)
 
 
 app.include_router(api)
@@ -3002,6 +3014,11 @@ async def seed() -> None:
     await db.listing_views.create_index([("listing_id", 1), ("at", -1)])
     # Phase E: supplier score snapshots (retention 365d)
     await db.supplier_score_history.create_index([("supplier_id", 1), ("captured_at", -1)])
+    # Phase F: opportunities + investments
+    await db.opportunities.create_index("id", unique=True)
+    await db.opportunities.create_index([("status", 1), ("created_at", -1)])
+    await db.investments.create_index("id", unique=True)
+    await db.investments.create_index([("investor_id", 1), ("created_at", -1)])
 
     # Seed admin
     if not await db.users.find_one({"email": "admin@agriflow.ng"}):
@@ -3140,6 +3157,97 @@ async def seed() -> None:
         )
         await ensure_wallet(lid)
         logger.info("Seeded demo logistics")
+
+    # Seed demo investor
+    if not await db.users.find_one({"email": "investor@agriflow.ng"}):
+        iid = new_id()
+        await db.users.insert_one(
+            {
+                "id": iid,
+                "email": "investor@agriflow.ng",
+                "password_hash": hash_password("Invest@123"),
+                "full_name": "Tunde Adesanya",
+                "role": "investor",
+                "phone": "+2348099988877",
+                "location": "Lagos",
+                "verified": True,
+                "kyc_status": "verified",
+                "referral_code": "AF-INV001",
+                "country": "NG",
+                "currency": "NGN",
+                "created_at": utcnow(),
+            }
+        )
+        await ensure_wallet(iid)
+        await db.wallets.update_one({"user_id": iid}, {"$set": {"available": 2000000}})
+        await ledger(iid, "fund", 2000000, "credit", new_id(), "Demo seed balance")
+        logger.info("Seeded demo investor")
+
+    # Seed demo opportunities if none exist
+    if await db.opportunities.count_documents({}) == 0:
+        farmer = await db.users.find_one({"email": "farmer@agriflow.ng"}, {"_id": 0})
+        if farmer:
+            demo_opps = [
+                {
+                    "title": "Cassava expansion — Oyo · 6mo cycle",
+                    "crop": "Cassava",
+                    "summary": "Scaling our Cassava farm from 8ha to 20ha for the next dry-season harvest. Funds go to seedlings, labour, and mechanised tilling. 3yr track record with AGRIOS.",
+                    "region": "Oyo",
+                    "duration_months": 6,
+                    "funding_target": 750000.0,
+                    "funding_raised": 180000.0,
+                    "min_ticket": 5000.0,
+                    "target_return_pct": 14.0,
+                    "risk_band": "B",
+                    "use_of_funds": "40% seedlings · 30% labour · 20% mechanised tilling · 10% working capital",
+                    "investor_count": 3,
+                },
+                {
+                    "title": "Tomato greenhouse — Ogun · 4mo",
+                    "crop": "Tomato",
+                    "summary": "Short-cycle greenhouse tomato production with pre-committed offtake from two Lagos wholesalers. Lower weather risk thanks to covered cultivation.",
+                    "region": "Ogun",
+                    "duration_months": 4,
+                    "funding_target": 400000.0,
+                    "funding_raised": 320000.0,
+                    "min_ticket": 10000.0,
+                    "target_return_pct": 11.0,
+                    "risk_band": "A",
+                    "use_of_funds": "60% inputs · 25% greenhouse maintenance · 15% labour",
+                    "investor_count": 8,
+                },
+                {
+                    "title": "Rice paddy — Kebbi · 10mo",
+                    "crop": "Rice",
+                    "summary": "New 15ha paddy cycle in Kebbi with pending offtake agreement. Higher upside, longer cycle, seasonal price volatility.",
+                    "region": "Kebbi",
+                    "duration_months": 10,
+                    "funding_target": 1500000.0,
+                    "funding_raised": 250000.0,
+                    "min_ticket": 25000.0,
+                    "target_return_pct": 22.0,
+                    "risk_band": "C",
+                    "use_of_funds": "Land prep, inputs, irrigation repair, harvest labour",
+                    "investor_count": 2,
+                },
+            ]
+            for d in demo_opps:
+                await db.opportunities.insert_one(
+                    {
+                        "id": new_id(),
+                        "farmer_id": farmer["id"],
+                        "farmer_name": farmer["full_name"],
+                        "farmer_verified": True,
+                        "country": "NG",
+                        "currency": "NGN",
+                        "status": "open",
+                        "approved_at": datetime.now(timezone.utc),
+                        "expected_close_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                        "created_at": datetime.now(timezone.utc),
+                        **d,
+                    }
+                )
+            logger.info("Seeded demo opportunities")
 
 
 @app.on_event("shutdown")

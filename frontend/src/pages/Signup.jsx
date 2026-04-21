@@ -7,8 +7,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const ROLES = [
-  { id: "farmer", title: "Farmer", desc: "List produce, get paid, access finance." },
+  { id: "farmer", title: "Farmer", desc: "List produce, raise finance, reach buyers." },
   { id: "buyer", title: "Buyer", desc: "Source verified supply with escrow protection." },
+  { id: "investor", title: "Investor", desc: "Back verified farm cycles. Transparent returns." },
   { id: "logistics", title: "Logistics partner", desc: "Accept jobs, run deliveries, earn." },
 ];
 
@@ -84,7 +85,7 @@ export default function Signup() {
             );
           })()}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
             {ROLES.map((r) => (
               <button
                 key={r.id}

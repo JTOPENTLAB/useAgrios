@@ -193,7 +193,31 @@ See `/app/memory/test_credentials.md`.
 - **Architecture** — new `/app/backend/routes/phase_d.py` module attached via `register(api, db, ...)` pattern to avoid further bloating server.py.
 - **Tests**: `/app/backend/tests/test_phase_d.py` — 20/20 pytest pass. Iteration 10 frontend 95%.
 
-### Phase E — Landing + Engineering Polish (Feb 2026)
+### Phase E — Engineering Polish (Feb 2026)
+- Real `recent_viewers` from `listing_views` collection (10-min TTL) — replaces heuristic; `GET /api/listings/{id}` logs view event per X-Forwarded-For.
+- Supplier score history — `supplier_score_history` collection captures daily snapshots; response adds `score_version: 1` + `score_delta_30d`; new `GET /api/suppliers/{id}/score-history`.
+- `<Skeleton>` / `<CardSkeleton>` / `<ChartSkeleton>` primitives wired into MarketIntel (trend bars + heatmap) and FarmerEarnings (weekly chart).
+- SupplierScoreCard renders "+N/-N · 30d" pill when delta available.
+
+### Phase F — Investor Marketplace (Feb 2026)
+- **New user role: `investor`** added to `Role = Literal[...]`. Signup page now offers 4 role cards: Farmer · Buyer · Investor · Logistics.
+- **New module** `/app/backend/routes/phase_f.py` attached via register() pattern — no bloat to server.py.
+- **Opportunities lifecycle** — farmer creates (status=review) → admin approve/reject → open → funded. Endpoints: `POST /api/opportunities` (farmer), `GET /api/opportunities` (public, excludes review/rejected), `GET /api/opportunities/mine` (farmer), `GET /api/opportunities/{id}` (hydrates investments sample), `POST /api/opportunities/{id}/approve|reject` (admin).
+- **Investment flow** — `POST /api/opportunities/{id}/invest` (investor) debits wallet, creates investment doc, updates opportunity counters, flips to `funded` when fully raised, fires notifications for both farmer + investor. Status lifecycle on investment: active → matured → paid.
+- **Portfolio** — `GET /api/investments/mine` (hydrates opportunity title/crop/region/status) · `GET /api/investments/summary` (total_invested, expected_returns, realized_returns, active/matured/paid counts, by_risk_band breakdown).
+- **Frontend pages** (under `/app/frontend/src/pages/investor/`):
+  - `InvestorHome.jsx` — Portfolio hero (dark brand gradient with N0 until investments placed), Risk-mix mini-bars, Investable wallet tile, Featured open opportunities grid. Route: `/app/investor`.
+  - `OpportunityMarketplace.jsx` — Search + risk filter (A/B/C/All) + card grid. Route: `/app/opportunities`. Accessible to investor + admin + farmer + buyer (farmers use to "Raise funding").
+  - `OpportunityDetail.jsx` — Left column: description, metrics (return/duration/min ticket), funding progress bar, risk disclosure callout, use of funds, farmer card. Right column: sticky Invest panel with quick-amount chips + expected-payout preview + "Invest from wallet" CTA. Route: `/app/opportunities/:id`.
+  - `InvestorPortfolio.jsx` — 4 KPI tiles + investments list with status pill, expected payout, maturity date. Route: `/app/portfolio`.
+  - Shared `OpportunityCard` exported from InvestorHome (reused in marketplace).
+- **Landing page** — added 3rd role card "For Investors" (emerald border-left) alongside Farmer + Buyer with `investor-cta` testid + heading rewritten to "Built for farmers, buyers, and investors."
+- **Nav** — AppShell adds `investor` role array (Home · Opportunities · Portfolio · Wallet · Market Pulse). Farmer nav gets "Raise funding" entry (links to /app/opportunities). Admin gets "Opportunities" entry (review queue).
+- **RoleHome** routes investor role → `/app/investor`.
+- **Seed data** — demo investor (`investor@agriflow.ng` / `Invest@123`, ₦2M wallet balance) + 3 demo opportunities (Cassava · Tomato · Rice — risk A/B/C, various durations) seeded on startup if no opportunities exist.
+- **Tests** — `/app/backend/tests/test_phase_f.py` (4/4 pass) · aggregate suite 28/28 pass.
+
+
 - **Landing page fully rewritten** (see above) — global infrastructure positioning, 13-section structure.
 - **Real `recent_viewers`** — new `listing_views` collection with 10-min TTL index. `GET /api/listings/{id}` now logs a view event keyed by `X-Forwarded-For` (first hop) or User-Agent hash. `/api/liquidity/listing/{id}` returns `distinct(viewer_id)` within last 10 min instead of the previous deterministic `views // 8` heuristic. Note: `at` field MUST be a real `datetime` (not `utcnow()` string) so `$gte` queries + TTL work correctly.
 - **Supplier score history** — new `supplier_score_history` collection. Every call to `/api/suppliers/{id}/performance` snapshots `{supplier_id, captured_at, score, band, completed_orders, gmv, avg_rating, score_version}`. Response now includes `score_version: 1` + `score_delta_30d` (difference vs snapshot ≥30 days ago, `null` on cold start). New `GET /api/suppliers/{id}/score-history?days=7..365` returns per-day series for trend charts.

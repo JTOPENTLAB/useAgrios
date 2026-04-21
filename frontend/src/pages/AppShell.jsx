@@ -21,6 +21,8 @@ import {
   TrendingUp,
   Bell,
   LineChart,
+  Briefcase,
+  LandPlot,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -34,6 +36,7 @@ const NAV = {
     { to: "/app/farmer/earnings", label: "Earnings", icon: TrendingUp },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
     { to: "/app/farmer/loans", label: "Loans", icon: Banknote },
+    { to: "/app/opportunities", label: "Raise funding", icon: LandPlot },
     { to: "/app/market", label: "Market intel", icon: LineChart },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/farmer/ai", label: "AI Tools", icon: Sparkles },
@@ -62,9 +65,17 @@ const NAV = {
     { to: "/app/admin/loans", label: "Loans", icon: Banknote },
     { to: "/app/admin/disputes", label: "Disputes", icon: AlertTriangle },
     { to: "/app/admin/reconcile", label: "Reconcile", icon: HeartPulse },
+    { to: "/app/opportunities", label: "Opportunities", icon: Briefcase },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/jobs", label: "Logistics", icon: Truck },
+  ],
+  investor: [
+    { to: "/app/investor", label: "Home", icon: LayoutDashboard, end: true },
+    { to: "/app/opportunities", label: "Opportunities", icon: Briefcase },
+    { to: "/app/portfolio", label: "Portfolio", icon: LineChart },
+    { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
+    { to: "/app/digest", label: "Market Pulse", icon: Mail },
   ],
 };
 

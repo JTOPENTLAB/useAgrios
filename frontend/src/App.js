@@ -21,6 +21,10 @@ import BuyerHome from "@/pages/buyer/BuyerHome";
 import PriceAlerts from "@/pages/buyer/PriceAlerts";
 import FarmerEarnings from "@/pages/farmer/FarmerEarnings";
 import MarketIntel from "@/pages/MarketIntel";
+import InvestorHome from "@/pages/investor/InvestorHome";
+import OpportunityMarketplace from "@/pages/investor/OpportunityMarketplace";
+import OpportunityDetail from "@/pages/investor/OpportunityDetail";
+import InvestorPortfolio from "@/pages/investor/InvestorPortfolio";
 import Digest from "@/pages/Digest";
 import Reconcile from "@/pages/admin/Reconcile";
 import ProductDetail from "@/pages/buyer/ProductDetail";
@@ -49,6 +53,7 @@ const RoleHome = () => {
   if (!user) return <Navigate to="/login" />;
   if (user.role === "farmer") return <Navigate to="/app/farmer" replace />;
   if (user.role === "buyer") return <Navigate to="/app/home" replace />;
+  if (user.role === "investor") return <Navigate to="/app/investor" replace />;
   if (user.role === "logistics") return <Navigate to="/app/jobs" replace />;
   if (user.role === "admin") return <Navigate to="/app/admin" replace />;
   return <Navigate to="/login" replace />;
@@ -92,6 +97,10 @@ function App() {
               <Route path="buyer/alerts" element={<Guard roles={["buyer"]}><PriceAlerts /></Guard>} />
               <Route path="farmer/earnings" element={<Guard roles={["farmer"]}><FarmerEarnings /></Guard>} />
               <Route path="market" element={<Guard roles={["buyer", "farmer", "admin"]}><MarketIntel /></Guard>} />
+              <Route path="investor" element={<Guard roles={["investor"]}><InvestorHome /></Guard>} />
+              <Route path="opportunities" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityMarketplace /></Guard>} />
+              <Route path="opportunities/:id" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityDetail /></Guard>} />
+              <Route path="portfolio" element={<Guard roles={["investor"]}><InvestorPortfolio /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
               <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />
