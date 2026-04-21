@@ -74,28 +74,31 @@ export default function FarmerEarnings() {
       </div>
 
       {/* KPI row */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-3 gap-4" data-testid="earnings-kpi-row">
         <Kpi
           icon={WalletIcon}
           label="Total earnings"
           value={fmtMoney(data?.total_gmv || 0, currency)}
           tone="brand"
+          testId="earnings-kpi-total"
         />
         <Kpi
           icon={Package}
           label="Orders released"
           value={data?.total_orders || 0}
+          testId="earnings-kpi-orders"
         />
         <Kpi
           icon={Repeat}
           label="Repeat buyers"
           value={data?.repeat_buyers?.length || 0}
           tone="gold"
+          testId="earnings-kpi-repeat"
         />
       </div>
 
       {/* Weekly series chart */}
-      <div className="af-card p-6">
+      <div className="af-card p-6" data-testid="earnings-weekly-chart">
         <h3 className="font-heading font-bold flex items-center gap-2 mb-4">
           <TrendingUp className="w-4 h-4 text-brand" />
           Weekly earnings
@@ -231,7 +234,7 @@ export default function FarmerEarnings() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, tone = "default" }) {
+function Kpi({ icon: Icon, label, value, tone = "default", testId }) {
   const tones = {
     brand: "from-brand to-brand-dark text-white",
     gold: "from-gold/90 to-amber-500 text-white",
@@ -245,6 +248,7 @@ function Kpi({ icon: Icon, label, value, tone = "default" }) {
           ? `bg-gradient-to-br ${tones[tone]} border-0`
           : tones.default
       }`}
+      data-testid={testId}
     >
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-80">
         <Icon className="w-4 h-4" />

@@ -182,7 +182,32 @@ See `/app/memory/test_credentials.md`.
 - **Scheduler hardening** — respects `ENABLE_CRON` + `FEATURE_MARKET_PULSE` flag + configurable `MARKET_PULSE_CRON_HOUR_UTC`.
 - **Tests**: 15/15 pytest + 100% frontend (iteration 8). One minor projection fix (text_bytes missing from /api/digest/log) caught + fixed in-iteration.
 
-## Deferred (Phase 3 backlog)
+### Phase D — Scale + Moat (Feb 2026)
+- **Liquidity signals** — `GET /api/liquidity/listing/{id}` + `<LiquiditySignals/>` block on ProductDetail + inline "viewing" pulse on ProductCard. Surfaces recent_viewers / orders_this_week / active_suppliers / same-country suppliers to drive urgency.
+- **Supplier performance score** — `GET /api/suppliers/{id}/performance` (composite 0–100 · band A–D · badges: verified_pro · top_supplier · rising_star · trusted_by_buyers · metrics: completed_orders, gmv, unique_buyers, repeat_buyer_count, active_listings, avg_rating, on_time_pct, disputes, best_crops). New `<SupplierScoreCard/>` rendered on FarmerDashboard.
+- **Farmer earnings intelligence** — new `/app/farmer/earnings` page (`FarmerEarnings.jsx`). Weekly GMV line chart, top 5 crops bar chart, top regions ranking, repeat-buyers grid. Backed by `GET /api/farmer/earnings?days=30|90|180`. Nav added under Farmer.
+- **Price alerts** — buyer CRUD at `POST/GET/DELETE /api/alerts/price` + new `/app/buyer/alerts` page. Alerts match on crop + country + max_price + min_qty; auto-fire notification on `POST /api/listings` through `_check_alerts_for_listing(doc)` hook. Uses `re.escape()` to guard against regex metachars in crop names.
+- **Market Intelligence v2** — new `/app/market` page (`MarketIntel.jsx`). Daily median price-trend area chart, region×crop demand heatmap (darker cells = more GMV), hot-crops strip. Backed by `GET /api/market/price-trend` (series + snapshot + wow_pct) and `GET /api/market/demand-heatmap` (rows × cells matrix). Accessible to buyer + farmer + admin.
+- **Growth invite** — `GET /api/growth/invite` returns user's referral code, signup link (with `?ref=`), referred count, and pre-baked WhatsApp text.
+- **Admin KPIs** — `GET /api/admin/kpis` (admin-only) returns gmv_7d/30d, escrow_locked, active_farmers/buyers_7d, repeat_buyers, loan_volume, price_alerts_active. New KPI row added to AdminDashboard.
+- **Navigation** — AppShell adds: Earnings (farmer), Market intel (farmer+buyer), Price alerts (buyer). BuyerHome gains two discovery promos (Price alerts + Market intel).
+- **Architecture** — new `/app/backend/routes/phase_d.py` module attached via `register(api, db, ...)` pattern to avoid further bloating server.py.
+- **Tests**: `/app/backend/tests/test_phase_d.py` — 20/20 pytest pass. Iteration 10 frontend 95% (minor testid cosmetic gaps fixed post-iteration). Price-alert auto-trigger end-to-end verified: buyer alert → farmer listing → notification fired + triggered_count incremented.
+
+## Phase D still open / backlog
+### P1
+- Upgrade recent_viewers from heuristic (views//8) to real ephemeral view-events with TTL index
+- Persist supplier score snapshots for trend analysis ("Your score improved +12 this month")
+- Loading skeletons on MarketIntel + FarmerEarnings
+
+### P2
+- Buyer bulk-order templates (save cart: crop + qty + cadence)
+- Supplier comparison view (side-by-side)
+- Buyer pay-later / invoice financing
+- Contract orders / volume discounts (enterprise B2B layer)
+- Country switcher UI (backend multi-country already ready)
+
+
 
 ### P1
 - Paystack / Flutterwave real payment rails
@@ -193,6 +218,8 @@ See `/app/memory/test_credentials.md`.
 
 ### P2
 - Insurance products + premium buyer subscriptions
+## Deferred (Phase 3 backlog)
+
 - Demand forecasting ML model
 - Admin fraud flags + watchlist
 - Signed URLs for sensitive uploads (currently `/api/files/{path}` is public-by-obscurity)

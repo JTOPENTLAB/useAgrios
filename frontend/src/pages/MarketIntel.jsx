@@ -69,7 +69,7 @@ export default function MarketIntel() {
       </div>
 
       {/* Crop switcher + trend */}
-      <div className="af-card p-6">
+      <div className="af-card p-6" data-testid="price-trend-card">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
           <div>
             <h3 className="font-heading font-bold flex items-center gap-2 text-lg">
@@ -177,7 +177,7 @@ export default function MarketIntel() {
       </div>
 
       {/* Demand Heatmap */}
-      <div className="af-card p-6" data-testid="demand-heatmap">
+      <div className="af-card p-6" data-testid="demand-heatmap-card">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
           <div>
             <h3 className="font-heading font-bold flex items-center gap-2 text-lg">

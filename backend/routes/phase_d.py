@@ -7,6 +7,7 @@ with /api by the parent router.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -337,7 +338,7 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
 
         alerts = await db.price_alerts.find({
             "active": True,
-            "crop": {"$regex": f"^{crop}$", "$options": "i"},
+            "crop": {"$regex": f"^{re.escape(crop)}$", "$options": "i"},
             "country": country,
             "max_price_per_kg": {"$gte": price},
         }, {"_id": 0}).to_list(500)
@@ -374,7 +375,7 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
     ):
         since = _now() - timedelta(days=days)
         filt: dict[str, Any] = {
-            "crop": {"$regex": f"^{crop}$", "$options": "i"},
+            "crop": {"$regex": f"^{re.escape(crop)}$", "$options": "i"},
             "created_at": {"$gte": since},
             "escrow_status": {"$in": ["funded", "released"]},
         }
@@ -416,7 +417,7 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
 
         # Listing snapshot for forward-looking price range
         listings = await db.listings.find(
-            {"crop": {"$regex": f"^{crop}$", "$options": "i"}, "status": "active",
+            {"crop": {"$regex": f"^{re.escape(crop)}$", "$options": "i"}, "status": "active",
              **({"country": country.upper()} if country else {})},
             {"_id": 0, "price_per_kg": 1, "country": 1, "location": 1},
         ).to_list(500)
