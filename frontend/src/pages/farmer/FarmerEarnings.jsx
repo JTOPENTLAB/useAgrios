@@ -104,7 +104,17 @@ export default function FarmerEarnings() {
           Weekly earnings
         </h3>
         {loading ? (
-          <div className="py-10 text-center text-ink-muted">Loading…</div>
+          <div className="py-6" data-testid="earnings-chart-skeleton">
+            <div className="flex items-end gap-2 h-56">
+              {[45, 62, 50, 75, 58, 82, 70, 90, 65, 85, 72, 95].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 animate-pulse bg-zinc-100 rounded-t-md"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
         ) : (data?.weekly_series || []).length === 0 ? (
           <div className="py-10 text-center text-ink-muted">
             No released orders yet. Complete a delivery to start seeing your

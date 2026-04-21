@@ -66,9 +66,12 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
         views_total = int(listing.get("views", 0) or 0)
         # Use saves as engagement signal too
         saves_total = int(listing.get("saves", 0) or 0)
-        # Simulated live viewers count based on recency + views (deterministic per-listing)
-        # For a real "live" feel without socket infra.
-        recent_viewers = min(max(views_total // 8, 1), 12)
+        # Real live viewers: distinct viewer_ids seen in the last 10 min
+        ten_min_ago = _now() - timedelta(minutes=10)
+        distinct = await db.listing_views.distinct(
+            "viewer_id", {"listing_id": listing_id, "at": {"$gte": ten_min_ago}}
+        )
+        recent_viewers = len(distinct)
 
         # Regional context
         same_country_count = await db.listings.count_documents({
@@ -166,12 +169,37 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
             for c, n in sorted(crop_counts.items(), key=lambda x: x[1], reverse=True)[:5]
         ]
 
+        # Score history (Phase E) — persist snapshot + compute delta vs 30d ago
+        try:
+            await db.supplier_score_history.insert_one({
+                "supplier_id": supplier_id,
+                "captured_at": _now(),
+                "score": score,
+                "band": "A" if score >= 80 else ("B" if score >= 60 else ("C" if score >= 40 else "D")),
+                "completed_orders": completed_orders,
+                "gmv": round(gmv, 2),
+                "avg_rating": avg_rating,
+                "score_version": 1,
+            })
+        except Exception:
+            pass
+
+        thirty_ago = _now() - timedelta(days=30)
+        prior = await db.supplier_score_history.find_one(
+            {"supplier_id": supplier_id, "captured_at": {"$lte": thirty_ago}},
+            {"_id": 0, "score": 1, "captured_at": 1},
+            sort=[("captured_at", -1)],
+        )
+        score_delta_30d = (score - prior["score"]) if prior else None
+
         return {
             "supplier_id": supplier_id,
             "full_name": user.get("full_name"),
             "verified": bool(user.get("verified")),
             "country": user.get("country") or "NG",
             "score": score,
+            "score_version": 1,
+            "score_delta_30d": score_delta_30d,
             "band": "A" if score >= 80 else ("B" if score >= 60 else ("C" if score >= 40 else "D")),
             "badges": badges,
             "metrics": {
@@ -186,6 +214,30 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id)
                 "on_time_pct": on_time_pct,
             },
             "best_crops": best_crops,
+        }
+
+    @api.get("/suppliers/{supplier_id}/score-history")
+    async def supplier_score_history(supplier_id: str, days: int = Query(default=90, ge=7, le=365)):
+        since = _now() - timedelta(days=days)
+        rows = await db.supplier_score_history.find(
+            {"supplier_id": supplier_id, "captured_at": {"$gte": since}},
+            {"_id": 0, "captured_at": 1, "score": 1, "band": 1},
+        ).sort("captured_at", 1).to_list(2000)
+        # Dedup per day (take last snapshot of each day)
+        by_day: dict[str, dict[str, Any]] = {}
+        for r in rows:
+            ts = r["captured_at"]
+            if isinstance(ts, str):
+                try:
+                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+            key = ts.date().isoformat()
+            by_day[key] = {"date": key, "score": r["score"], "band": r.get("band")}
+        return {
+            "supplier_id": supplier_id,
+            "days": days,
+            "series": sorted(by_day.values(), key=lambda x: x["date"]),
         }
 
     # =====================================================================

@@ -13,6 +13,7 @@ import {
 import { TrendingUp, TrendingDown, Flame, Grid3x3 } from "lucide-react";
 import api, { fmtMoney } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { ChartSkeleton, CardSkeleton, Skeleton } from "@/components/Skeleton";
 
 export default function MarketIntel() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function MarketIntel() {
   const [selectedCrop, setSelectedCrop] = useState("");
   const [trend, setTrend] = useState(null);
   const [heatmap, setHeatmap] = useState(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [loadingTrend, setLoadingTrend] = useState(false);
 
   const currency = user?.currency || "NGN";
@@ -31,7 +33,10 @@ export default function MarketIntel() {
       setCrops(items.slice(0, 8));
       if (items.length && !selectedCrop) setSelectedCrop(items[0].crop);
     });
-    api.get("/market/demand-heatmap?days=60").then((r) => setHeatmap(r.data));
+    api
+      .get("/market/demand-heatmap?days=60")
+      .then((r) => setHeatmap(r.data))
+      .finally(() => setHeatmapLoading(false));
   }, []); // eslint-disable-line
 
   useEffect(() => {
@@ -140,7 +145,17 @@ export default function MarketIntel() {
         )}
 
         {loadingTrend ? (
-          <div className="py-10 text-center text-ink-muted">Loading…</div>
+          <div className="py-6">
+            <div className="flex items-end gap-2 h-56">
+              {[45, 62, 50, 75, 58, 82, 70, 90, 65, 85, 72, 95].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 animate-pulse bg-zinc-100 rounded-t-md"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
         ) : !trend?.series?.length ? (
           <div className="py-10 text-center text-ink-muted">
             Not enough order history for {selectedCrop} yet — trend will appear
@@ -200,7 +215,18 @@ export default function MarketIntel() {
           </div>
         </div>
 
-        {!heatmap?.rows?.length ? (
+        {heatmapLoading ? (
+          <div className="space-y-2" data-testid="heatmap-skeleton">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <Skeleton className="h-8 w-24" />
+                {Array.from({ length: 6 }).map((__, j) => (
+                  <Skeleton key={j} className="h-8 flex-1" />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : !heatmap?.rows?.length ? (
           <div className="py-10 text-center text-ink-muted">
             Heatmap fills in as orders flow. Come back after the first batch of
             completed deliveries.

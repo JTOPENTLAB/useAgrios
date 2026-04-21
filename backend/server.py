@@ -573,13 +573,23 @@ async def saved_listings(user: dict = Depends(require_roles("buyer"))):
 
 
 @api.get("/listings/{listing_id}")
-async def get_listing(listing_id: str):
+async def get_listing(listing_id: str, request_: Optional[dict] = None, ua: Optional[str] = Header(default=None, alias="User-Agent"), xff: Optional[str] = Header(default=None, alias="X-Forwarded-For")):
     l = await db.listings.find_one({"id": listing_id}, {"_id": 0})
     if not l:
         raise HTTPException(404, "Listing not found")
-    # Bump view counter (fire-and-forget style)
+    # Bump view counter (lifetime) + log ephemeral view event (Phase E)
     await db.listings.update_one({"id": listing_id}, {"$inc": {"views": 1}})
     l["views"] = (l.get("views") or 0) + 1
+    # Identify viewer (anon IP-ish fingerprint is fine — this is only a 10-min heuristic)
+    viewer_id = (xff or "").split(",")[0].strip() or (ua or "anon")[:50]
+    try:
+        await db.listing_views.insert_one({
+            "listing_id": listing_id,
+            "viewer_id": viewer_id,
+            "at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
     return l
 
 
@@ -2987,6 +2997,11 @@ async def seed() -> None:
     await db.files.create_index("storage_path")
     await db.price_alerts.create_index("user_id")
     await db.price_alerts.create_index([("crop", 1), ("country", 1), ("active", 1)])
+    # Phase E: ephemeral listing view events — TTL 10 min (600s)
+    await db.listing_views.create_index("at", expireAfterSeconds=600)
+    await db.listing_views.create_index([("listing_id", 1), ("at", -1)])
+    # Phase E: supplier score snapshots (retention 365d)
+    await db.supplier_score_history.create_index([("supplier_id", 1), ("captured_at", -1)])
 
     # Seed admin
     if not await db.users.find_one({"email": "admin@agriflow.ng"}):

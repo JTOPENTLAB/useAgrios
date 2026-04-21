@@ -193,14 +193,13 @@ See `/app/memory/test_credentials.md`.
 - **Architecture** — new `/app/backend/routes/phase_d.py` module attached via `register(api, db, ...)` pattern to avoid further bloating server.py.
 - **Tests**: `/app/backend/tests/test_phase_d.py` — 20/20 pytest pass. Iteration 10 frontend 95%.
 
-### Phase E — Global Landing Repositioning (Feb 2026)
-- **Landing page fully rewritten** (`/app/frontend/src/pages/Landing.jsx`) — 13-section structure: Hero · Trust strip · What AGRIOS does · How it works · Market Intelligence · Financial layer (dark gradient section) · For Farmers + For Buyers (split cards) · Video/growth · Global positioning (Today/Next/Long-term rollout cards) · Social proof · Final CTA · Footer.
-- **New positioning** — "The Operating System for Agricultural Trade" as headline. Subhead: "AGRIOS moves agricultural goods and money with the trust and precision of modern financial infrastructure. Global by design. Launching in Nigeria." Nigeria now framed as launch market, not identity.
-- **Footer line updated**: `"Built for global agricultural trade. Launching in Nigeria."` (replaces "Built for Nigeria. Designed for Africa.")
-- **SEO + OG + JSON-LD** updated (`/app/frontend/public/index.html`) — title, description, og:description, twitter:description, JSON-LD Organization.description & slogan all aligned to global infrastructure narrative.
-- **Live data preserved** — LiveStatsStrip, EscrowLockedBadge, RecentDealsFeed components retained. No backend change.
-- **New components** inline to Landing: TrustPill, WhatCard, FinPill, WBox, LedgerRow, RolloutCard, ProofCard, MiniStat.
-- **Tone shift**: short declarative sentences · Stripe/Revolut-style confidence · no buzzwords · clearer CTAs ("Start trading" · "Explore the marketplace" · "Start selling" · "Start sourcing" · "Create free account").
+### Phase E — Landing + Engineering Polish (Feb 2026)
+- **Landing page fully rewritten** (see above) — global infrastructure positioning, 13-section structure.
+- **Real `recent_viewers`** — new `listing_views` collection with 10-min TTL index. `GET /api/listings/{id}` now logs a view event keyed by `X-Forwarded-For` (first hop) or User-Agent hash. `/api/liquidity/listing/{id}` returns `distinct(viewer_id)` within last 10 min instead of the previous deterministic `views // 8` heuristic. Note: `at` field MUST be a real `datetime` (not `utcnow()` string) so `$gte` queries + TTL work correctly.
+- **Supplier score history** — new `supplier_score_history` collection. Every call to `/api/suppliers/{id}/performance` snapshots `{supplier_id, captured_at, score, band, completed_orders, gmv, avg_rating, score_version}`. Response now includes `score_version: 1` + `score_delta_30d` (difference vs snapshot ≥30 days ago, `null` on cold start). New `GET /api/suppliers/{id}/score-history?days=7..365` returns per-day series for trend charts.
+- **SupplierScoreCard UI** — shows "+N / 30d" pill in emerald/red next to score when delta available (data-testid="score-delta-30d").
+- **Loading skeletons** — new `/app/frontend/src/components/Skeleton.jsx` (Skeleton, CardSkeleton, ChartSkeleton). Wired into MarketIntel (price-trend bar skeleton + heatmap row skeleton) and FarmerEarnings (weekly-chart skeleton). No more "Loading…" text.
+- **Tests**: `/app/backend/tests/test_phase_e.py` — 4/4 pytest pass (real viewer count, score_version/delta field, score-history endpoint shape, 404 on liquidity).
 
  — `GET /api/liquidity/listing/{id}` + `<LiquiditySignals/>` block on ProductDetail + inline "viewing" pulse on ProductCard. Surfaces recent_viewers / orders_this_week / active_suppliers / same-country suppliers to drive urgency.
 - **Supplier performance score** — `GET /api/suppliers/{id}/performance` (composite 0–100 · band A–D · badges: verified_pro · top_supplier · rising_star · trusted_by_buyers · metrics: completed_orders, gmv, unique_buyers, repeat_buyer_count, active_listings, avg_rating, on_time_pct, disputes, best_crops). New `<SupplierScoreCard/>` rendered on FarmerDashboard.

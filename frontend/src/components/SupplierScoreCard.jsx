@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, ArrowRight } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import SupplierBadge from "@/components/SupplierBadge";
@@ -49,6 +49,24 @@ export default function SupplierScoreCard({ farmerId }) {
               <div className="ml-2 rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-xs font-bold">
                 Band {perf.band}
               </div>
+              {typeof perf.score_delta_30d === "number" && perf.score_delta_30d !== 0 && (
+                <div
+                  className={`ml-1 inline-flex items-center gap-1 text-xs font-bold rounded-full px-2 py-0.5 ${
+                    perf.score_delta_30d > 0
+                      ? "bg-emerald-400/25 text-emerald-50"
+                      : "bg-red-400/25 text-red-50"
+                  }`}
+                  data-testid="score-delta-30d"
+                >
+                  {perf.score_delta_30d > 0 ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  )}
+                  {perf.score_delta_30d > 0 ? "+" : ""}
+                  {perf.score_delta_30d} · 30d
+                </div>
+              )}
             </div>
           </div>
         </div>
