@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 const ROLES = [
@@ -13,6 +14,7 @@ export default function Signup() {
   const { signup } = useAuth();
   const nav = useNavigate();
   const [role, setRole] = useState("farmer");
+  const [countries, setCountries] = useState([]);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -22,8 +24,11 @@ export default function Signup() {
     location: "",
     referral_code: "",
     farm_size_hectares: "",
+    country: "NG",
   });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => { api.get("/countries").then((r) => setCountries(r.data)); }, []);
 
   const upd = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -75,6 +80,24 @@ export default function Signup() {
           </div>
 
           <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8" data-testid="signup-form">
+            <div className="sm:col-span-2">
+              <label className="text-sm font-semibold text-ink-soft mb-1 block">Country</label>
+              <div className="flex flex-wrap gap-2" data-testid="country-picker">
+                {countries.map((c) => (
+                  <button
+                    type="button"
+                    key={c.code}
+                    onClick={() => setForm((f) => ({ ...f, country: c.code }))}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold border transition ${
+                      form.country === c.code ? "bg-brand text-white border-brand" : "bg-white text-ink-soft border-zinc-200 hover:border-brand"
+                    }`}
+                    data-testid={`country-${c.code}`}
+                  >
+                    <span className="mr-1.5">{c.flag}</span> {c.name} · {c.currency}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <label className="text-sm font-semibold text-ink-soft mb-1 block">Full name</label>
               <input className="af-input" required value={form.full_name} onChange={upd("full_name")} data-testid="signup-name" />

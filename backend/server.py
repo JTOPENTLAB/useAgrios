@@ -146,6 +146,7 @@ class SignupIn(BaseModel):
     location: Optional[str] = None
     referral_code: Optional[str] = None
     farm_size_hectares: Optional[float] = None
+    country: Optional[str] = "NG"
 
 
 class LoginIn(BaseModel):
@@ -167,6 +168,8 @@ class UserOut(BaseDoc):
     farm_size_hectares: Optional[float] = None
     subscription_tier: Optional[str] = "basic"
     subscription_expires_at: Optional[str] = None
+    country: Optional[str] = "NG"
+    currency: Optional[str] = "NGN"
     created_at: str
 
 
@@ -327,12 +330,15 @@ async def ensure_wallet(user_id: str) -> dict:
     w = await db.wallets.find_one({"user_id": user_id}, {"_id": 0})
     if w:
         return w
+    u = await db.users.find_one({"id": user_id}, {"_id": 0})
+    cinfo = country_info(u.get("country") if u else "NG")
     w = {
         "user_id": user_id,
         "available": 0.0,
         "pending": 0.0,
         "escrow_held": 0.0,
-        "currency": "NGN",
+        "currency": cinfo["currency"],
+        "country": cinfo["code"],
         "created_at": utcnow(),
     }
     await db.wallets.insert_one(w.copy())
@@ -372,6 +378,7 @@ async def signup(body: SignupIn):
         raise HTTPException(status_code=400, detail="Email already registered")
     uid = new_id()
     ref_code = "AF-" + "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    cinfo = country_info(body.country)
     doc = {
         "id": uid,
         "email": body.email.lower(),
@@ -386,6 +393,8 @@ async def signup(body: SignupIn):
         "verified": False,
         "referral_code": ref_code,
         "referred_by": None,
+        "country": cinfo["code"],
+        "currency": cinfo["currency"],
         "created_at": utcnow(),
     }
     # Apply referral if provided
@@ -468,11 +477,14 @@ async def get_public_user(user_id: str):
 # ---------------- Listings ----------------
 @api.post("/listings")
 async def create_listing(body: ListingCreate, user: dict = Depends(require_roles("farmer"))):
+    cinfo = country_info(user.get("country"))
     doc = {
         "id": new_id(),
         "farmer_id": user["id"],
         "farmer_name": user["full_name"],
         "farmer_verified": user.get("verified", False),
+        "country": cinfo["code"],
+        "currency": cinfo["currency"],
         **body.model_dump(),
         "status": "active",
         "created_at": utcnow(),
@@ -609,6 +621,8 @@ async def create_order(body: OrderCreate, user: dict = Depends(require_roles("bu
         "id": order_id,
         "listing_id": l["id"],
         "crop": l["crop"],
+        "country": l.get("country", "NG"),
+        "currency": l.get("currency", "NGN"),
         "buyer_id": user["id"],
         "buyer_name": user["full_name"],
         "farmer_id": l["farmer_id"],
@@ -1781,6 +1795,51 @@ async def cancel_sub(user: dict = Depends(require_roles("buyer"))):
         {"$set": {"subscription_tier": "basic", "subscription_expires_at": None}},
     )
     return {"ok": True, "tier": "basic"}
+
+
+# ---------------- Country / currency ----------------
+COUNTRIES = [
+    {"code": "NG", "name": "Nigeria", "currency": "NGN", "symbol": "₦", "phone_prefix": "+234", "timezone": "Africa/Lagos", "languages": ["English", "Yoruba", "Hausa", "Igbo"], "flag": "🇳🇬", "active": True},
+    {"code": "GH", "name": "Ghana", "currency": "GHS", "symbol": "₵", "phone_prefix": "+233", "timezone": "Africa/Accra", "languages": ["English", "Twi"], "flag": "🇬🇭", "active": True},
+    {"code": "KE", "name": "Kenya", "currency": "KES", "symbol": "KSh", "phone_prefix": "+254", "timezone": "Africa/Nairobi", "languages": ["English", "Swahili"], "flag": "🇰🇪", "active": True},
+    {"code": "CI", "name": "Côte d'Ivoire", "currency": "XOF", "symbol": "CFA", "phone_prefix": "+225", "timezone": "Africa/Abidjan", "languages": ["French"], "flag": "🇨🇮", "active": True},
+]
+COUNTRY_BY_CODE = {c["code"]: c for c in COUNTRIES}
+
+
+def country_info(code: Optional[str]) -> dict:
+    return COUNTRY_BY_CODE.get((code or "NG").upper(), COUNTRY_BY_CODE["NG"])
+
+
+@api.get("/countries")
+async def list_countries():
+    return COUNTRIES
+
+
+# ---------------- Public stats (social proof) ----------------
+@api.get("/stats/public")
+async def public_stats():
+    since_iso = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    pipeline = [
+        {"$match": {"created_at": {"$gte": since_iso}, "status": {"$in": ["escrow_funded", "in_logistics", "in_transit", "delivered", "completed"]}}},
+        {"$group": {"_id": None, "gmv": {"$sum": "$total"}, "orders": {"$sum": 1}}},
+    ]
+    agg = await db.orders.aggregate(pipeline).to_list(1)
+    gmv_week = agg[0]["gmv"] if agg else 0
+    orders_week = agg[0]["orders"] if agg else 0
+    active_farmers = await db.users.count_documents({"role": "farmer"})
+    active_buyers = await db.users.count_documents({"role": "buyer"})
+    active_listings = await db.listings.count_documents({"status": "active"})
+    countries_live = len([c for c in COUNTRIES if c["active"]])
+    return {
+        "gmv_week_ngn": round(gmv_week, 2),
+        "orders_week": orders_week,
+        "active_farmers": active_farmers,
+        "active_buyers": active_buyers,
+        "active_listings": active_listings,
+        "countries_live": countries_live,
+        "updated_at": utcnow(),
+    }
 
 
 app.include_router(api)

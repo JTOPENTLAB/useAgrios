@@ -31,6 +31,21 @@ export const fmtNGN = (n) =>
     maximumFractionDigits: 0,
   }).format(Number(n || 0));
 
+const CURRENCY_LOCALE = { NGN: "en-NG", GHS: "en-GH", KES: "en-KE", XOF: "fr-CI" };
+
+export const fmtMoney = (amount, currency = "NGN") => {
+  const locale = CURRENCY_LOCALE[currency] || "en-US";
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(Number(amount || 0));
+  } catch {
+    return `${currency} ${Number(amount || 0).toLocaleString()}`;
+  }
+};
+
 export const fmtDate = (s) => {
   try {
     return new Date(s).toLocaleString("en-NG", {

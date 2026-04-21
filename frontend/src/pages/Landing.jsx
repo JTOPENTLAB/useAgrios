@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Leaf, Shield, Wallet, Truck, Sparkles, Star, CheckCircle2 } from "lucide-react";
+import api, { fmtNGN } from "@/lib/api";
 
 const stats = [
   { v: "2.1M+", l: "KG facilitated (pilot)" },
@@ -42,6 +44,64 @@ const features = [
 ];
 
 const HERO_IMG = "https://images.unsplash.com/photo-1596788068873-9ffd5cacd4c4?auto=format&fit=crop&w=1536&q=80";
+
+function useCountUp(target, durationMs = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!target) return setVal(0);
+    const start = performance.now();
+    let raf;
+    const tick = (t) => {
+      const progress = Math.min(1, (t - start) / durationMs);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setVal(target * eased);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+      else setVal(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, durationMs]);
+  return val;
+}
+
+function LiveStatsStrip() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    const load = () => api.get("/stats/public").then((r) => setStats(r.data)).catch(() => {});
+    load();
+    const t = setInterval(load, 60000);
+    return () => clearInterval(t);
+  }, []);
+  const gmv = useCountUp(stats?.gmv_week_ngn || 0);
+  const orders = useCountUp(stats?.orders_week || 0);
+  const farmers = useCountUp(stats?.active_farmers || 0);
+  const countries = useCountUp(stats?.countries_live || 0);
+  if (!stats) return null;
+  return (
+    <div className="af-card p-5 flex flex-wrap items-center gap-6 bg-gradient-to-br from-white to-zinc-50 border-l-4 border-l-brand" data-testid="live-stats-strip">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
+        </span>
+        Live on AgriFlow
+      </div>
+      <Stat label="Moved this week" value={fmtNGN(gmv)} testId="live-gmv" />
+      <Stat label="Orders" value={Math.round(orders).toLocaleString()} testId="live-orders" />
+      <Stat label="Farmers onboarded" value={Math.round(farmers).toLocaleString()} testId="live-farmers" />
+      <Stat label="Countries live" value={Math.round(countries)} testId="live-countries" />
+    </div>
+  );
+}
+
+function Stat({ label, value, testId }) {
+  return (
+    <div data-testid={testId}>
+      <div className="text-[10px] uppercase font-bold tracking-wider text-ink-muted">{label}</div>
+      <div className="font-heading font-extrabold text-xl text-ink">{value}</div>
+    </div>
+  );
+}
 
 export default function Landing() {
   return (
@@ -102,6 +162,7 @@ export default function Landing() {
                   </div>
                 ))}
               </div>
+              <LiveStatsStrip />
             </div>
             <div className="lg:col-span-5 relative">
               <div className="relative rounded-[2rem] overflow-hidden shadow-lift border border-zinc-100">

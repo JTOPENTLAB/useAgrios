@@ -54,6 +54,19 @@ Tagline: **From Farm to Money.**
 ## Demo credentials
 See `/app/memory/test_credentials.md`.
 
+### Phase 2d — Africa-first foundation + Social proof (Feb 21, 2026)
+- **Country config registry** — Nigeria 🇳🇬 · Ghana 🇬🇭 · Kenya 🇰🇪 · Côte d'Ivoire 🇨🇮 with `code`, `currency` (NGN/GHS/KES/XOF), `symbol`, `phone_prefix`, `timezone`, `languages`, `flag`
+- **Public `GET /api/countries`** endpoint
+- **Country field** added to User, Wallet, Listing, Order (auto-inherited: signup→user, user→wallet, user→listing, listing→order). Defaults to `NG` for existing data.
+- **Country picker** on signup (4 pill buttons with flags + currency code)
+- **`fmtMoney(amount, currency)` helper** in `lib/api.js` (ready for future multi-currency rendering)
+- **Live social-proof strip** on landing — pulsing LIVE dot + "Moved this week / Orders / Farmers onboarded / Countries live" backed by `GET /api/stats/public`. Animated count-up. Auto-refresh every 60s.
+
+### Still pending (awaiting user keys)
+- Paystack and/or Flutterwave (for card-based auto-renewal)
+- Twilio OTP phone verification
+- `server.py` split into `/routes/*` (deferred — ~2,000 lines now; next dedicated iteration)
+
 ## Deferred (Phase 3 backlog)
 
 ### P1
