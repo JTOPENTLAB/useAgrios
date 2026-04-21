@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import api, { fmtMoney, API_BASE } from "@/lib/api";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { pushRecentlyViewed } from "@/components/RecentlyViewed";
 
 const COUNTRY_FLAG = { NG: "🇳🇬", GH: "🇬🇭", KE: "🇰🇪", CI: "🇨🇮" };
 const COUNTRY_NAME = { NG: "Nigeria", GH: "Ghana", KE: "Kenya", CI: "Côte d'Ivoire" };
@@ -34,7 +35,10 @@ export default function PublicListing() {
     api
       .get(`/listings/${id}`)
       .then((r) => {
-        if (!cancelled) setListing(r.data);
+        if (!cancelled) {
+          setListing(r.data);
+          pushRecentlyViewed(r.data);
+        }
       })
       .catch(() => {
         if (!cancelled) setNotFound(true);

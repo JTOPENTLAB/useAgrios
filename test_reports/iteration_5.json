@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration 5 (Phase A + Phase B) — backend Phase-B endpoints are all green (17/17 pytest). Buyer flow (login → /app/home, BuyerHome, Marketplace, ProductDetail, Wallet with deposit/withdraw drawers) and Farmer Promote-with-Video + VideoScripts prefill all pass. Two serious issues found: (1) FarmerDashboard crashes with runtime TypeError, blocking the entire farmer dashboard (wallet-hero, hot-demand-strip, farmer-recs, stat cards); (2) Public /explore page renders an empty body in the browser (regression vs iteration 4).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/listings (seed)", "issue": "Seeded demo listings have NO country_code field, so /api/recommendations/product/{id} same_region is always empty and ProductRecommendations component is hidden on product detail. Suggest setting country_code='NG' on seed listings."},
+      {"endpoint": "/api/recommendations/product/{id}", "issue": "Backend fallbacks to country_code='NG' for the ORIGINAL listing when missing, but the query on other listings still requires country_code=='NG' equality — matches 0 rows when seed is bare. Same root-cause as above."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "FarmerDashboard (/app/farmer)", "issue": "Uncaught TypeError: notifs.filter is not a function. GET /api/notifications returns {items:[...], unread:N} (object) but setNotifs(r.data || []) stores the object; then .filter crashes. Farmer dashboard is COMPLETELY BROKEN — no wallet-hero, hot-demand-strip, farmer-recs, stats, or 'Funds protected…' text visible. Fix: setNotifs(r.data?.items || []) at FarmerDashboard.jsx:41.", "selector": "data-testid=\"farmer-dashboard\"", "priority": "CRITICAL"},
+      {"component": "Explore page (/explore)", "issue": "Page renders empty <body> (no testids, no listing links, no text). Static HTML loads but React tree never paints. No console error surfaced. Regression vs iteration 4 which verified the same page. Needs main-agent investigation (possible CSR hydration/route error).", "selector": "/explore", "priority": "HIGH"},
+      {"component": "BuyerHome", "issue": "Stat-card testids are `stat-total-spend`, `stat-active-orders`, `stat-saved-suppliers` (not the short names `total-spend`, `active-orders`, `saved-suppliers` named in the review spec). Either rename in component or update spec. Functionally correct, only naming.", "selector": "[data-testid^=\"stat-\"]", "priority": "LOW"},
+      {"component": "FarmerDashboard stats", "issue": "Same short-vs-prefixed naming: spec says `earnings-week`, `active-orders`, `pending-offers`; impl uses `stat-earnings-week`, etc. LOW priority — but only testable once the FarmerDashboard crash is fixed.", "selector": "[data-testid^=\"stat-\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Product detail → recommendations", "issue": "ProductRecommendations is mounted but renders null because both same_crop and same_region return []. Caused by (a) only 1 listing per crop in seed (b) country_code missing on seed listings. Not a code bug, but seeding should be fixed so the block is visible in demo."}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phaseab.py",
+    "/app/test_reports/pytest/iteration_5_phaseab.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix FarmerDashboard.jsx line 41 — change `setNotifs(r.data || [])` to `setNotifs(Array.isArray(r.data) ? r.data : (r.data?.items || []))`. This unblocks the whole farmer flow.",
+    "HIGH: Investigate /explore blank render. Confirmed body is empty with no console error. Iteration 4 worked; something regressed. Open the page and inspect the React tree / route mounting.",
+    "MEDIUM: Set `country_code: 'NG'` on the three demo farmer listings (Tomato/Yam/Cassava) during seed so /api/recommendations/product/{id} same_region returns real rows and ProductRecommendations actually renders.",
+    "LOW: Normalise stat-card testids. Either (a) rename to the short form in the spec (`total-spend`, `active-orders`, `saved-suppliers`, `earnings-week`, `pending-offers`) or (b) update the spec to the `stat-*` form so future tests match."
+  ],
+  "critical_code_review_comments": [
+    "server.py still >2600 lines — Phase B added another ~280 lines of insights/recommendations. Time to split into routers/insights.py and routers/recommendations.py.",
+    "FarmerDashboard.jsx and BuyerHome.jsx both fetch multiple endpoints in Promise.all without per-request fallbacks for shape drift (e.g. /api/notifications returning {items:[]} bit us). Worth a small `safeArray()` helper.",
+    "featured_suppliers uses a deterministic md5-based fake rating when no reviews exist — acceptable demo behaviour, but the docstring should flag it so nobody ships it to prod.",
+    "hot_demand price_min/price_max currently mix currencies (NGN listing and GHS listing share one range). Fine for single-country NG seed but will mislead once multi-country data lands.",
+    "recommend_for_farmer calls hot_demand() directly (function re-entry) — works but couples the two endpoints. Consider extracting a shared aggregator."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phaseab.py (new — 17 pytest cases for Phase B endpoints + landing meta)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 pytest)",
+    "frontend": "~65% — Buyer flow fully passes; Farmer dashboard broken (runtime error); Explore page blank; Promote-video + VideoScripts + Wallet all pass"
+  },
+  "test_credentials": "Buyer: buyer@agriflow.ng / Buyer@123, Farmer: farmer@agriflow.ng / Farmer@123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Used seeded listings + demo users.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend Phase B regression suite lives at /app/backend/tests/test_phaseab.py (17 tests). Covers hot-demand schema + TEST_ filter, featured-suppliers schema/sort/verified, product recs shape + exclude-self + 404, for-farmer auth + price_guidance schema, for-buyer auth, landing meta. All pass. After main agent fixes the two frontend bugs, retest ONLY: (a) /app/farmer mounts cleanly with wallet-hero + Funds-protected text + hot-demand-strip + farmer-recs visible, (b) /explore renders listing cards with RatingPill + DeliveryBadge and links to /listing/:id, (c) optionally reseed listings with country_code=NG so ProductRecommendations shows same_region tiles on /app/marketplace/:id.",
+  "rca of the issue": "FarmerDashboard crash — /api/notifications endpoint schema evolved to {items:[...], unread:N} but the consumer at FarmerDashboard.jsx:41 still treats the response as an array. The `r.data || []` fallback is a no-op because the object is truthy. Reproduce: login as farmer@agriflow.ng → navigate to /app/farmer → 'Uncaught runtime errors: TypeError: notifs.filter is not a function' overlay appears. Mitigation: change to `setNotifs(Array.isArray(r.data) ? r.data : (r.data?.items || []))` (or similar normalizer). Explore blank: undetermined — no console error, body empty; needs interactive debug by main agent."
+}

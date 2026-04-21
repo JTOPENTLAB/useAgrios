@@ -139,8 +139,8 @@ function Stat({ label, value, testId }) {
 
 export default function Landing() {
   useDocumentMeta({
-    title: "AGRIOS — From Farm to Money | Africa's Agricultural Financial Infrastructure",
-    description: "Marketplace + wallet + escrow + logistics + AI for African agriculture. Launched in Nigeria. Buyers get ₦5,000 on signup — zero friction to source verified produce.",
+    title: "AGRIOS — The Operating System for Agricultural Trade | Africa",
+    description: "AGRIOS powers agricultural trade and money flow across Africa. Marketplace, escrow, wallet, logistics, financing, and AI — in one premium platform. Nigeria · Ghana · Kenya · Côte d'Ivoire.",
   });
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-ink" data-testid="landing-page">
@@ -389,7 +389,7 @@ export default function Landing() {
             <span className="font-heading font-bold text-ink">AGRIOS</span>
             <span className="ml-2">© {new Date().getFullYear()}</span>
           </div>
-          <div>From Farm to Money. 🇳🇬 Lagos · Abuja · Ibadan</div>
+          <div>The Operating System for Agricultural Trade · 🇳🇬 Lagos · Abuja · Ibadan</div>
         </div>
       </footer>
     </div>

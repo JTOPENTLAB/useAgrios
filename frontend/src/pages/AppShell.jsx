@@ -33,7 +33,8 @@ const NAV = {
     { to: "/app/farmer/videos", label: "Video scripts", icon: Video },
   ],
   buyer: [
-    { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart, end: true },
+    { to: "/app/home", label: "Home", icon: LayoutDashboard, end: true },
+    { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/buyer/saved", label: "Saved", icon: Bookmark },
     { to: "/app/orders", label: "My Orders", icon: Package },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },

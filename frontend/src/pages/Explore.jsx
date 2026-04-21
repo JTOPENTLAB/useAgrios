@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, MapPin, ShieldCheck, Sprout, Search, Eye, Lock } from "lucide-react";
-import api, { fmtMoney } from "@/lib/api";
+import { ArrowRight, Sprout, Search } from "lucide-react";
+import api from "@/lib/api";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
-
-const COUNTRY_FLAG = { NG: "🇳🇬", GH: "🇬🇭", KE: "🇰🇪", CI: "🇨🇮" };
+import ProductCard from "@/components/ProductCard";
+import TrustStrip from "@/components/TrustStrip";
 
 export default function Explore() {
   useDocumentMeta({
@@ -112,81 +112,17 @@ export default function Explore() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 af-stagger">
-              {items.map((l) => {
-                const currency = l.currency || "NGN";
-                const flag = COUNTRY_FLAG[l.country_code] || "";
-                return (
-                  <Link
-                    to={`/listing/${l.id}`}
-                    key={l.id}
-                    className="af-card af-card-hover overflow-hidden relative group"
-                    data-testid={`explore-card-${l.id}`}
-                  >
-                    <div className="aspect-[4/3] bg-zinc-100 relative">
-                      {l.image_url && (
-                        <img
-                          src={l.image_url}
-                          alt={l.crop}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
-                        />
-                      )}
-                      <span
-                        className="absolute top-3 left-3 af-chip bg-white/95 text-[11px]"
-                        data-testid={`explore-card-country-${l.id}`}
-                      >
-                        {flag} {l.country_code || "NG"}
-                      </span>
-                      {(l.views > 0) && (
-                        <span className="absolute bottom-3 left-3 af-chip bg-white/95 text-[10px]">
-                          <Eye className="w-3 h-3" /> {l.views}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-heading font-bold text-lg text-ink">{l.crop}</h3>
-                          <div className="text-xs text-ink-muted mt-0.5">
-                            {l.variety || "—"} · Grade {l.grade}
-                          </div>
-                        </div>
-                        {l.farmer_verified && (
-                          <span className="af-badge-verified">
-                            <ShieldCheck className="w-3 h-3" /> Verified
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
-                        <MapPin className="w-3.5 h-3.5" /> {l.location}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <div>
-                          <div className="font-heading font-extrabold text-xl text-ink">
-                            {fmtMoney(l.price_per_kg, currency)}
-                            <span className="text-sm text-ink-muted font-normal">/kg</span>
-                          </div>
-                          <div className="text-xs text-ink-muted">
-                            {Number(l.quantity_kg || 0).toLocaleString()}kg available
-                          </div>
-                        </div>
-                        <span className="af-chip">
-                          by {l.farmer_name?.split(" ")[0] || "Farmer"}
-                        </span>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 text-ink-muted">
-                          <Lock className="w-3.5 h-3.5 text-brand" /> Escrow protected
-                        </span>
-                        <span className="text-brand font-semibold inline-flex items-center gap-1">
-                          View listing <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+              {items.map((l) => (
+                <ProductCard
+                  key={l.id}
+                  listing={l}
+                  to={`/listing/${l.id}`}
+                  testIdPrefix="explore-card"
+                />
+              ))}
             </div>
+
+            <TrustStrip className="mt-8" testId="explore-trust-banner" />
 
             {/* Bottom CTA */}
             <div className="mt-12 af-card p-8 sm:p-10 bg-gradient-to-br from-brand/5 to-white border-brand/20 text-center" data-testid="explore-cta-bottom">

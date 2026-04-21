@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Sprout, ShieldCheck, Crown, Flame, Bookmark, Eye } from "lucide-react";
+import { Search, Sprout, Crown, Flame, Eye } from "lucide-react";
 import { toast } from "sonner";
-import api, { fmtNGN } from "@/lib/api";
+import api, { fmtMoney } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import ProductCard from "@/components/ProductCard";
+import TrustStrip from "@/components/TrustStrip";
+import HotDemandStrip from "@/components/HotDemandStrip";
 
 export default function BuyerMarketplace() {
   const { user } = useAuth();
@@ -73,6 +76,11 @@ export default function BuyerMarketplace() {
         )}
       </div>
 
+      <TrustStrip variant="compact" className="justify-center" testId="mp-trust-compact" />
+
+      {/* Phase B — live hot demand banner */}
+      <HotDemandStrip compact />
+
       <div className="af-card p-4 flex flex-wrap gap-3 items-center">
         <div className="flex-1 min-w-[220px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
@@ -110,7 +118,7 @@ export default function BuyerMarketplace() {
                 </div>
                 <div className="p-2">
                   <div className="font-semibold text-ink text-sm truncate">{t.crop}</div>
-                  <div className="text-[10px] text-ink-muted">{fmtNGN(t.price_per_kg)}/kg</div>
+                  <div className="text-[10px] text-ink-muted">{fmtMoney(t.price_per_kg, t.currency || "NGN")}/kg</div>
                 </div>
               </Link>
             ))}
@@ -129,45 +137,13 @@ export default function BuyerMarketplace() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 af-stagger">
           {items.map((l) => (
-            <Link to={`/app/marketplace/${l.id}`} key={l.id} className="af-card af-card-hover overflow-hidden relative" data-testid={`product-card-${l.id}`}>
-              {user?.role === "buyer" && (
-                <button
-                  onClick={(e) => toggleSave(l.id, e)}
-                  className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-sm grid place-items-center transition"
-                  data-testid={`bookmark-${l.id}`}
-                >
-                  <Bookmark className={`w-4 h-4 ${savedIds.has(l.id) ? "text-brand fill-brand" : "text-ink-muted"}`} />
-                </button>
-              )}
-              <div className="aspect-[4/3] bg-zinc-100">
-                {l.image_url && <img src={l.image_url} alt={l.crop} className="w-full h-full object-cover" />}
-              </div>
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-heading font-bold text-lg text-ink">{l.crop}</h3>
-                    <div className="text-xs text-ink-muted mt-0.5">{l.variety || "—"} · Grade {l.grade}</div>
-                  </div>
-                  {l.farmer_verified && <span className="af-badge-verified"><ShieldCheck className="w-3 h-3" /> Verified</span>}
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
-                  <MapPin className="w-3.5 h-3.5" /> {l.location}
-                  {(l.views > 0 || l.saves > 0) && (
-                    <span className="flex items-center gap-2 ml-auto">
-                      {l.views > 0 && <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {l.views}</span>}
-                      {l.saves > 0 && <span className="flex items-center gap-1"><Bookmark className="w-3 h-3" /> {l.saves}</span>}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-heading font-extrabold text-xl text-ink">{fmtNGN(l.price_per_kg)}<span className="text-sm text-ink-muted font-normal">/kg</span></div>
-                    <div className="text-xs text-ink-muted">{l.quantity_kg.toLocaleString()}kg available</div>
-                  </div>
-                  <span className="af-chip">by {l.farmer_name?.split(" ")[0]}</span>
-                </div>
-              </div>
-            </Link>
+            <ProductCard
+              key={l.id}
+              listing={l}
+              testIdPrefix="product-card"
+              onToggleSave={user?.role === "buyer" ? toggleSave : undefined}
+              isSaved={savedIds.has(l.id)}
+            />
           ))}
         </div>
       )}

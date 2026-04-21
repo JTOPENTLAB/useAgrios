@@ -17,6 +17,7 @@ import AiTools from "@/pages/farmer/AiTools";
 import FarmerLoans from "@/pages/farmer/FarmerLoans";
 import VideoScripts from "@/pages/farmer/VideoScripts";
 import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
+import BuyerHome from "@/pages/buyer/BuyerHome";
 import ProductDetail from "@/pages/buyer/ProductDetail";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import BuyerPlans from "@/pages/buyer/BuyerPlans";
@@ -42,7 +43,7 @@ const RoleHome = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;
   if (user.role === "farmer") return <Navigate to="/app/farmer" replace />;
-  if (user.role === "buyer") return <Navigate to="/app/marketplace" replace />;
+  if (user.role === "buyer") return <Navigate to="/app/home" replace />;
   if (user.role === "logistics") return <Navigate to="/app/jobs" replace />;
   if (user.role === "admin") return <Navigate to="/app/admin" replace />;
   return <Navigate to="/login" replace />;
@@ -77,6 +78,7 @@ function App() {
               <Route path="farmer/ai" element={<Guard roles={["farmer"]}><AiTools /></Guard>} />
               <Route path="farmer/videos" element={<Guard roles={["farmer"]}><VideoScripts /></Guard>} />
               <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
+              <Route path="home" element={<Guard roles={["buyer"]}><BuyerHome /></Guard>} />
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
               <Route path="buyer/plans" element={<Guard roles={["buyer"]}><BuyerPlans /></Guard>} />
               <Route path="buyer/saved" element={<Guard roles={["buyer"]}><SavedListings /></Guard>} />
