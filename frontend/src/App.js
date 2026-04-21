@@ -18,6 +18,9 @@ import FarmerLoans from "@/pages/farmer/FarmerLoans";
 import VideoScripts from "@/pages/farmer/VideoScripts";
 import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
 import BuyerHome from "@/pages/buyer/BuyerHome";
+import PriceAlerts from "@/pages/buyer/PriceAlerts";
+import FarmerEarnings from "@/pages/farmer/FarmerEarnings";
+import MarketIntel from "@/pages/MarketIntel";
 import Digest from "@/pages/Digest";
 import Reconcile from "@/pages/admin/Reconcile";
 import ProductDetail from "@/pages/buyer/ProductDetail";
@@ -86,6 +89,9 @@ function App() {
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
               <Route path="buyer/plans" element={<Guard roles={["buyer"]}><BuyerPlans /></Guard>} />
               <Route path="buyer/saved" element={<Guard roles={["buyer"]}><SavedListings /></Guard>} />
+              <Route path="buyer/alerts" element={<Guard roles={["buyer"]}><PriceAlerts /></Guard>} />
+              <Route path="farmer/earnings" element={<Guard roles={["farmer"]}><FarmerEarnings /></Guard>} />
+              <Route path="market" element={<Guard roles={["buyer", "farmer", "admin"]}><MarketIntel /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
               <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />

@@ -499,6 +499,11 @@ async def create_listing(body: ListingCreate, user: dict = Depends(require_roles
         "created_at": utcnow(),
     }
     await db.listings.insert_one(doc.copy())
+    # Phase D: fire price alerts for matching buyers
+    try:
+        await _check_alerts_for_listing(doc)
+    except Exception:
+        logger.exception("price alert check failed")
     return serialize(doc)
 
 
@@ -2939,6 +2944,20 @@ async def admin_webhook_events(limit: int = 50, user: dict = Depends(require_rol
     return rows
 
 
+# ---------------- Phase D: Scale + Moat routes (register on api before include) ----------------
+from routes import phase_d as _phase_d  # noqa: E402
+
+_phase_d_handles = _phase_d.register(
+    api,
+    db=db,
+    current_user=current_user,
+    require_roles=require_roles,
+    notify=notify,
+    new_id=new_id,
+)
+_check_alerts_for_listing = _phase_d_handles["check_alerts_for_listing"]
+
+
 app.include_router(api)
 
 
@@ -2966,6 +2985,8 @@ async def seed() -> None:
     await db.loans.create_index("id", unique=True)
     await db.notifications.create_index("user_id")
     await db.files.create_index("storage_path")
+    await db.price_alerts.create_index("user_id")
+    await db.price_alerts.create_index([("crop", 1), ("country", 1), ("active", 1)])
 
     # Seed admin
     if not await db.users.find_one({"email": "admin@agriflow.ng"}):

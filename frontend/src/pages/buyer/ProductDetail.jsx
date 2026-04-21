@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import RatingPill from "@/components/RatingPill";
 import DeliveryBadge from "@/components/DeliveryBadge";
 import TrustStrip from "@/components/TrustStrip";
+import LiquiditySignals from "@/components/LiquiditySignals";
 import ProductRecommendations from "@/components/ProductRecommendations";
 import { pushRecentlyViewed } from "@/components/RecentlyViewed";
 
@@ -94,6 +95,7 @@ export default function ProductDetail() {
     <div className="grid lg:grid-cols-3 gap-6" data-testid="product-detail-page">
       <div className="lg:col-span-2 space-y-6">
         <TrustStrip testId="detail-trust-strip" />
+        <LiquiditySignals listingId={l.id} />
         <div className="af-card overflow-hidden">
           <div className="aspect-[16/10] bg-zinc-100">
             {l.image_url ? (

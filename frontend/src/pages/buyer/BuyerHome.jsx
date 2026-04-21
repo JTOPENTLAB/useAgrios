@@ -8,6 +8,8 @@ import {
   TrendingUp,
   Sparkles,
   Wallet as WalletIcon,
+  Bell,
+  LineChart,
 } from "lucide-react";
 import { toast } from "sonner";
 import api, { fmtMoney } from "@/lib/api";
@@ -118,6 +120,49 @@ export default function BuyerHome() {
         </div>
         <ArrowRight className="w-5 h-5 text-ink-muted" />
       </Link>
+
+      {/* Phase D promos — price alerts + market intel */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link
+          to="/app/buyer/alerts"
+          className="af-card af-card-hover p-5 flex items-center gap-4 border-l-4 border-l-brand"
+          data-testid="price-alerts-promo"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-brand/10 text-brand grid place-items-center flex-shrink-0">
+            <Bell className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-heading font-bold text-ink text-sm">
+              Never miss a price drop
+            </div>
+            <div className="text-xs text-ink-muted mt-0.5">
+              Set alerts — get pinged the moment a farmer lists below your
+              target.
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-ink-muted" />
+        </Link>
+
+        <Link
+          to="/app/market"
+          className="af-card af-card-hover p-5 flex items-center gap-4 border-l-4 border-l-gold"
+          data-testid="market-intel-promo"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-gold/15 text-gold-dark grid place-items-center flex-shrink-0">
+            <LineChart className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-heading font-bold text-ink text-sm">
+              Bloomberg for agriculture
+            </div>
+            <div className="text-xs text-ink-muted mt-0.5">
+              Price trends · demand heatmaps · regional signals. Know the
+              market.
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-ink-muted" />
+        </Link>
+      </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 af-stagger">

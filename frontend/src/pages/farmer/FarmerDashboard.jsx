@@ -20,6 +20,7 @@ import StatCard from "@/components/StatCard";
 import TrustStrip from "@/components/TrustStrip";
 import HotDemandStrip from "@/components/HotDemandStrip";
 import FarmerPriceGuidance from "@/components/FarmerPriceGuidance";
+import SupplierScoreCard from "@/components/SupplierScoreCard";
 import { useAuth } from "@/context/AuthContext";
 
 export default function FarmerDashboard() {
@@ -193,6 +194,9 @@ export default function FarmerDashboard() {
           testId="stat-pending-offers"
         />
       </div>
+
+      {/* Supplier performance score + badges (Phase D) */}
+      <SupplierScoreCard farmerId={user?.id} />
 
       {/* Referral card (retained) */}
       {user?.referral_code && (

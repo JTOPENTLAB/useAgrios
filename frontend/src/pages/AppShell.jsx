@@ -18,6 +18,9 @@ import {
   Bookmark,
   Mail,
   HeartPulse,
+  TrendingUp,
+  Bell,
+  LineChart,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -28,8 +31,10 @@ const NAV = {
     { to: "/app/farmer/listings", label: "My Listings", icon: Sprout },
     { to: "/app/farmer/offers", label: "Offers", icon: Inbox },
     { to: "/app/orders", label: "Orders", icon: Package },
+    { to: "/app/farmer/earnings", label: "Earnings", icon: TrendingUp },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
     { to: "/app/farmer/loans", label: "Loans", icon: Banknote },
+    { to: "/app/market", label: "Market intel", icon: LineChart },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/farmer/ai", label: "AI Tools", icon: Sparkles },
     { to: "/app/farmer/videos", label: "Video scripts", icon: Video },
@@ -39,8 +44,10 @@ const NAV = {
     { to: "/app/home", label: "Home", icon: LayoutDashboard, end: true },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/buyer/saved", label: "Saved", icon: Bookmark },
+    { to: "/app/buyer/alerts", label: "Price alerts", icon: Bell },
     { to: "/app/orders", label: "My Orders", icon: Package },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
+    { to: "/app/market", label: "Market intel", icon: LineChart },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/buyer/plans", label: "Plans", icon: Crown },
     { to: "/app/digest", label: "Market Pulse", icon: Mail },

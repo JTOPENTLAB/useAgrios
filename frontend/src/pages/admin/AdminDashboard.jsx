@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import api, { fmtNGN } from "@/lib/api";
 import StatCard from "@/components/StatCard";
-import { Users, ShoppingBag, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Users, ShoppingBag, CheckCircle2, AlertTriangle, TrendingUp, Bell, Repeat, Banknote } from "lucide-react";
 
 export default function AdminDashboard() {
   const [m, setM] = useState(null);
-  useEffect(() => { api.get("/admin/overview").then((r) => setM(r.data)); }, []);
+  const [kpis, setKpis] = useState(null);
+  useEffect(() => {
+    api.get("/admin/overview").then((r) => setM(r.data));
+    api.get("/admin/kpis").then((r) => setKpis(r.data)).catch(() => {});
+  }, []);
 
   if (!m) return <div className="af-card p-10 text-center text-ink-muted">Loading…</div>;
 
@@ -23,6 +27,39 @@ export default function AdminDashboard() {
         <StatCard label="Orders" value={m.orders} sub={`${m.completed_orders} completed`} tone="blue" testId="admin-orders" />
         <StatCard label="Open disputes" value={m.open_disputes} sub="Needs attention" tone="rose" testId="admin-disputes-count" />
       </div>
+
+      {kpis && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 af-stagger" data-testid="admin-kpis-row">
+          <StatCard
+            label="GMV · 7d"
+            value={fmtNGN(kpis.gmv_7d || 0)}
+            sub={`${kpis.orders_7d || 0} orders this week`}
+            tone="brand"
+            testId="admin-kpi-gmv-7d"
+          />
+          <StatCard
+            label="Escrow locked"
+            value={fmtNGN(kpis.escrow_locked || 0)}
+            sub="Funds secured on-platform"
+            tone="gold"
+            testId="admin-kpi-escrow"
+          />
+          <StatCard
+            label="Repeat buyers"
+            value={kpis.repeat_buyers || 0}
+            sub={`${kpis.active_buyers_7d || 0} active buyers · 7d`}
+            tone="blue"
+            testId="admin-kpi-repeat"
+          />
+          <StatCard
+            label="Loan volume"
+            value={fmtNGN(kpis.loan_volume || 0)}
+            sub={`${kpis.price_alerts_active || 0} active price alerts`}
+            tone="rose"
+            testId="admin-kpi-loans"
+          />
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="af-card p-6 lg:col-span-2 bg-gradient-to-br from-brand to-brand-dark text-white">
@@ -47,6 +84,7 @@ export default function AdminDashboard() {
           <a href="/app/admin/users" className="block af-btn-secondary"><Users className="w-4 h-4" /> Manage users</a>
           <a href="/app/admin/disputes" className="block af-btn-secondary"><AlertTriangle className="w-4 h-4" /> Review disputes</a>
           <a href="/app/marketplace" className="block af-btn-secondary"><ShoppingBag className="w-4 h-4" /> Browse marketplace</a>
+          <a href="/app/market" className="block af-btn-secondary"><TrendingUp className="w-4 h-4" /> Market intel</a>
         </div>
       </div>
     </div>
