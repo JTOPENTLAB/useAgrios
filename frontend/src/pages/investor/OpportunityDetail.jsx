@@ -10,6 +10,13 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  PieChart,
+  CloudRain,
+  BarChart3,
+  Activity,
+  FileText,
+  Camera,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import api, { fmtMoney } from "@/lib/api";
@@ -216,7 +223,15 @@ export default function OpportunityDetail() {
           </div>
         </div>
 
-        {opp.use_of_funds && (
+        {opp.use_of_funds_breakdown && opp.use_of_funds_breakdown.length > 0 && (
+          <UseOfFundsPanel breakdown={opp.use_of_funds_breakdown} />
+        )}
+
+        {opp.risk_factors && opp.risk_factors.length > 0 && (
+          <RiskFactorsPanel factors={opp.risk_factors} band={opp.risk_band} />
+        )}
+
+        {opp.use_of_funds && !opp.use_of_funds_breakdown && (
           <div className="af-card p-5">
             <h3 className="font-heading font-bold text-ink mb-2">
               Use of funds
@@ -226,6 +241,8 @@ export default function OpportunityDetail() {
             </p>
           </div>
         )}
+
+        <FarmUpdatesTimeline updates={updates} />
 
         <div className="af-card p-5">
           <h3 className="font-heading font-bold text-ink mb-3 flex items-center gap-2">
@@ -367,4 +384,218 @@ function Metric({ label, value, tone }) {
       </div>
     </div>
   );
+}
+
+
+/* ============ Use of funds panel ============ */
+
+function UseOfFundsPanel({ breakdown }) {
+  const total = breakdown.reduce((a, b) => a + (b.pct || 0), 0);
+  // Build cumulative conic-gradient for a donut
+  let acc = 0;
+  const stops = breakdown
+    .map((b) => {
+      const start = (acc / total) * 100;
+      acc += b.pct;
+      const end = (acc / total) * 100;
+      return `${b.color} ${start}% ${end}%`;
+    })
+    .join(", ");
+
+  return (
+    <div className="af-card p-5" data-testid="use-of-funds-panel">
+      <h3 className="font-heading font-bold text-ink mb-4 flex items-center gap-2">
+        <PieChart className="w-4 h-4 text-brand" /> Use of funds
+      </h3>
+      <div className="flex items-center gap-6 flex-wrap">
+        <div className="relative w-36 h-36 flex-shrink-0">
+          <div
+            className="w-full h-full rounded-full"
+            style={{ background: `conic-gradient(${stops})` }}
+          />
+          <div className="absolute inset-5 bg-white rounded-full grid place-items-center">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-ink-muted">
+              Total
+            </div>
+            <div className="font-heading font-extrabold text-lg text-ink">
+              100%
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 min-w-[200px] space-y-2">
+          {breakdown.map((b) => (
+            <div
+              key={b.label}
+              className="flex items-center justify-between gap-3 text-sm"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="w-3 h-3 rounded-sm flex-shrink-0"
+                  style={{ backgroundColor: b.color }}
+                />
+                <span className="text-ink-soft truncate">{b.label}</span>
+              </div>
+              <span className="font-heading font-bold text-ink">{b.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ Risk factors panel ============ */
+
+const RISK_LEVEL_CLS = {
+  low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  medium: "bg-gold/10 text-gold-ink border-gold/30",
+  high: "bg-rose-50 text-rose-700 border-rose-200",
+};
+const RISK_ICON = {
+  weather: CloudRain,
+  market: BarChart3,
+  execution: Activity,
+  reporting: FileText,
+};
+const RISK_LABEL = {
+  weather: "Weather risk",
+  market: "Market risk",
+  execution: "Execution risk",
+  reporting: "Reporting risk",
+};
+
+function RiskFactorsPanel({ factors, band }) {
+  return (
+    <div
+      className="af-card p-5 border-l-4 border-l-gold bg-gold/5"
+      data-testid="risk-factors-panel"
+    >
+      <div className="flex items-start gap-3 mb-4">
+        <AlertCircle className="w-5 h-5 text-gold-ink flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-heading font-bold text-ink">
+            Risk breakdown
+            <span className="ml-2 text-[10px] font-bold uppercase bg-white text-gold-ink border border-gold/30 rounded-full px-2 py-0.5">
+              Band {band}
+            </span>
+          </h3>
+          <p className="text-xs text-ink-muted mt-1">
+            Agricultural investments carry real risk. Here's an honest map for
+            this specific cycle.
+          </p>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {factors.map((f) => {
+          const Icon = RISK_ICON[f.type] || Activity;
+          return (
+            <div
+              key={f.type}
+              className="p-3 rounded-xl bg-white border border-zinc-100"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-ink-muted" />
+                  <div className="font-heading font-bold text-sm text-ink">
+                    {RISK_LABEL[f.type] || f.type}
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 border ${
+                    RISK_LEVEL_CLS[f.level] || RISK_LEVEL_CLS.medium
+                  }`}
+                >
+                  {f.level}
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted mt-2 leading-relaxed">
+                {f.note}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============ Farm updates timeline ============ */
+
+function FarmUpdatesTimeline({ updates }) {
+  if (!updates || updates.length === 0) {
+    return (
+      <div
+        className="af-card p-5"
+        data-testid="farm-updates-empty"
+      >
+        <h3 className="font-heading font-bold text-ink mb-2 flex items-center gap-2">
+          <Camera className="w-4 h-4 text-brand" /> Farm updates
+        </h3>
+        <p className="text-sm text-ink-muted">
+          Updates will appear here as the cycle progresses. Farmers are
+          required to post every 7 days.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="af-card p-5" data-testid="farm-updates-timeline">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading font-bold text-ink flex items-center gap-2">
+          <Camera className="w-4 h-4 text-brand" /> Farm updates
+        </h3>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/10 border border-brand/20 rounded-full px-2 py-0.5">
+          {updates.length} update{updates.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="space-y-4">
+        {updates.map((u, i) => (
+          <div key={u.id || i} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-brand/10 text-brand grid place-items-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4" />
+              </div>
+              {i < updates.length - 1 && (
+                <div className="w-px flex-1 bg-zinc-200 mt-2" />
+              )}
+            </div>
+            <div className="flex-1 pb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand">
+                  {u.stage}
+                </span>
+                {u.verified && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                    <ShieldCheck className="w-2.5 h-2.5" /> Verified
+                  </span>
+                )}
+                <span className="text-[11px] text-ink-muted">
+                  {fmtFarmUpdateDate(u.created_at)}
+                </span>
+              </div>
+              <p className="text-sm text-ink-soft mt-1 leading-relaxed">
+                {u.text}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function fmtFarmUpdateDate(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const diffDays = Math.round((Date.now() - d.getTime()) / 86400000);
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  } catch {
+    return "";
+  }
 }

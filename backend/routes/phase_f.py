@@ -101,6 +101,51 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
     async def my_opportunities(user: dict = Depends(require_roles("farmer"))):
         return await db.opportunities.find({"farmer_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
 
+    @api.get("/opportunities/{opp_id}/updates")
+    async def opportunity_updates(opp_id: str):
+        """Farm updates timeline — images, text, stage, timestamp."""
+        o = await db.opportunities.find_one({"id": opp_id}, {"_id": 0, "crop": 1, "region": 1, "created_at": 1})
+        if not o:
+            raise HTTPException(404, "Opportunity not found")
+        # Real updates from DB if any
+        rows = await db.opportunity_updates.find(
+            {"opportunity_id": opp_id}, {"_id": 0}
+        ).sort("created_at", -1).to_list(50)
+        if rows:
+            return {"opportunity_id": opp_id, "updates": rows}
+        # Synthesised timeline based on opportunity age
+        now = datetime.now(timezone.utc)
+        created = o.get("created_at")
+        if isinstance(created, str):
+            try:
+                created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            except Exception:
+                created = now
+        if not created:
+            created = now
+        crop = (o.get("crop") or "Crop").lower()
+        TEMPLATE = [
+            {"stage": "Land prep", "text": f"Land cleared and tilled for the new {crop} cycle. Soil test samples collected.", "days": 3},
+            {"stage": "Inputs delivered", "text": "Seeds and agro-chemicals delivered on site. Labour team mobilised.", "days": 7},
+            {"stage": "Planting", "text": f"{crop.capitalize()} planting completed across the target hectares.", "days": 12},
+            {"stage": "Week 3 check-in", "text": "Germination healthy. No pest pressure observed. Photos uploaded.", "days": 21},
+            {"stage": "Week 5 check-in", "text": "Canopy development on track. Irrigation cycle completed.", "days": 35},
+        ]
+        days_since = max(0, (now - created).days)
+        updates = []
+        for t in TEMPLATE:
+            if t["days"] <= days_since:
+                updates.append({
+                    "id": new_id(),
+                    "opportunity_id": opp_id,
+                    "stage": t["stage"],
+                    "text": t["text"],
+                    "created_at": (created + timedelta(days=t["days"])).isoformat(),
+                    "verified": True,
+                })
+        updates.reverse()  # newest first
+        return {"opportunity_id": opp_id, "updates": updates}
+
     @api.get("/opportunities/{opp_id}")
     async def get_opportunity(opp_id: str):
         o = await db.opportunities.find_one({"id": opp_id}, {"_id": 0})

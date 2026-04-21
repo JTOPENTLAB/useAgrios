@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import Landing from "@/pages/Landing";
+import TrustCenter from "@/pages/TrustCenter";
 import Explore from "@/pages/Explore";
 import PublicListing from "@/pages/PublicListing";
 import Login from "@/pages/Login";
@@ -71,6 +72,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/trust" element={<TrustCenter />} />
             <Route path="/listing/:id" element={<PublicListing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

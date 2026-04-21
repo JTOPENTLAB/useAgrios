@@ -3276,6 +3276,18 @@ async def seed() -> None:
                     "target_return_pct": 14.0,
                     "risk_band": "B",
                     "use_of_funds": "40% seedlings · 30% labour · 20% mechanised tilling · 10% working capital",
+                    "use_of_funds_breakdown": [
+                        {"label": "Seedlings & inputs", "pct": 40, "color": "#0F5132"},
+                        {"label": "Labour", "pct": 30, "color": "#198754"},
+                        {"label": "Mechanised tilling", "pct": 20, "color": "#F59E0B"},
+                        {"label": "Working capital", "pct": 10, "color": "#9CA3AF"},
+                    ],
+                    "risk_factors": [
+                        {"type": "weather", "level": "medium", "note": "Dry-season timing reduces flood risk; irrigation backup in place."},
+                        {"type": "market", "level": "low", "note": "Cassava flour demand in Lagos remains consistently high year-round."},
+                        {"type": "execution", "level": "low", "note": "3-year on-platform track record with zero missed milestones."},
+                        {"type": "reporting", "level": "low", "note": "Weekly photo + progress updates required. Auto-enforced."},
+                    ],
                     "investor_count": 3,
                 },
                 {
@@ -3290,6 +3302,17 @@ async def seed() -> None:
                     "target_return_pct": 11.0,
                     "risk_band": "A",
                     "use_of_funds": "60% inputs · 25% greenhouse maintenance · 15% labour",
+                    "use_of_funds_breakdown": [
+                        {"label": "Inputs (seeds, fertilizer)", "pct": 60, "color": "#0F5132"},
+                        {"label": "Greenhouse maintenance", "pct": 25, "color": "#F59E0B"},
+                        {"label": "Labour", "pct": 15, "color": "#198754"},
+                    ],
+                    "risk_factors": [
+                        {"type": "weather", "level": "low", "note": "Covered cultivation eliminates most weather exposure."},
+                        {"type": "market", "level": "low", "note": "Offtake pre-committed with 2 Lagos wholesalers."},
+                        {"type": "execution", "level": "low", "note": "Short 4-month cycle limits execution drift."},
+                        {"type": "reporting", "level": "low", "note": "Weekly greenhouse photo uploads enforced."},
+                    ],
                     "investor_count": 8,
                 },
                 {
@@ -3304,6 +3327,19 @@ async def seed() -> None:
                     "target_return_pct": 22.0,
                     "risk_band": "C",
                     "use_of_funds": "Land prep, inputs, irrigation repair, harvest labour",
+                    "use_of_funds_breakdown": [
+                        {"label": "Land prep & tilling", "pct": 25, "color": "#0F5132"},
+                        {"label": "Inputs (seeds, agro-chem)", "pct": 35, "color": "#198754"},
+                        {"label": "Irrigation repair", "pct": 20, "color": "#F59E0B"},
+                        {"label": "Harvest labour", "pct": 15, "color": "#9CA3AF"},
+                        {"label": "Contingency", "pct": 5, "color": "#DC2626"},
+                    ],
+                    "risk_factors": [
+                        {"type": "weather", "level": "medium", "note": "Kebbi rainfall patterns create some timing risk; irrigation mitigates."},
+                        {"type": "market", "level": "medium", "note": "Rice price swings seasonally by 10–18%."},
+                        {"type": "execution", "level": "medium", "note": "Longer 10mo cycle and pending offtake adds execution complexity."},
+                        {"type": "reporting", "level": "low", "note": "Biweekly site visits scheduled."},
+                    ],
                     "investor_count": 2,
                 },
             ]

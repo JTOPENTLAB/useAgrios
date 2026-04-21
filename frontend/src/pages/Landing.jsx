@@ -173,12 +173,11 @@ export default function Landing() {
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-ink-soft">
-            <Link
-              to="/explore"
-              className="hover:text-ink"
-              data-testid="nav-explore-link"
-            >
+            <Link to="/explore" className="hover:text-ink" data-testid="nav-explore-link">
               Explore
+            </Link>
+            <Link to="/trust" className="hover:text-ink" data-testid="nav-trust-link">
+              Trust
             </Link>
             <a href="#platform" className="hover:text-ink">
               Platform
