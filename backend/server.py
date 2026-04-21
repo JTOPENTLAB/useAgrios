@@ -3249,8 +3249,18 @@ async def seed() -> None:
         await ledger(iid, "fund", 2000000, "credit", new_id(), "Demo seed balance")
         logger.info("Seeded demo investor")
 
-    # Seed demo opportunities if none exist
-    if await db.opportunities.count_documents({}) == 0:
+    # Seed demo opportunities if our 3 canonical demo titles are missing
+    demo_opp_titles = [
+        "Cassava expansion — Oyo · 6mo cycle",
+        "Tomato greenhouse — Ogun · 4mo",
+        "Rice paddy — Kebbi · 10mo",
+    ]
+    missing_titles = []
+    for t in demo_opp_titles:
+        if not await db.opportunities.find_one({"title": t}):
+            missing_titles.append(t)
+
+    if missing_titles:
         farmer = await db.users.find_one({"email": "farmer@agriflow.ng"}, {"_id": 0})
         if farmer:
             demo_opps = [
@@ -3298,6 +3308,8 @@ async def seed() -> None:
                 },
             ]
             for d in demo_opps:
+                if d["title"] not in missing_titles:
+                    continue
                 await db.opportunities.insert_one(
                     {
                         "id": new_id(),
@@ -3313,7 +3325,90 @@ async def seed() -> None:
                         **d,
                     }
                 )
-            logger.info("Seeded demo opportunities")
+            logger.info("Seeded demo opportunities (missing=%s)", len(missing_titles))
+
+    # Seed demo investments for the demo investor so dashboard never looks empty.
+    # Target portfolio: ₦1,250,000 invested · 3 active · risk A:40% B:35% C:25% · ₦40k realized
+    demo_investor = await db.users.find_one({"email": "investor@agriflow.ng"}, {"_id": 0, "id": 1, "full_name": 1})
+    if demo_investor and await db.investments.count_documents({"investor_id": demo_investor["id"]}) == 0:
+        all_opps = await db.opportunities.find({}, {"_id": 0}).to_list(50)
+        opp_by_band = {o["risk_band"]: o for o in all_opps if o.get("risk_band") in {"A", "B", "C"}}
+        now = datetime.now(timezone.utc)
+
+        demo_investments = [
+            {
+                "amount": 500000.0,     # Band A · 40% of 1.25M
+                "band": "A",
+                "return_pct": 11.0,
+                "duration_months": 4,
+                "created_days_ago": 21,
+                "maturity_days": 100,
+                "status": "active",
+            },
+            {
+                "amount": 437500.0,     # Band B · 35% of 1.25M
+                "band": "B",
+                "return_pct": 14.0,
+                "duration_months": 6,
+                "created_days_ago": 45,
+                "maturity_days": 135,
+                "status": "active",
+            },
+            {
+                "amount": 312500.0,     # Band C · 25% of 1.25M
+                "band": "C",
+                "return_pct": 22.0,
+                "duration_months": 10,
+                "created_days_ago": 10,
+                "maturity_days": 290,
+                "status": "active",
+            },
+            {
+                "amount": 200000.0,     # Previous paid investment (realized ₦40k return)
+                "band": "A",
+                "return_pct": 20.0,
+                "duration_months": 5,
+                "created_days_ago": 180,
+                "maturity_days": -30,
+                "status": "paid",
+                "realized_payout": 240000.0,
+            },
+        ]
+
+        for d in demo_investments:
+            opp = opp_by_band.get(d["band"])
+            if not opp:
+                # Fallback to any opportunity
+                opp = all_opps[0] if all_opps else None
+            if not opp:
+                continue
+            created = now - timedelta(days=d["created_days_ago"])
+            maturity = now + timedelta(days=d["maturity_days"])
+            inv_doc = {
+                "id": new_id(),
+                "opportunity_id": opp["id"],
+                "investor_id": demo_investor["id"],
+                "investor_name": demo_investor["full_name"],
+                "amount": d["amount"],
+                "currency": "NGN",
+                "expected_return_pct": d["return_pct"],
+                "expected_payout": round(d["amount"] * (1 + d["return_pct"] / 100), 2),
+                "duration_months": d["duration_months"],
+                "maturity_at": maturity.isoformat(),
+                "status": d["status"],
+                "created_at": created,
+            }
+            if d["status"] == "paid":
+                inv_doc["realized_payout"] = d["realized_payout"]
+                inv_doc["paid_at"] = (now - timedelta(days=25)).isoformat()
+            await db.investments.insert_one(inv_doc)
+
+        # Debit the 3 active investments from the seeded wallet (keep ~₦750k investable)
+        await db.wallets.update_one(
+            {"user_id": demo_investor["id"]},
+            {"$set": {"available": 750000.0}},
+        )
+        logger.info("Seeded demo investments for investor (portfolio ₦1.25M)")
 
 
 @app.on_event("shutdown")

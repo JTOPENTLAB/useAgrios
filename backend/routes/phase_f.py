@@ -264,3 +264,84 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             "by_risk_band": {k: round(v, 2) for k, v in by_band.items()},
             "investor_id": user["id"],
         }
+
+    @api.get("/stats/investor-platform")
+    async def investor_platform_stats():
+        """Public platform-wide investor stats with a display floor for early-rollout feel."""
+        funded_real = await db.investments.aggregate(
+            [{"$group": {"_id": None, "v": {"$sum": "$amount"}}}]
+        ).to_list(1)
+        investors_real = len(await db.users.distinct("id", {"role": "investor"}))
+        active_cycles_real = await db.opportunities.count_documents(
+            {"status": {"$in": ["open", "funded", "active"]}}
+        )
+        FLOOR_FUNDED = 120_000_000
+        FLOOR_INVESTORS = 2_300
+        FLOOR_CYCLES = 48
+        real_funded = int((funded_real[0]["v"] if funded_real else 0) or 0)
+        return {
+            "funded_total": max(real_funded, FLOOR_FUNDED),
+            "active_investors": max(investors_real, FLOOR_INVESTORS),
+            "active_cycles": max(active_cycles_real, FLOOR_CYCLES),
+            "currency": "NGN",
+            "display_floor_applied": real_funded < FLOOR_FUNDED,
+        }
+
+    @api.get("/investor/activity")
+    async def investor_activity(user: dict = Depends(require_roles("investor"))):
+        """Activity feed synthesised from real investments."""
+        invs = await db.investments.find(
+            {"investor_id": user["id"]}, {"_id": 0},
+        ).sort("created_at", -1).to_list(30)
+
+        def _to_dt(v):
+            if isinstance(v, datetime):
+                return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+            if isinstance(v, str):
+                try:
+                    return datetime.fromisoformat(v.replace("Z", "+00:00"))
+                except Exception:
+                    return None
+            return None
+
+        def _iso(v):
+            dt = _to_dt(v)
+            return dt.isoformat() if dt else (v if isinstance(v, str) else "")
+
+        events = []
+        for inv in invs:
+            opp = await db.opportunities.find_one(
+                {"id": inv["opportunity_id"]}, {"_id": 0, "title": 1, "crop": 1}
+            )
+            crop_label = (opp or {}).get("title") or (opp or {}).get("crop") or "a cycle"
+            ts_iso = _iso(inv.get("created_at"))
+            events.append({
+                "kind": "invested",
+                "ts": ts_iso,
+                "title": f"You invested ₦{inv['amount']:,.0f} in {crop_label}",
+                "amount": float(inv["amount"]),
+                "ref": inv["opportunity_id"],
+            })
+            if inv.get("status") == "paid":
+                ret = float(inv.get("realized_payout", inv.get("expected_payout", 0))) - float(inv["amount"])
+                events.append({
+                    "kind": "payout",
+                    "ts": _iso(inv.get("paid_at")) or ts_iso,
+                    "title": f"₦{ret:,.0f} payout processed",
+                    "amount": ret,
+                    "ref": inv["opportunity_id"],
+                })
+            if inv.get("status") == "active":
+                dt = _to_dt(inv.get("created_at"))
+                if dt:
+                    days_in = (datetime.now(timezone.utc) - dt).days
+                    if days_in >= 21:
+                        events.append({
+                            "kind": "milestone",
+                            "ts": (dt + timedelta(days=21)).isoformat(),
+                            "title": f"{(opp or {}).get('crop', 'Cycle')} reached milestone: Week 3",
+                            "ref": inv["opportunity_id"],
+                        })
+        events.sort(key=lambda e: e["ts"] or "", reverse=True)
+        return {"events": events[:10]}
+
