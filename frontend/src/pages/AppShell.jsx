@@ -17,6 +17,7 @@ import {
   Crown,
   Bookmark,
   Mail,
+  HeartPulse,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -53,6 +54,7 @@ const NAV = {
     { to: "/app/admin/users", label: "Users", icon: Users },
     { to: "/app/admin/loans", label: "Loans", icon: Banknote },
     { to: "/app/admin/disputes", label: "Disputes", icon: AlertTriangle },
+    { to: "/app/admin/reconcile", label: "Reconcile", icon: HeartPulse },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/jobs", label: "Logistics", icon: Truck },

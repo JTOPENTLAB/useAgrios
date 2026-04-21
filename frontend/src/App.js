@@ -19,6 +19,7 @@ import VideoScripts from "@/pages/farmer/VideoScripts";
 import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
 import BuyerHome from "@/pages/buyer/BuyerHome";
 import Digest from "@/pages/Digest";
+import Reconcile from "@/pages/admin/Reconcile";
 import ProductDetail from "@/pages/buyer/ProductDetail";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import BuyerPlans from "@/pages/buyer/BuyerPlans";
@@ -81,6 +82,7 @@ function App() {
               <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
               <Route path="home" element={<Guard roles={["buyer"]}><BuyerHome /></Guard>} />
               <Route path="digest" element={<Digest />} />
+              <Route path="admin/reconcile" element={<Guard roles={["admin"]}><Reconcile /></Guard>} />
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
               <Route path="buyer/plans" element={<Guard roles={["buyer"]}><BuyerPlans /></Guard>} />
               <Route path="buyer/saved" element={<Guard roles={["buyer"]}><SavedListings /></Guard>} />

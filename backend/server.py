@@ -2623,6 +2623,322 @@ async def start_digest_scheduler() -> None:
     asyncio.create_task(_digest_scheduler_loop())
 
 
+# ---------------- Phase C: Payments + Webhooks + Admin audit ----------------
+from services import payments as _pay
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+
+async def _admin_audit(*, admin_id: str, action: str, resource_type: str, resource_id: str | None = None, reason: str | None = None, before: dict | None = None, after: dict | None = None) -> None:
+    """Append-only admin action trail. Every financial admin action MUST call this."""
+    await db.admin_audit.insert_one({
+        "admin_id": admin_id,
+        "action": action,
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "reason": reason,
+        "before": before,
+        "after": after,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+# ---- Health / readiness ----
+@app.get("/api/health")
+async def health():
+    return {"ok": True, "service": "agrios-api", "ts": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/api/ready")
+async def ready():
+    status: dict = {"ok": True, "checks": {}}
+    try:
+        await db.command("ping")
+        status["checks"]["mongo"] = "ok"
+    except Exception as e:
+        status["ok"] = False
+        status["checks"]["mongo"] = f"fail: {str(e)[:120]}"
+    status["checks"]["email_provider"] = _cfg.public_config()["providers"]["email"]["effective"]
+    status["checks"]["payment_provider"] = _cfg.public_config()["providers"]["payment"]["effective"]
+    return status if status["ok"] else JSONResponse(status_code=503, content=status)
+
+
+# ---- Payment initialization ----
+@api.post("/payments/initialize")
+async def initialize_payment(body: dict, user: dict = Depends(current_user)):
+    """Initialize a wallet-funding payment. Returns authorization_url for hosted checkout."""
+    amount = float(body.get("amount") or 0)
+    if amount <= 0:
+        raise HTTPException(400, "Amount must be > 0")
+    purpose = body.get("purpose") or "wallet_funding"  # wallet_funding | order_escrow
+    order_id = body.get("order_id")
+
+    reference = f"AGR-{uuid.uuid4().hex[:18].upper()}"
+    currency = user.get("currency") or _cfg.PAYMENT_CURRENCY_DEFAULT
+    provider = _pay.get_provider()
+
+    # Persist intent BEFORE calling the provider so we can reconcile orphans
+    await db.payments.insert_one({
+        "id": reference,
+        "reference": reference,
+        "user_id": user["id"],
+        "provider": provider.name,
+        "amount": amount,
+        "currency": currency,
+        "status": "pending",
+        "purpose": purpose,
+        "order_id": order_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    try:
+        init = await provider.initialize(
+            amount=amount, currency=currency, email=user["email"], reference=reference,
+            metadata={"user_id": user["id"], "purpose": purpose, "order_id": order_id},
+            callback_url=f"{_cfg.PUBLIC_SITE_URL}/app/wallet?ref={reference}",
+        )
+    except Exception as exc:  # noqa: BLE001
+        await db.payments.update_one({"id": reference}, {"$set": {"status": "initialize_failed", "error": str(exc)[:500]}})
+        raise HTTPException(502, f"Provider error: {exc}")
+
+    return {**init, "amount": amount, "currency": currency}
+
+
+@api.get("/payments/verify/{reference}")
+async def verify_payment(reference: str, user: dict = Depends(current_user)):
+    """Verify a payment status by reference. Idempotent — multiple calls safe."""
+    rec = await db.payments.find_one({"id": reference}, {"_id": 0})
+    if not rec:
+        raise HTTPException(404, "Payment reference not found")
+    if rec["user_id"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Forbidden")
+
+    if rec["status"] == "success":
+        return rec  # already reconciled
+
+    provider = _pay.provider_by_name(rec["provider"])
+    try:
+        v = await provider.verify(reference)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(502, f"Provider verify error: {exc}")
+
+    if v.get("status") == "success":
+        await _apply_payment_success(rec, v.get("amount") or rec["amount"])
+    else:
+        await db.payments.update_one({"id": reference}, {"$set": {"status": "failed", "verified_at": datetime.now(timezone.utc).isoformat()}})
+    updated = await db.payments.find_one({"id": reference}, {"_id": 0})
+    return updated
+
+
+async def _apply_payment_success(payment: dict, amount: float) -> None:
+    """Idempotent payment-success handler — credits wallet + locks escrow as needed."""
+    if payment["status"] == "success":
+        return
+    user_id = payment["user_id"]
+    currency = payment["currency"]
+    now = datetime.now(timezone.utc).isoformat()
+
+    await db.payments.update_one(
+        {"id": payment["id"]},
+        {"$set": {"status": "success", "verified_at": now, "verified_amount": amount}},
+    )
+
+    if payment["purpose"] == "wallet_funding":
+        # Credit wallet — ledger entry is immutable
+        await db.ledger.insert_one({
+            "id": new_id(),
+            "user_id": user_id,
+            "kind": "wallet_funding",
+            "direction": "credit",
+            "amount": amount,
+            "currency": currency,
+            "note": f"Wallet funded via {payment['provider']} · {payment['id']}",
+            "payment_ref": payment["id"],
+            "created_at": now,
+        })
+        await db.wallets.update_one(
+            {"user_id": user_id},
+            {"$inc": {"available": amount}, "$set": {"currency": currency}},
+            upsert=True,
+        )
+    elif payment["purpose"] == "order_escrow" and payment.get("order_id"):
+        # Fund escrow on order
+        order = await db.orders.find_one({"id": payment["order_id"]}, {"_id": 0})
+        if order and order.get("escrow_status") != "funded":
+            await db.orders.update_one(
+                {"id": payment["order_id"]},
+                {"$set": {"escrow_status": "funded", "escrow_funded_at": now, "status": "escrow_funded"}},
+            )
+            await db.ledger.insert_one({
+                "id": new_id(),
+                "user_id": user_id,
+                "kind": "escrow_lock",
+                "direction": "debit",
+                "amount": amount,
+                "currency": currency,
+                "note": f"Escrow funded for order {payment['order_id']}",
+                "order_id": payment["order_id"],
+                "payment_ref": payment["id"],
+                "created_at": now,
+            })
+
+
+# ---- Webhooks (idempotent, signature-verified) ----
+@app.post("/api/payments/{provider_name}/webhook")
+async def payment_webhook(provider_name: str, request: Request):
+    raw = await request.body()
+    headers = {k.lower(): v for k, v in request.headers.items()}
+    prov = _pay.provider_by_name(provider_name)
+
+    if prov.name != "mock" and not prov.verify_webhook_signature(raw, headers):
+        await db.webhook_events.insert_one({
+            "id": new_id(), "provider": provider_name, "received_at": datetime.now(timezone.utc).isoformat(),
+            "status": "signature_rejected", "raw_bytes": len(raw),
+        })
+        raise HTTPException(401, "Invalid signature")
+
+    try:
+        parsed = prov.parse_webhook(raw)
+    except Exception as exc:
+        raise HTTPException(400, f"Malformed payload: {exc}")
+
+    event_id = parsed.get("event_id") or f"{provider_name}-{datetime.now(timezone.utc).isoformat()}"
+    # Idempotency guard — unique index would be ideal; upsert works too
+    existing = await db.webhook_events.find_one({"provider": provider_name, "event_id": event_id}, {"_id": 0})
+    if existing and existing.get("status") == "processed":
+        return {"ok": True, "duplicate": True, "event_id": event_id}
+
+    # Record the event (raw + parsed) BEFORE touching balances
+    await db.webhook_events.insert_one({
+        "id": new_id(),
+        "provider": provider_name,
+        "event_id": event_id,
+        "reference": parsed.get("reference"),
+        "event_type": parsed.get("event_type"),
+        "status": "received",
+        "parsed": {k: v for k, v in parsed.items() if k != "raw"},
+        "raw": parsed.get("raw"),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Apply the side effect if payment succeeded
+    if parsed["status"] == "success" and parsed.get("reference"):
+        rec = await db.payments.find_one({"id": parsed["reference"]}, {"_id": 0})
+        if rec and rec["status"] != "success":
+            await _apply_payment_success(rec, parsed.get("amount") or rec["amount"])
+
+    await db.webhook_events.update_one(
+        {"provider": provider_name, "event_id": event_id},
+        {"$set": {"status": "processed", "processed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "event_id": event_id}
+
+
+# ---- Admin: reconciliation + audit ----
+_VALID_ESCROW_TRANSITIONS = {
+    "pending": {"funded", "cancelled"},
+    "funded": {"held", "released", "refunded", "disputed"},
+    "held": {"partially_released", "released", "refunded", "disputed"},
+    "partially_released": {"released", "refunded", "disputed"},
+    "released": set(),  # terminal
+    "refunded": set(),  # terminal
+    "disputed": {"released", "refunded"},
+    "cancelled": set(),
+}
+
+
+@api.post("/admin/escrow/{order_id}/transition")
+async def admin_escrow_transition(order_id: str, body: dict, user: dict = Depends(require_roles("admin"))):
+    target = body.get("to")
+    reason = body.get("reason") or ""
+    if not target:
+        raise HTTPException(400, "Missing target state")
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(404, "Order not found")
+    current = order.get("escrow_status") or "pending"
+    if target not in _VALID_ESCROW_TRANSITIONS.get(current, set()):
+        raise HTTPException(400, f"Invalid transition {current} → {target}")
+
+    before = {"escrow_status": current}
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {"escrow_status": target, f"escrow_{target}_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await _admin_audit(
+        admin_id=user["id"], action=f"escrow.transition.{target}",
+        resource_type="order", resource_id=order_id, reason=reason,
+        before=before, after={"escrow_status": target},
+    )
+    return {"ok": True, "from": current, "to": target}
+
+
+@api.get("/admin/reconcile")
+async def admin_reconcile(user: dict = Depends(require_roles("admin"))):
+    """Four reconciliation buckets for Nigeria launch:
+    1. Pending payments older than 30min (should auto-verify or hit webhook by now)
+    2. Orders with escrow_status='funded' but no matching 'escrow_lock' ledger
+    3. Payout requests in 'pending' older than 24h
+    4. Webhook events stuck in 'received' (never processed)
+    """
+    now = datetime.now(timezone.utc)
+    cutoff_30m = (now - timedelta(minutes=30)).isoformat()
+    cutoff_24h = (now - timedelta(hours=24)).isoformat()
+
+    stale_payments = await db.payments.find(
+        {"status": "pending", "created_at": {"$lt": cutoff_30m}},
+        {"_id": 0},
+    ).limit(50).to_list(50)
+
+    # Orphan escrow check — sample recent funded orders missing their lock entry
+    funded_orders = await db.orders.find(
+        {"escrow_status": "funded"}, {"_id": 0, "id": 1, "buyer_id": 1, "total": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(200).to_list(200)
+    orphans = []
+    for o in funded_orders:
+        locked = await db.ledger.find_one({"order_id": o["id"], "kind": "escrow_lock"}, {"_id": 0})
+        if not locked:
+            orphans.append(o)
+        if len(orphans) >= 20:
+            break
+
+    stale_payouts = await db.payout_requests.find(
+        {"status": "pending", "created_at": {"$lt": cutoff_24h}},
+        {"_id": 0},
+    ).limit(50).to_list(50)
+
+    unprocessed_webhooks = await db.webhook_events.find(
+        {"status": "received"}, {"_id": 0},
+    ).limit(50).to_list(50)
+
+    return {
+        "stale_payments": stale_payments,
+        "escrow_orphans": orphans,
+        "stale_payouts": stale_payouts,
+        "unprocessed_webhooks": unprocessed_webhooks,
+        "counts": {
+            "stale_payments": len(stale_payments),
+            "escrow_orphans": len(orphans),
+            "stale_payouts": len(stale_payouts),
+            "unprocessed_webhooks": len(unprocessed_webhooks),
+        },
+        "generated_at": now.isoformat(),
+    }
+
+
+@api.get("/admin/audit")
+async def admin_audit_log(limit: int = 100, user: dict = Depends(require_roles("admin"))):
+    rows = await db.admin_audit.find({}, {"_id": 0}).sort("at", -1).limit(max(1, min(500, limit))).to_list(500)
+    return rows
+
+
+@api.get("/admin/webhook-events")
+async def admin_webhook_events(limit: int = 50, user: dict = Depends(require_roles("admin"))):
+    rows = await db.webhook_events.find({}, {"_id": 0, "raw": 0}).sort("received_at", -1).limit(max(1, min(200, limit))).to_list(200)
+    return rows
+
+
 app.include_router(api)
 
 
