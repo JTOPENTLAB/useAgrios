@@ -1,8 +1,10 @@
-# AgriFlow — Product Requirements Document
+# AGRIOS — Product Requirements Document
 
 ## Vision
 Africa's agricultural financial infrastructure. Marketplace + wallet + escrow + logistics + AI + loans + analytics, launched Nigeria-first.
 Tagline: **From Farm to Money.**
+
+> Rebranded from AgriFlow → AGRIOS on Feb 2026. Seeded demo account emails intentionally retain the legacy `@agriflow.ng` domain for DB-seed idempotency (see `/app/memory/test_credentials.md`).
 
 ## Core user roles
 - **Farmer** — list produce, receive offers, get paid, borrow.
@@ -114,6 +116,14 @@ See `/app/memory/test_credentials.md`.
 - `/public/robots.txt` + `/public/sitemap.xml` (3 public routes)
 - `useDocumentMeta` hook — updates `<title>` + description per route (Landing / Login / Signup all have unique titles now)
 - Verified: WhatsApp/Twitter/LinkedIn scraper previews will now show the AgriFlow brand, tagline "From Farm to Money", and a farmer hero image
+
+### Phase 2k — AgriFlow → AGRIOS rebrand + Public `/explore` (Feb 2026)
+- **Rebrand** — all user-facing strings "AgriFlow" → "AGRIOS" across `Landing`, `Login`, `Signup`, `AppShell`, `Explore`, `RecentDealsFeed`, `FarmerListings`, `Wallet`, `BuyerPlans`, `ProductDetail`, `public/index.html` (OG + JSON-LD + title + meta), `public/manifest.json`. Backend `FastAPI` title + logger name updated to AGRIOS.
+- **LocalStorage keys** (`agriflow_token`/`agriflow_user`) intentionally preserved to avoid forcing existing users to re-login.
+- **Seeded demo emails** (`admin@agriflow.ng`, etc.) intentionally preserved for DB seed idempotency — documented in `test_credentials.md`.
+- **Public `/explore` page** (`frontend/src/pages/Explore.jsx` + route in `App.js`) — unauthenticated users see 12 latest listings from `GET /api/listings`, country flags per card, search input with `?q=` filter, every card + CTA links to `/signup?ref=explore` for attribution. Added to `sitemap.xml` (priority 0.95, changefreq=hourly).
+- **Landing nav** — new "Explore" link added as first nav item.
+- **`/api/stats/recent-deals` hardening** — now excludes `TEST_`-prefixed crops from the public social-proof feed (prevents test data leakage into production marquee).
 
 ## Deferred (Phase 3 backlog)
 

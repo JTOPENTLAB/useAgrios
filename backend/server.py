@@ -1996,6 +1996,7 @@ async def recent_deals():
             {
                 "created_at": {"$gte": since_iso},
                 "status": {"$in": ["escrow_funded", "in_logistics", "in_transit", "delivered", "completed"]},
+                "crop": {"$not": {"$regex": "^TEST_", "$options": "i"}},
             },
             {"_id": 0},
         )

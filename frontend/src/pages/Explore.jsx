@@ -106,7 +106,7 @@ export default function Explore() {
                   {items.length} verified listings
                 </h2>
               </div>
-              <Link to="/signup" className="af-btn-accent" data-testid="explore-cta-top">
+              <Link to="/signup?ref=explore" className="af-btn-accent" data-testid="explore-cta-top">
                 Sign up to order <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -117,7 +117,7 @@ export default function Explore() {
                 const flag = COUNTRY_FLAG[l.country_code] || "";
                 return (
                   <Link
-                    to="/signup"
+                    to="/signup?ref=explore"
                     key={l.id}
                     className="af-card af-card-hover overflow-hidden relative group"
                     data-testid={`explore-card-${l.id}`}
@@ -199,7 +199,7 @@ export default function Explore() {
                 only when you confirm delivery.
               </p>
               <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
-                <Link to="/signup" className="af-btn-primary" data-testid="explore-cta-signup">
+                <Link to="/signup?ref=explore" className="af-btn-primary" data-testid="explore-cta-signup">
                   Sign up free <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link to="/login" className="af-btn-secondary" data-testid="explore-cta-login">
