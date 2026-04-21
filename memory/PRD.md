@@ -190,6 +190,25 @@ See `/app/memory/test_credentials.md`.
 - **Market Intelligence v2** — new `/app/market` page (`MarketIntel.jsx`). Daily median price-trend area chart, region×crop demand heatmap (darker cells = more GMV), hot-crops strip. Backed by `GET /api/market/price-trend` (series + snapshot + wow_pct) and `GET /api/market/demand-heatmap` (rows × cells matrix). Accessible to buyer + farmer + admin.
 - **Growth invite** — `GET /api/growth/invite` returns user's referral code, signup link (with `?ref=`), referred count, and pre-baked WhatsApp text.
 - **Admin KPIs** — `GET /api/admin/kpis` (admin-only) returns gmv_7d/30d, escrow_locked, active_farmers/buyers_7d, repeat_buyers, loan_volume, price_alerts_active. New KPI row added to AdminDashboard.
+- **Architecture** — new `/app/backend/routes/phase_d.py` module attached via `register(api, db, ...)` pattern to avoid further bloating server.py.
+- **Tests**: `/app/backend/tests/test_phase_d.py` — 20/20 pytest pass. Iteration 10 frontend 95%.
+
+### Phase E — Global Landing Repositioning (Feb 2026)
+- **Landing page fully rewritten** (`/app/frontend/src/pages/Landing.jsx`) — 13-section structure: Hero · Trust strip · What AGRIOS does · How it works · Market Intelligence · Financial layer (dark gradient section) · For Farmers + For Buyers (split cards) · Video/growth · Global positioning (Today/Next/Long-term rollout cards) · Social proof · Final CTA · Footer.
+- **New positioning** — "The Operating System for Agricultural Trade" as headline. Subhead: "AGRIOS moves agricultural goods and money with the trust and precision of modern financial infrastructure. Global by design. Launching in Nigeria." Nigeria now framed as launch market, not identity.
+- **Footer line updated**: `"Built for global agricultural trade. Launching in Nigeria."` (replaces "Built for Nigeria. Designed for Africa.")
+- **SEO + OG + JSON-LD** updated (`/app/frontend/public/index.html`) — title, description, og:description, twitter:description, JSON-LD Organization.description & slogan all aligned to global infrastructure narrative.
+- **Live data preserved** — LiveStatsStrip, EscrowLockedBadge, RecentDealsFeed components retained. No backend change.
+- **New components** inline to Landing: TrustPill, WhatCard, FinPill, WBox, LedgerRow, RolloutCard, ProofCard, MiniStat.
+- **Tone shift**: short declarative sentences · Stripe/Revolut-style confidence · no buzzwords · clearer CTAs ("Start trading" · "Explore the marketplace" · "Start selling" · "Start sourcing" · "Create free account").
+
+ — `GET /api/liquidity/listing/{id}` + `<LiquiditySignals/>` block on ProductDetail + inline "viewing" pulse on ProductCard. Surfaces recent_viewers / orders_this_week / active_suppliers / same-country suppliers to drive urgency.
+- **Supplier performance score** — `GET /api/suppliers/{id}/performance` (composite 0–100 · band A–D · badges: verified_pro · top_supplier · rising_star · trusted_by_buyers · metrics: completed_orders, gmv, unique_buyers, repeat_buyer_count, active_listings, avg_rating, on_time_pct, disputes, best_crops). New `<SupplierScoreCard/>` rendered on FarmerDashboard.
+- **Farmer earnings intelligence** — new `/app/farmer/earnings` page (`FarmerEarnings.jsx`). Weekly GMV line chart, top 5 crops bar chart, top regions ranking, repeat-buyers grid. Backed by `GET /api/farmer/earnings?days=30|90|180`. Nav added under Farmer.
+- **Price alerts** — buyer CRUD at `POST/GET/DELETE /api/alerts/price` + new `/app/buyer/alerts` page. Alerts match on crop + country + max_price + min_qty; auto-fire notification on `POST /api/listings` through `_check_alerts_for_listing(doc)` hook. Uses `re.escape()` to guard against regex metachars in crop names.
+- **Market Intelligence v2** — new `/app/market` page (`MarketIntel.jsx`). Daily median price-trend area chart, region×crop demand heatmap (darker cells = more GMV), hot-crops strip. Backed by `GET /api/market/price-trend` (series + snapshot + wow_pct) and `GET /api/market/demand-heatmap` (rows × cells matrix). Accessible to buyer + farmer + admin.
+- **Growth invite** — `GET /api/growth/invite` returns user's referral code, signup link (with `?ref=`), referred count, and pre-baked WhatsApp text.
+- **Admin KPIs** — `GET /api/admin/kpis` (admin-only) returns gmv_7d/30d, escrow_locked, active_farmers/buyers_7d, repeat_buyers, loan_volume, price_alerts_active. New KPI row added to AdminDashboard.
 - **Navigation** — AppShell adds: Earnings (farmer), Market intel (farmer+buyer), Price alerts (buyer). BuyerHome gains two discovery promos (Price alerts + Market intel).
 - **Architecture** — new `/app/backend/routes/phase_d.py` module attached via `register(api, db, ...)` pattern to avoid further bloating server.py.
 - **Tests**: `/app/backend/tests/test_phase_d.py` — 20/20 pytest pass. Iteration 10 frontend 95% (minor testid cosmetic gaps fixed post-iteration). Price-alert auto-trigger end-to-end verified: buyer alert → farmer listing → notification fired + triggered_count incremented.
