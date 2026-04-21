@@ -1308,7 +1308,7 @@ async def ai_video_script(body: AIVideoIn, user: dict = Depends(current_user)):
 # ---------------- Health + root ----------------
 @api.get("/")
 async def root():
-    return {"service": "AgriFlow API", "status": "ok"}
+    return {"service": "AGRIOS API", "status": "ok"}
 
 
 @api.get("/health")
@@ -2035,6 +2035,162 @@ async def recent_deals():
             }
         )
     return out
+
+
+import json
+
+
+# ---------------- Social share (per-listing OG cards) ----------------
+_CURRENCY_SYMBOL = {"NGN": "₦", "GHS": "₵", "KES": "KSh ", "XOF": "CFA "}
+_COUNTRY_NAME = {"NG": "Nigeria", "GH": "Ghana", "KE": "Kenya", "CI": "Côte d'Ivoire"}
+_PUBLIC_SITE_URL = os.environ.get("PUBLIC_SITE_URL", "").rstrip("/")
+
+
+def _html_escape(s: str) -> str:
+    return (
+        str(s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
+def _public_site_url(request_host: str) -> str:
+    # Prefer env override (public domain); fall back to incoming Host header.
+    if _PUBLIC_SITE_URL:
+        return _PUBLIC_SITE_URL
+    return f"https://{request_host}" if request_host else ""
+
+
+@api.get("/p/{listing_id}")
+async def share_listing(listing_id: str, host: Optional[str] = Header(None)):
+    """Serves OG-tagged HTML for a listing — scraped by WhatsApp/Twitter/Facebook/Slack.
+    Humans get JS-redirected to the frontend SPA listing page.
+    """
+    from fastapi.responses import HTMLResponse
+
+    l = await db.listings.find_one({"id": listing_id}, {"_id": 0})
+    if not l or l.get("status") != "active":
+        return HTMLResponse(
+            status_code=404,
+            content="<!doctype html><title>Listing unavailable</title><h1>Listing unavailable</h1>",
+        )
+
+    site = _public_site_url(host or "")
+    target_url = f"{site}/listing/{listing_id}"
+    currency = l.get("currency") or "NGN"
+    symbol = _CURRENCY_SYMBOL.get(currency, f"{currency} ")
+    price = f"{symbol}{int(l.get('price_per_kg') or 0):,}/kg"
+    qty = f"{int(l.get('quantity_kg') or 0):,}kg available"
+    country = _COUNTRY_NAME.get(l.get("country_code") or "NG", "Nigeria")
+    farmer = l.get("farmer_name") or "Verified farmer"
+    title = f"{l['crop']} · Grade {l.get('grade', 'A')} · {price} — AGRIOS"
+    description = (
+        f"{qty} from {farmer} in {l.get('location', country)}, {country}. "
+        f"Escrow-protected orders. Pay only when produce arrives. Order on AGRIOS."
+    )
+    image = l.get("image_url") or "https://images.unsplash.com/photo-1596788068873-9ffd5cacd4c4?auto=format&fit=crop&w=1200&h=630&q=85"
+    # Ensure image is absolute
+    if image and image.startswith("/"):
+        image = f"{site}{image}"
+
+    canonical = f"{site}/listing/{listing_id}"
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{_html_escape(title)}</title>
+<meta name="description" content="{_html_escape(description)}" />
+<link rel="canonical" href="{_html_escape(canonical)}" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="product" />
+<meta property="og:site_name" content="AGRIOS" />
+<meta property="og:title" content="{_html_escape(title)}" />
+<meta property="og:description" content="{_html_escape(description)}" />
+<meta property="og:url" content="{_html_escape(canonical)}" />
+<meta property="og:image" content="{_html_escape(image)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="{_html_escape(l['crop'])} on AGRIOS" />
+<meta property="product:price:amount" content="{int(l.get('price_per_kg') or 0)}" />
+<meta property="product:price:currency" content="{currency}" />
+<meta property="product:availability" content="in stock" />
+<meta property="og:locale" content="en_NG" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{_html_escape(title)}" />
+<meta name="twitter:description" content="{_html_escape(description)}" />
+<meta name="twitter:image" content="{_html_escape(image)}" />
+<meta name="twitter:image:alt" content="{_html_escape(l['crop'])} on AGRIOS" />
+
+<!-- Structured data: Product -->
+<script type="application/ld+json">
+{json.dumps({
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": l["crop"],
+    "description": description,
+    "image": image,
+    "brand": {"@type": "Brand", "name": "AGRIOS"},
+    "offers": {
+        "@type": "Offer",
+        "priceCurrency": currency,
+        "price": int(l.get("price_per_kg") or 0),
+        "availability": "https://schema.org/InStock",
+        "url": canonical,
+    },
+}, ensure_ascii=False)}
+</script>
+
+<meta http-equiv="refresh" content="0; url={_html_escape(target_url)}" />
+<script>window.location.replace({json.dumps(target_url)});</script>
+<style>
+  body {{ font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 40px; text-align: center; background: #FAFAFA; color: #18181B; }}
+  img {{ max-width: 360px; border-radius: 16px; margin: 20px 0; }}
+  a.btn {{ display: inline-block; background: #0F5132; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 999px; font-weight: 700; }}
+</style>
+</head>
+<body>
+  <h1 style="margin:0 0 8px;font-family:system-ui;font-weight:800;">{_html_escape(l["crop"])}</h1>
+  <div style="color:#52525b;">{_html_escape(price)} · {_html_escape(qty)}</div>
+  {f'<img src="{_html_escape(image)}" alt="{_html_escape(l["crop"])}" />' if image else ""}
+  <p style="color:#52525b;max-width:440px;margin:0 auto 24px;">{_html_escape(description)}</p>
+  <a class="btn" href="{_html_escape(target_url)}">View on AGRIOS →</a>
+</body>
+</html>"""
+    return HTMLResponse(content=html, headers={"Cache-Control": "public, max-age=300"})
+
+
+@api.get("/sitemap-listings.xml")
+async def sitemap_listings(host: Optional[str] = Header(None)):
+    """Dynamic sitemap of active listings for search engines."""
+    from fastapi.responses import Response as FastResponse
+
+    site = _public_site_url(host or "")
+    items = await db.listings.find({"status": "active"}, {"_id": 0, "id": 1, "updated_at": 1, "created_at": 1}).to_list(5000)
+    urls = []
+    for it in items:
+        lastmod = it.get("updated_at") or it.get("created_at") or ""
+        # Trim to date
+        lastmod_date = (lastmod or "")[:10]
+        urls.append(
+            f"  <url><loc>{site}/listing/{it['id']}</loc>"
+            f"{f'<lastmod>{lastmod_date}</lastmod>' if lastmod_date else ''}"
+            f"<changefreq>daily</changefreq><priority>0.7</priority></url>"
+        )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>"
+    )
+    return FastResponse(content=xml, media_type="application/xml", headers={"Cache-Control": "public, max-age=900"})
 
 
 app.include_router(api)

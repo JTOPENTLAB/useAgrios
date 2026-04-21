@@ -3,3 +3,4 @@ Allow: /
 Disallow: /app/
 
 Sitemap: https://agri-fintech-ng.preview.emergentagent.com/sitemap.xml
+Sitemap: https://agri-fintech-ng.preview.emergentagent.com/api/sitemap-listings.xml

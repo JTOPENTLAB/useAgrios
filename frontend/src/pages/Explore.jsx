@@ -117,7 +117,7 @@ export default function Explore() {
                 const flag = COUNTRY_FLAG[l.country_code] || "";
                 return (
                   <Link
-                    to="/signup?ref=explore"
+                    to={`/listing/${l.id}`}
                     key={l.id}
                     className="af-card af-card-hover overflow-hidden relative group"
                     data-testid={`explore-card-${l.id}`}
@@ -176,10 +176,10 @@ export default function Explore() {
                       </div>
                       <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 text-ink-muted">
-                          <Lock className="w-3.5 h-3.5 text-brand" /> Sign up to place order
+                          <Lock className="w-3.5 h-3.5 text-brand" /> Escrow protected
                         </span>
                         <span className="text-brand font-semibold inline-flex items-center gap-1">
-                          Order <ArrowRight className="w-3 h-3" />
+                          View listing <ArrowRight className="w-3 h-3" />
                         </span>
                       </div>
                     </div>

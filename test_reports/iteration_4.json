@@ -1,0 +1,51 @@
+{
+  "summary": "Tested the per-listing OG share feature end-to-end: backend /api/p/{id} OG HTML endpoint, /api/sitemap-listings.xml, robots.txt, frontend /listing/:id public page (PublicListing.jsx), Explore card → /listing/:id navigation, and key regression pages. All 9 pytest cases pass and all frontend UI assertions pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_social_share.py",
+    "/app/test_reports/pytest/iteration_4_share.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is >2300 lines — should be split into routers/modules (listings, orders, social, analytics). Flagged in previous iterations; still applies.",
+    "The OG image fallback is a hardcoded Unsplash URL inside share_listing (line 2094). Works fine, but consider moving to a constant/env for future branding changes.",
+    "PublicListing.jsx uses API_BASE to build shareUrl — good. However the 'Share URL' chip at the bottom (line 277) exposes the share URL visually; acceptable but may be removed for cleaner UX.",
+    "Seed data mismatch (cosmetic, flagged by user as known): first listing 'Cocoa' has country_code=NG but currency=GHS, so country chip shows '🇳🇬 Nigeria' while price shows 'GH₵45/kg'. User explicitly said not to flag — noted only for context."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_social_share.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9)",
+    "frontend": "100% (all asserted flows pass)"
+  },
+  "test_credentials": "Buyer: buyer@agriflow.ng / Buyer@123 (not actually needed — /listing/:id is public)",
+  "seed_data_creation": "None. Used existing seeded listings from GET /api/listings (first listing id auto-detected: Cocoa c3823fd5-062a-4386-b831-45c80779d544).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression suite for OG share lives in /app/backend/tests/test_social_share.py. It auto-picks an active listing id at runtime. Coverage: OG tags, og:url uses PUBLIC_SITE_URL, JSON-LD Product, meta refresh + window.location.replace redirects, 404 for non-existent listing, sitemap XML content-type + <loc> entries, robots.txt references both sitemaps. Frontend /listing/:id tested via Playwright: country chip, crop title, price, signup CTA with ref=listing-{id}, login CTA with next=..., escrow notice, dynamic doc title, share button toggling to 'Link copied' via clipboard fallback (navigator.share deleted in-test), invalid id → /explore redirect, regression on /, /login, /signup.",
+  "rca of the issue": "N/A — no issues found. All features work as specified.",
+  "verified_features": [
+    "GET /api/p/{valid_id} → 200 HTML with all required OG meta (og:type=product, og:site_name=AGRIOS, og:title incl. crop+price, og:description, og:url with PUBLIC_SITE_URL, og:image, 1200x630, twitter:card=summary_large_image, twitter:title, twitter:image, product:price:amount & currency)",
+    "JSON-LD Product parseable (schema.org/Product with offers.priceCurrency + offers.price)",
+    "meta http-equiv=refresh + window.location.replace both present pointing to /listing/{id}",
+    "GET /api/p/{invalid_id} → 404 HTML",
+    "GET /api/sitemap-listings.xml → 200 application/xml with <url><loc>…/listing/{id}</loc> entries using https://agri-fintech-ng.preview.emergentagent.com",
+    "/robots.txt lists both sitemap.xml and api/sitemap-listings.xml",
+    "/listing/:id renders country flag chip, crop title, price, farmer name, escrow notice, signup CTA /signup?ref=listing-{id}, login CTA /login?next=/app/marketplace/{id}, share button (data-testid=share-listing-btn)",
+    "/listing/{invalid} → redirects to /explore",
+    "document.title updates to include crop once listing loads (e.g., 'Cocoa · GH₵45/kg · AGRIOS')",
+    "Share button click (with navigator.share stubbed out) copies to clipboard and button text toggles to 'Link copied'",
+    "Explore first card href = /listing/{id} (not /signup)",
+    "Top & bottom Explore CTAs still = /signup?ref=explore",
+    "/, /login, /signup load cleanly, AGRIOS brand shown"
+  ]
+}

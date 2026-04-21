@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import Landing from "@/pages/Landing";
 import Explore from "@/pages/Explore";
+import PublicListing from "@/pages/PublicListing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import AppShell from "@/pages/AppShell";
@@ -56,6 +57,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/listing/:id" element={<PublicListing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route
