@@ -22,6 +22,7 @@ export default function Digest() {
   const { user } = useAuth();
   const [preview, setPreview] = useState(null);
   const [prefs, setPrefs] = useState(null);
+  const [cfg, setCfg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [waUrl, setWaUrl] = useState("");
@@ -32,6 +33,7 @@ export default function Digest() {
     Promise.all([
       api.get("/digest/preview").then((r) => setPreview(r.data)),
       api.get("/digest/prefs").then((r) => setPrefs(r.data)),
+      api.get("/config").then((r) => setCfg(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   };
 
@@ -295,14 +297,14 @@ export default function Digest() {
             )}
 
             {/* Suppliers OR price guidance */}
-            {preview.suppliers?.length > 0 && (
+            {preview.new_suppliers?.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Crown className="w-4 h-4 text-gold-dark" />
-                  <h4 className="font-heading font-bold text-ink">Featured verified suppliers</h4>
+                  <h4 className="font-heading font-bold text-ink">New verified suppliers this week</h4>
                 </div>
                 <div className="space-y-2" data-testid="digest-suppliers">
-                  {preview.suppliers.map((s) => (
+                  {preview.new_suppliers.map((s) => (
                     <div
                       key={s.id}
                       className="rounded-xl border border-zinc-100 p-3 flex items-center gap-3"
@@ -315,16 +317,54 @@ export default function Digest() {
                           {s.name}
                         </div>
                         <div className="text-[11px] text-ink-muted">
-                          {s.location} · {s.completed_orders} completed
+                          {s.location} · {s.listings} new {(s.headline_crop || "").toLowerCase()} listing(s)
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-brand text-sm">{s.latest_crop}</div>
-                        <div className="text-[11px] text-ink-muted">
-                          {fmtMoney(s.latest_price, s.latest_currency)}/kg
-                        </div>
-                      </div>
+                      <span className="af-chip text-[10px]">{s.headline_crop}</span>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {preview.regional_snapshot?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-brand" />
+                  <h4 className="font-heading font-bold text-ink">Regional price snapshot</h4>
+                </div>
+                <div className="space-y-2" data-testid="digest-regional-snapshot">
+                  {preview.regional_snapshot.map((r) => (
+                    <div key={`${r.region}-${r.crop}`} className="rounded-xl border border-zinc-100 p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-heading font-bold text-ink text-sm">{r.region} {r.crop}</div>
+                        <div className="text-[11px] text-ink-muted">{r.listings} active listing(s)</div>
+                      </div>
+                      <span className="font-heading font-bold text-ink text-sm">
+                        {r.price_min === r.price_max
+                          ? `${fmtMoney(r.price_min, r.currency)}/kg`
+                          : `${fmtMoney(r.price_min, r.currency)}–${fmtMoney(r.price_max, r.currency)}/kg`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {preview.price_guidance_delta?.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-rose-600" />
+                  <h4 className="font-heading font-bold text-ink">Price guidance delta (WoW)</h4>
+                </div>
+                <div className="flex flex-wrap gap-2" data-testid="digest-guidance-delta">
+                  {preview.price_guidance_delta.map((d) => (
+                    <span
+                      key={d.crop}
+                      className={`af-chip text-[11px] font-bold ${d.wow_pct >= 0 ? "text-rose-700 bg-rose-50 border-rose-200" : "text-brand bg-brand/5 border-brand/30"}`}
+                    >
+                      {d.crop} {d.wow_pct >= 0 ? "+" : ""}{d.wow_pct}%
+                    </span>
                   ))}
                 </div>
               </div>
@@ -409,7 +449,7 @@ export default function Digest() {
         )}
       </section>
 
-      {/* Mock-mode notice */}
+      {/* Mock-mode / provider notice — dynamic from /api/config */}
       <div className="af-card p-5 border-l-4 border-l-gold bg-gradient-to-br from-gold/5 to-white" data-testid="mock-mode-notice">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-gold/10 text-gold-dark grid place-items-center flex-shrink-0">
@@ -417,13 +457,21 @@ export default function Digest() {
           </div>
           <div className="text-sm">
             <div className="font-heading font-bold text-ink">
-              Email delivery is in simulation mode
+              Email provider:{" "}
+              <span className="uppercase tracking-wider text-[11px] af-chip ml-1" data-testid="digest-email-provider">
+                {cfg?.providers?.email?.effective || "mock"}
+              </span>
+              {" · "}
+              WhatsApp:{" "}
+              <span className="uppercase tracking-wider text-[11px] af-chip ml-1" data-testid="digest-whatsapp-provider">
+                {cfg?.providers?.whatsapp?.effective || "share_only"}
+              </span>
             </div>
             <div className="text-ink-muted mt-1">
-              Digests are composed, logged to <code className="text-[11px]">digest_log</code>{" "}
-              and available via the share link. Set{" "}
-              <code className="text-[11px]">RESEND_API_KEY</code> in the backend to flip on
-              real email sending — no code changes required.
+              {cfg?.providers?.email?.effective === "mock"
+                ? <>Delivery is simulated. Set <code className="text-[11px]">EMAIL_PROVIDER=resend</code> and <code className="text-[11px]">RESEND_API_KEY</code> in the backend to start sending real emails — no code changes required.</>
+                : <>Live email provider active. All sends are logged to <code className="text-[11px]">digest_log</code> for audit.</>
+              }
             </div>
           </div>
         </div>

@@ -2478,6 +2478,13 @@ async def recommend_for_farmer(user: dict = Depends(require_roles("farmer"))):
 
 # ---------------- Phase C: Market Pulse (weekly digest) ----------------
 from services.digest import build_digest as _build_digest, send_email as _send_email, wa_share_url as _wa_share_url
+from services import config as _cfg
+
+
+@api.get("/config")
+async def app_config():
+    """Public config + feature flags consumed by the React frontend."""
+    return _cfg.public_config()
 
 
 @api.get("/digest/preview")
@@ -2510,8 +2517,9 @@ async def send_me_now(user: dict = Depends(current_user)):
     result = await _send_email(
         db,
         to=user["email"],
-        subject=f"AGRIOS Market Pulse — {payload['period']['label']}",
+        subject=payload.get("subject") or f"AGRIOS Market Pulse — {payload['period']['label']}",
         html=payload["html"],
+        text=payload.get("text"),
         meta={"user_id": user["id"], "kind": "self-test", "role": user.get("role")},
     )
     return {
@@ -2530,7 +2538,7 @@ async def trigger_blast(user: dict = Depends(require_roles("admin"))):
 @api.get("/digest/log")
 async def digest_log(limit: int = 50, user: dict = Depends(require_roles("admin"))):
     rows = (
-        await db.digest_log.find({}, {"_id": 0, "html_bytes": 1, "to": 1, "subject": 1, "sent_at": 1, "provider": 1, "status": 1, "error": 1, "meta": 1})
+        await db.digest_log.find({}, {"_id": 0, "html_bytes": 1, "text_bytes": 1, "to": 1, "subject": 1, "sent_at": 1, "provider": 1, "status": 1, "error": 1, "meta": 1})
         .sort("sent_at", -1)
         .limit(max(1, min(200, limit)))
         .to_list(200)
@@ -2560,8 +2568,9 @@ async def _run_digest_blast(*, reason: str = "scheduled", actor: str | None = No
             result = await _send_email(
                 db,
                 to=u["email"],
-                subject=f"AGRIOS Market Pulse — {payload['period']['label']}",
+                subject=payload.get("subject") or f"AGRIOS Market Pulse — {payload['period']['label']}",
                 html=payload["html"],
+                text=payload.get("text"),
                 meta={"user_id": u["id"], "kind": "blast", "reason": reason, "role": u.get("role")},
             )
             if result.get("status") == "failed":
@@ -2581,15 +2590,14 @@ async def _run_digest_blast(*, reason: str = "scheduled", actor: str | None = No
 
 
 async def _digest_scheduler_loop():
-    """Wake hourly, fire a blast once per Monday 09:00 WAT (08:00 UTC)."""
+    """Wake hourly, fire a blast once per Monday at MARKET_PULSE_CRON_HOUR_UTC."""
     import asyncio
 
+    target_hour = _cfg.MARKET_PULSE_CRON_HOUR_UTC
     while True:
         try:
             now_utc = datetime.now(timezone.utc)
-            is_monday = now_utc.weekday() == 0
-            is_morning = now_utc.hour == 8
-            if is_monday and is_morning:
+            if now_utc.weekday() == 0 and now_utc.hour == target_hour:
                 last = await db.system.find_one({"key": "digest_last_run"}, {"_id": 0, "at": 1})
                 last_at = None
                 if last and last.get("at"):
@@ -2609,6 +2617,9 @@ async def _digest_scheduler_loop():
 @app.on_event("startup")
 async def start_digest_scheduler() -> None:
     import asyncio
+    if not _cfg.ENABLE_CRON or not _cfg.FLAGS.get("market_pulse"):
+        logger.info("Market Pulse scheduler disabled (ENABLE_CRON or FEATURE_MARKET_PULSE off)")
+        return
     asyncio.create_task(_digest_scheduler_loop())
 
 
