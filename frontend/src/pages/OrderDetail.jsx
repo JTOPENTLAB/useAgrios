@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, MapPin, Clock, Repeat2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  MapPin,
+  Clock,
+  Repeat2,
+  Truck,
+  UserCheck,
+} from "lucide-react";
 import api, { fmtNGN, fmtDate } from "@/lib/api";
 import EscrowTimeline from "@/components/EscrowTimeline";
 import { useAuth } from "@/context/AuthContext";
@@ -14,9 +22,21 @@ export default function OrderDetail() {
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeDesc, setDisputeDesc] = useState("");
   const [showDispute, setShowDispute] = useState(false);
+  const [logUsers, setLogUsers] = useState([]);
+  const [showAssign, setShowAssign] = useState(false);
+  const [chosenLogId, setChosenLogId] = useState("");
 
   const load = () => api.get(`/orders/${id}`).then((r) => setO(r.data));
   useEffect(() => { load(); }, [id]); // eslint-disable-line
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      api
+        .get("/admin/logistics-users")
+        .then((r) => setLogUsers(r.data))
+        .catch(() => {});
+    }
+  }, [user]);
 
   if (!o) return <div className="af-card p-10 text-center text-ink-muted">Loading…</div>;
 
@@ -51,7 +71,26 @@ export default function OrderDetail() {
     }
   };
 
+  const assignLogistics = async () => {
+    if (!chosenLogId) {
+      toast.error("Select a logistics partner");
+      return;
+    }
+    try {
+      await api.post(`/orders/${o.id}/assign-logistics`, {
+        logistics_user_id: chosenLogId,
+      });
+      toast.success("Logistics assigned");
+      setShowAssign(false);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Assign failed");
+    }
+  };
+
   const isBuyer = user.id === o.buyer_id;
+  const isFarmer = user.id === o.farmer_id;
+  const isAdmin = user.role === "admin";
 
   return (
     <div className="space-y-6" data-testid="order-detail-page">
@@ -94,6 +133,97 @@ export default function OrderDetail() {
       </div>
 
       <EscrowTimeline status={o.status} />
+
+      {/* Logistics status callout — bridges "Escrow funded" → "In transit" */}
+      {o.status === "escrow_funded" && (
+        <div
+          className="af-card p-5 border-l-4 border-l-brand bg-brand/5 flex items-start gap-4 flex-wrap"
+          data-testid="logistics-waiting-callout"
+        >
+          <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand grid place-items-center flex-shrink-0">
+            <Truck className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-heading font-bold text-ink">
+              Waiting for a logistics partner
+            </div>
+            <p className="text-sm text-ink-soft mt-1">
+              Your escrow is secured. We've posted this delivery to available
+              logistics partners on AGRIOS. You'll be notified the moment one
+              accepts and pickup is scheduled.
+              {isAdmin && (
+                <> As an admin, you can manually assign a logistics partner below.</>
+              )}
+            </p>
+            {isAdmin && (
+              <div className="mt-3">
+                {!showAssign ? (
+                  <button
+                    onClick={() => setShowAssign(true)}
+                    className="af-btn-primary"
+                    data-testid="admin-assign-logistics-btn"
+                  >
+                    <UserCheck className="w-4 h-4" /> Assign logistics partner
+                  </button>
+                ) : (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <select
+                      value={chosenLogId}
+                      onChange={(e) => setChosenLogId(e.target.value)}
+                      className="af-input min-w-[220px]"
+                      data-testid="admin-assign-select"
+                    >
+                      <option value="">Select partner…</option>
+                      {logUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name} {u.location ? `· ${u.location}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={assignLogistics}
+                      className="af-btn-primary"
+                      data-testid="admin-assign-confirm"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setShowAssign(false)}
+                      className="af-btn-ghost"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Show logistics info once assigned */}
+      {["in_logistics", "in_transit", "delivered", "completed"].includes(
+        o.status,
+      ) &&
+        o.logistics_name && (
+          <div
+            className="af-card p-5 border-l-4 border-l-emerald-500 bg-emerald-50/50 flex items-center gap-4"
+            data-testid="logistics-assigned-callout"
+          >
+            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 grid place-items-center flex-shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-heading font-bold text-ink">
+                Logistics assigned · {o.logistics_name}
+              </div>
+              <p className="text-sm text-ink-soft mt-0.5">
+                Pickup scheduled. You'll see status updates here as the cargo
+                moves.
+              </p>
+            </div>
+          </div>
+        )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="af-card p-6 lg:col-span-2 space-y-4">

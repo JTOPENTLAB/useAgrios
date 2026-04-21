@@ -991,6 +991,72 @@ async def request_payout(body: PayoutRequest, user: dict = Depends(current_user)
 
 
 # ---------------- Logistics ----------------
+@api.post("/orders/{order_id}/assign-logistics")
+async def admin_assign_logistics(
+    order_id: str,
+    body: dict,  # {"logistics_user_id": "..."}
+    user: dict = Depends(require_roles("admin")),
+):
+    """Admin manual override — assign a specific logistics user to an order's pending job."""
+    logistics_user_id = (body or {}).get("logistics_user_id")
+    if not logistics_user_id:
+        raise HTTPException(400, "logistics_user_id required")
+    lu = await db.users.find_one(
+        {"id": logistics_user_id, "role": "logistics"}, {"_id": 0, "full_name": 1}
+    )
+    if not lu:
+        raise HTTPException(404, "Logistics user not found")
+    j = await db.logistics_jobs.find_one({"order_id": order_id, "status": "pending"})
+    if not j:
+        raise HTTPException(404, "No pending logistics job for this order")
+    await db.logistics_jobs.update_one(
+        {"id": j["id"]},
+        {
+            "$set": {
+                "logistics_id": logistics_user_id,
+                "logistics_name": lu["full_name"],
+                "status": "accepted",
+                "accepted_at": utcnow(),
+                "admin_assigned": True,
+                "admin_assigned_by": user["id"],
+            }
+        },
+    )
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "in_logistics",
+                "logistics_id": logistics_user_id,
+                "logistics_name": lu["full_name"],
+            },
+            "$push": {
+                "timeline": {
+                    "ts": utcnow(),
+                    "event": "logistics_assigned_by_admin",
+                    "by": user["full_name"],
+                }
+            },
+        },
+    )
+    await notify(
+        logistics_user_id,
+        "New logistics job assigned",
+        f"Admin assigned you a job for order {order_id[:8].upper()}.",
+        "logistics",
+        order_id,
+    )
+    return {"ok": True, "order_id": order_id, "logistics_name": lu["full_name"]}
+
+
+@api.get("/admin/logistics-users")
+async def list_logistics_users(user: dict = Depends(require_roles("admin"))):
+    rows = await db.users.find(
+        {"role": "logistics"}, {"_id": 0, "id": 1, "full_name": 1, "phone": 1, "location": 1}
+    ).to_list(200)
+    return rows
+
+
 @api.get("/logistics/jobs")
 async def list_jobs(
     mine: bool = False, user: dict = Depends(require_roles("logistics", "admin"))
@@ -3078,7 +3144,7 @@ async def seed() -> None:
                 "grade": "A",
                 "location": "Benue State",
                 "description": "Premium white yam tubers, export-grade.",
-                "image_url": "https://images.pexels.com/photos/36853837/pexels-photo-36853837.jpeg?auto=compress&cs=tinysrgb&w=800",
+                "image_url": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=1200&q=80",
             },
             {
                 "crop": "Cassava",
@@ -3088,7 +3154,7 @@ async def seed() -> None:
                 "grade": "B",
                 "location": "Oyo State",
                 "description": "Fresh cassava, suitable for garri and fufu processors.",
-                "image_url": "https://images.pexels.com/photos/34705724/pexels-photo-34705724.jpeg?auto=compress&cs=tinysrgb&w=800",
+                "image_url": "https://images.unsplash.com/photo-1615485925600-97237c4fc1ec?auto=format&fit=crop&w=1200&q=80",
             },
         ]
         for d in demos:
