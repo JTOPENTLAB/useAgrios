@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import Landing from "@/pages/Landing";
+import Explore from "@/pages/Explore";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import AppShell from "@/pages/AppShell";
@@ -54,6 +55,7 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route

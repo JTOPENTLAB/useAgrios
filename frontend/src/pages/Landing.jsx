@@ -86,7 +86,7 @@ function LiveStatsStrip() {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
         </span>
-        Live on AgriFlow
+        Live on AGRIOS
       </div>
       <Stat label="Moved this week" value={fmtNGN(gmv)} testId="live-gmv" />
       <Stat label="Orders" value={Math.round(orders).toLocaleString()} testId="live-orders" />
@@ -139,7 +139,7 @@ function Stat({ label, value, testId }) {
 
 export default function Landing() {
   useDocumentMeta({
-    title: "AgriFlow — From Farm to Money | Africa's Agricultural Financial Infrastructure",
+    title: "AGRIOS — From Farm to Money | Africa's Agricultural Financial Infrastructure",
     description: "Marketplace + wallet + escrow + logistics + AI for African agriculture. Launched in Nigeria. Buyers get ₦5,000 on signup — zero friction to source verified produce.",
   });
   return (
@@ -149,9 +149,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" data-testid="brand-link">
             <div className="w-9 h-9 rounded-xl bg-brand grid place-items-center text-white font-heading font-extrabold">A</div>
-            <span className="font-heading font-extrabold text-xl tracking-tight">AgriFlow</span>
+            <span className="font-heading font-extrabold text-xl tracking-tight">AGRIOS</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-ink-soft">
+            <Link to="/explore" className="hover:text-ink" data-testid="nav-explore-link">Explore</Link>
             <a href="#features" className="hover:text-ink">Platform</a>
             <a href="#how" className="hover:text-ink">How it works</a>
             <a href="#trust" className="hover:text-ink">Trust</a>
@@ -181,7 +182,7 @@ export default function Landing() {
                 </span>
               </h1>
               <p className="text-lg text-ink-muted max-w-xl leading-relaxed">
-                AgriFlow is the trade + payments layer for African agriculture. Marketplace, escrow-protected
+                AGRIOS is the trade + payments layer for African agriculture. Marketplace, escrow-protected
                 orders, wallet, logistics, financing, and AI — all in one premium, mobile-first platform.
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -342,7 +343,7 @@ export default function Landing() {
           </div>
           <div className="grid md:grid-cols-3 gap-6 af-stagger">
             {[
-              { q: "AgriFlow paid me in 12 hours. The market never pays me in 12 hours.", n: "Adebayo O.", r: "Farmer · Ogun" },
+              { q: "AGRIOS paid me in 12 hours. The market never pays me in 12 hours.", n: "Adebayo O.", r: "Farmer · Ogun" },
               { q: "We source 40 tons of cassava monthly now with zero payment disputes. Escrow is magic.", n: "Chioma O.", r: "Buyer · Lagos" },
               { q: "Clear pickups, clear routes, clear money. I've tripled my monthly income.", n: "Ibrahim T.", r: "Transporter · Lagos" },
             ].map((t) => (
@@ -367,7 +368,7 @@ export default function Landing() {
               Built for Nigeria. Designed for Africa.
             </h2>
             <p className="mt-4 text-white/80 max-w-2xl mx-auto text-lg">
-              Join thousands of farmers, buyers, and logistics partners already moving money the AgriFlow way.
+              Join thousands of farmers, buyers, and logistics partners already moving money the AGRIOS way.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link to="/signup" className="af-btn-accent" data-testid="cta-signup">
@@ -385,7 +386,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-ink-muted">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-brand grid place-items-center text-white font-heading font-extrabold text-sm">A</div>
-            <span className="font-heading font-bold text-ink">AgriFlow</span>
+            <span className="font-heading font-bold text-ink">AGRIOS</span>
             <span className="ml-2">© {new Date().getFullYear()}</span>
           </div>
           <div>From Farm to Money. 🇳🇬 Lagos · Abuja · Ibadan</div>

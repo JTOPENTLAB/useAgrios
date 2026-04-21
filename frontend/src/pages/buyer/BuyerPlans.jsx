@@ -104,7 +104,7 @@ export default function BuyerPlans() {
           <div className="flex-1">
             <h3 className="font-heading font-bold text-lg text-ink">How billing works today (MVP)</h3>
             <p className="text-sm text-ink-soft mt-1 leading-relaxed">
-              Subscription fees are drawn directly from your AgriFlow wallet for 30 days of access. Once
+              Subscription fees are drawn directly from your AGRIOS wallet for 30 days of access. Once
               Paystack / Flutterwave is wired, you'll be able to auto-renew on card. Top up your wallet on
               the Wallet page.
             </p>

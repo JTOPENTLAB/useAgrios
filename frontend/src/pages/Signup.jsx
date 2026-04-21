@@ -14,8 +14,8 @@ const ROLES = [
 
 export default function Signup() {
   useDocumentMeta({
-    title: "Sign up · AgriFlow — From Farm to Money",
-    description: "Join AgriFlow today. Buyers get ₦5,000 wallet credit on signup. Farmers list produce and get paid via escrow in 24 hours. Nigeria · Ghana · Kenya · Côte d'Ivoire.",
+    title: "Sign up · AGRIOS — From Farm to Money",
+    description: "Join AGRIOS today. Buyers get ₦5,000 wallet credit on signup. Farmers list produce and get paid via escrow in 24 hours. Nigeria · Ghana · Kenya · Côte d'Ivoire.",
   });
   const { signup } = useAuth();
   const nav = useNavigate();
@@ -47,7 +47,7 @@ export default function Signup() {
       else delete payload.farm_size_hectares;
       if (!payload.referral_code) delete payload.referral_code;
       await signup(payload);
-      toast.success("Welcome to AgriFlow!");
+      toast.success("Welcome to AGRIOS!");
       nav("/app");
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Signup failed");
@@ -61,12 +61,12 @@ export default function Signup() {
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="flex items-center gap-2 mb-8" data-testid="signup-brand">
           <div className="w-9 h-9 rounded-xl bg-brand grid place-items-center text-white font-heading font-extrabold">A</div>
-          <span className="font-heading font-extrabold text-xl text-ink">AgriFlow</span>
+          <span className="font-heading font-extrabold text-xl text-ink">AGRIOS</span>
         </Link>
 
         <div className="af-card p-8 sm:p-10">
           <h1 className="font-heading font-extrabold text-3xl text-ink">Create your account</h1>
-          <p className="text-ink-muted mt-2">Pick how you plan to use AgriFlow.</p>
+          <p className="text-ink-muted mt-2">Pick how you plan to use AGRIOS.</p>
 
           {role === "buyer" && (() => {
             const c = countries.find((x) => x.code === form.country) || countries[0];
@@ -78,7 +78,7 @@ export default function Signup() {
                 </div>
                 <div className="flex-1">
                   <div className="font-heading font-bold text-ink text-sm">Get {c.symbol}{c.signup_bonus.toLocaleString()} to fund your first order</div>
-                  <div className="text-xs text-ink-muted">Auto-credited to your wallet on signup — zero friction to try AgriFlow.</div>
+                  <div className="text-xs text-ink-muted">Auto-credited to your wallet on signup — zero friction to try AGRIOS.</div>
                 </div>
               </div>
             );

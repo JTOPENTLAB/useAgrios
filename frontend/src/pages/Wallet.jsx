@@ -41,7 +41,7 @@ export default function Wallet() {
       <div>
         <div className="text-xs font-bold uppercase tracking-wider text-brand">Money</div>
         <h1 className="font-heading font-extrabold text-3xl text-ink">Wallet</h1>
-        <p className="text-ink-muted mt-1">Fund, hold, and move money across AgriFlow — with full ledger integrity.</p>
+        <p className="text-ink-muted mt-1">Fund, hold, and move money across AGRIOS — with full ledger integrity.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 af-stagger">

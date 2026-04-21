@@ -6,8 +6,8 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export default function Login() {
   useDocumentMeta({
-    title: "Log in · AgriFlow",
-    description: "Log in to AgriFlow — Africa's Agricultural Financial Infrastructure. Marketplace, wallet, escrow, logistics and AI in one platform.",
+    title: "Log in · AGRIOS",
+    description: "Log in to AGRIOS — Africa's Agricultural Financial Infrastructure. Marketplace, wallet, escrow, logistics and AI in one platform.",
   });
   const { login } = useAuth();
   const nav = useNavigate();
@@ -46,7 +46,7 @@ export default function Login() {
         <div className="relative z-10 h-full flex flex-col justify-between p-10 text-white">
           <Link to="/" className="flex items-center gap-2" data-testid="login-brand">
             <div className="w-10 h-10 rounded-xl bg-white grid place-items-center text-brand font-heading font-extrabold">A</div>
-            <span className="font-heading font-extrabold text-2xl">AgriFlow</span>
+            <span className="font-heading font-extrabold text-2xl">AGRIOS</span>
           </Link>
           <div>
             <div className="text-xs uppercase font-bold tracking-wider text-gold">From Farm to Money</div>
@@ -64,7 +64,7 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="mb-8">
             <h1 className="font-heading font-extrabold text-3xl text-ink">Welcome back</h1>
-            <p className="text-ink-muted mt-2">Log in to your AgriFlow account.</p>
+            <p className="text-ink-muted mt-2">Log in to your AGRIOS account.</p>
           </div>
 
           <form onSubmit={submit} className="space-y-4" data-testid="login-form">
@@ -119,7 +119,7 @@ export default function Login() {
           </div>
 
           <div className="mt-6 text-sm text-ink-muted">
-            New to AgriFlow?{" "}
+            New to AGRIOS?{" "}
             <Link to="/signup" className="text-brand font-semibold" data-testid="link-to-signup">
               Create an account
             </Link>

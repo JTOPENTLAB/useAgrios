@@ -17,7 +17,7 @@ export default function FarmerListings() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-heading font-extrabold text-3xl text-ink">My Listings</h1>
-          <p className="text-ink-muted mt-1">All produce you've published on AgriFlow.</p>
+          <p className="text-ink-muted mt-1">All produce you've published on AGRIOS.</p>
         </div>
         <Link to="/app/farmer/listings/new" className="af-btn-primary" data-testid="create-listing-link">
           <PlusCircle className="w-4 h-4" /> New listing
@@ -31,7 +31,7 @@ export default function FarmerListings() {
           <EmptyState
             icon={Sprout}
             title="No listings yet"
-            text="Start selling on AgriFlow by creating your first crop listing."
+            text="Start selling on AGRIOS by creating your first crop listing."
             cta={<Link to="/app/farmer/listings/new" className="af-btn-primary mt-4"><PlusCircle className="w-4 h-4" /> Create listing</Link>}
           />
         </div>

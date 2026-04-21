@@ -71,7 +71,7 @@ export default function AppShell() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/app" className="flex items-center gap-2" data-testid="shell-brand">
             <div className="w-9 h-9 rounded-xl bg-brand grid place-items-center text-white font-heading font-extrabold">A</div>
-            <span className="font-heading font-extrabold text-xl text-ink">AgriFlow</span>
+            <span className="font-heading font-extrabold text-xl text-ink">AGRIOS</span>
             <span className="hidden sm:inline ml-3 af-chip capitalize" data-testid="user-role-chip">{user?.role}</span>
           </Link>
           <div className="flex items-center gap-3">

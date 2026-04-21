@@ -1,4 +1,4 @@
-"""AgriFlow — African agricultural financial infrastructure.
+"""AGRIOS — African agricultural financial infrastructure.
 
 MVP backend (Phase 1). FastAPI + MongoDB (motor).
 All routes are prefixed with /api. No _id leaks to clients.

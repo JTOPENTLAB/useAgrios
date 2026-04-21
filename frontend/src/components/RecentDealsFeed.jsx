@@ -68,7 +68,7 @@ export default function RecentDealsFeed() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-60" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
           </span>
-          <div className="text-xs font-bold uppercase tracking-wider text-brand">Recently on AgriFlow</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-brand">Recently on AGRIOS</div>
           <span className="af-chip text-[10px]">Live · anonymised</span>
         </div>
       </div>

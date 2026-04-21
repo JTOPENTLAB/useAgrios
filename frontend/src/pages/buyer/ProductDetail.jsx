@@ -110,7 +110,7 @@ export default function ProductDetail() {
             {[
               [ShieldCheck, "Escrow-locked", "Your payment is held safely until you confirm delivery."],
               [Truck, "Logistics arranged", "Verified transporters pick up and deliver with proof."],
-              [CheckCircle2, "Dispute support", "AgriFlow team resolves issues fairly."],
+              [CheckCircle2, "Dispute support", "AGRIOS team resolves issues fairly."],
             ].map(([Ic, t, d]) => (
               <div key={t} className="flex gap-3">
                 <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand grid place-items-center flex-shrink-0"><Ic className="w-5 h-5" /></div>
