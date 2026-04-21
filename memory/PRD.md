@@ -151,6 +151,19 @@ See `/app/memory/test_credentials.md`.
 - **Marketplace** gets a live Hot Demand banner above filters + compact trust strip.
 - **Tests** — `/app/backend/tests/test_phaseab.py` 17/17 pytest cases pass. Iteration 6 frontend regression test 100% green (/explore + FarmerDashboard + BuyerHome + Wallet + Promote-with-Video flow + ProductRecommendations).
 
+### Phase C — AGRIOS Market Pulse (weekly digest engine) (Feb 2026)
+- **Composer** (`/app/backend/services/digest.py`) — per-user personalized payload: top hot crops (30-day velocity + WoW % + price range), featured verified suppliers (buyers) or price-guidance vs market median/P75 + hot-crops-not-listed (farmers), new listings in user's country this week, smart headline + CTA, WhatsApp share text, full branded HTML email template.
+- **Pluggable sender**: default writes to `digest_log` collection + console log (MOCK). Flip to real Resend by setting `RESEND_API_KEY` + optional `RESEND_FROM` env vars — zero code change required. `httpx` calls Resend on-demand; failures captured in the log entry.
+- **Endpoints** (all `/api/digest/*`):
+  - `GET /preview` — authenticated user previews their own next digest
+  - `GET /prefs` + `PUT /prefs` — opt-in/out toggles (`{email, frequency}`)
+  - `POST /send-me-now` — self-test; writes to log + returns WhatsApp share URL
+  - `POST /trigger` — admin-only blast to all opted-in buyers + farmers
+  - `GET /log` — admin-only audit trail
+- **Scheduler** — asyncio background loop inside FastAPI; fires blast once every Monday 08:00 UTC (09:00 WAT), guarded by `system.digest_last_run` doc so a restart doesn't double-send.
+- **Frontend** (`/app/digest` route, nav item "Market Pulse" for farmer + buyer): delivery preference toggle, live preview of headline + hot crops + suppliers + WhatsApp text, Send-me-a-test, Share-via-WhatsApp (`wa.me`), Copy-text, mock-mode notice. BuyerHome has a promo card linking to the digest page.
+- **Tests**: `/app/backend/tests/test_phase_c_digest.py` — 12/12 pytest cases pass. Iteration 7 frontend 6/6 pass. Zero open issues.
+
 ## Deferred (Phase 3 backlog)
 
 ### P1
