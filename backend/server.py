@@ -773,6 +773,82 @@ async def fund_escrow(order_id: str, user: dict = Depends(require_roles("buyer")
     return {"ok": True, "order_id": order_id, "status": "escrow_funded"}
 
 
+@api.post("/orders/{order_id}/reorder")
+async def reorder(order_id: str, user: dict = Depends(require_roles("buyer"))):
+    original = await db.orders.find_one({"id": order_id})
+    if not original or original["buyer_id"] != user["id"]:
+        raise HTTPException(404, "Order not found")
+    listing = await db.listings.find_one({"id": original["listing_id"]}, {"_id": 0})
+    if not listing or listing.get("status") != "active":
+        raise HTTPException(400, "Listing no longer available — please browse for alternatives")
+    qty = min(float(original["quantity_kg"]), float(listing["quantity_kg"]))
+    if qty <= 0:
+        raise HTTPException(400, "Out of stock")
+    total = round(qty * listing["price_per_kg"], 2)
+    commission = round(total * (COMMISSION_PCT / 100), 2)
+    farmer_amount = round(total - commission, 2)
+    new_order_id = new_id()
+    doc = {
+        "id": new_order_id,
+        "listing_id": listing["id"],
+        "crop": listing["crop"],
+        "country": listing.get("country", "NG"),
+        "currency": listing.get("currency", "NGN"),
+        "buyer_id": user["id"],
+        "buyer_name": user["full_name"],
+        "farmer_id": listing["farmer_id"],
+        "farmer_name": listing["farmer_name"],
+        "quantity_kg": qty,
+        "price_per_kg": listing["price_per_kg"],
+        "total": total,
+        "commission": commission,
+        "farmer_amount": farmer_amount,
+        "delivery_address": original["delivery_address"],
+        "delivery_notes": original.get("delivery_notes", ""),
+        "status": "awaiting_payment",
+        "escrow_status": "pending",
+        "reorder_of": order_id,
+        "created_at": utcnow(),
+        "timeline": [{"ts": utcnow(), "event": "order_created_from_reorder", "by": "buyer"}],
+    }
+    await db.orders.insert_one(doc.copy())
+    # Auto-fund if wallet has enough
+    wallet = await ensure_wallet(user["id"])
+    auto_funded = False
+    if wallet["available"] >= total:
+        await db.wallets.update_one(
+            {"user_id": user["id"]},
+            {"$inc": {"available": -total, "escrow_held": total}},
+        )
+        await ledger(user["id"], "escrow_lock", total, "debit", new_order_id, f"Reorder escrow (from {order_id[:8]})")
+        await db.listings.update_one({"id": listing["id"]}, {"$inc": {"quantity_kg": -qty}})
+        await db.orders.update_one(
+            {"id": new_order_id},
+            {
+                "$set": {"status": "escrow_funded", "escrow_status": "funded"},
+                "$push": {"timeline": {"ts": utcnow(), "event": "escrow_funded", "by": "buyer"}},
+            },
+        )
+        job = {
+            "id": new_id(),
+            "order_id": new_order_id,
+            "crop": listing["crop"],
+            "quantity_kg": qty,
+            "pickup_from": listing["farmer_name"],
+            "deliver_to": original["delivery_address"],
+            "buyer_name": user["full_name"],
+            "farmer_id": listing["farmer_id"],
+            "buyer_id": user["id"],
+            "status": "pending",
+            "payout": round(total * 0.08, 2),
+            "created_at": utcnow(),
+        }
+        await db.logistics_jobs.insert_one(job.copy())
+        await notify(listing["farmer_id"], "Repeat order received 🔁", f"{user['full_name']} reordered {qty}kg of {listing['crop']}.", "order", new_order_id)
+        auto_funded = True
+    return {"ok": True, "order_id": new_order_id, "auto_funded": auto_funded, "total": total, "quantity_kg": qty}
+
+
 @api.post("/orders/{order_id}/confirm-delivery")
 async def confirm_delivery(order_id: str, user: dict = Depends(require_roles("buyer"))):
     o = await db.orders.find_one({"id": order_id})

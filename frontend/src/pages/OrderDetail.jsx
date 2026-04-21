@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, MapPin, Clock } from "lucide-react";
+import { AlertCircle, CheckCircle2, MapPin, Clock, Repeat2 } from "lucide-react";
 import api, { fmtNGN, fmtDate } from "@/lib/api";
 import EscrowTimeline from "@/components/EscrowTimeline";
 import { useAuth } from "@/context/AuthContext";
 
 export default function OrderDetail() {
   const { id } = useParams();
+  const nav = useNavigate();
   const { user } = useAuth();
   const [o, setO] = useState(null);
   const [disputeReason, setDisputeReason] = useState("");
@@ -61,6 +62,23 @@ export default function OrderDetail() {
           <p className="text-ink-muted mt-1">Created {fmtDate(o.created_at)}</p>
         </div>
         <div className="flex gap-2">
+          {isBuyer && o.status === "completed" && (
+            <button
+              onClick={async () => {
+                try {
+                  const { data } = await api.post(`/orders/${o.id}/reorder`);
+                  toast.success(data.auto_funded ? "Reorder placed & escrow funded!" : "Reorder created — fund escrow to confirm");
+                  nav(`/app/orders/${data.order_id}`);
+                } catch (err) {
+                  toast.error(err?.response?.data?.detail || "Reorder failed");
+                }
+              }}
+              className="af-btn-primary"
+              data-testid="reorder-detail-btn"
+            >
+              <Repeat2 className="w-4 h-4" /> Reorder
+            </button>
+          )}
           {isBuyer && o.status === "awaiting_payment" && (
             <button onClick={fundEscrow} className="af-btn-primary" data-testid="fund-escrow-btn">Fund escrow</button>
           )}

@@ -80,6 +80,13 @@ See `/app/memory/test_credentials.md`.
   - New `/app/buyer/saved` page + "Saved" nav tab
   - Sort dropdown on marketplace filter bar
 
+### Phase 2f — One-click reorder (Feb 21, 2026)
+- `POST /api/orders/{id}/reorder` — buyer-only; clones listing + qty + delivery address from past order, re-prices to current listing price, caps qty at available, creates new order, **auto-funds escrow if wallet has balance**, spawns logistics job, notifies farmer ("Repeat order received 🔁")
+- Edge cases: sold-out / paused listings return 400; partial stock is auto-capped to available
+- New orders carry `reorder_of: {original_order_id}` for analytics
+- Frontend: green "Reorder" button on every completed order row + on Order Detail header — one tap navigates to the new order
+- Tested: reorder of completed order #64749405 → new order #7cee0c3e auto-funded ₦850, escrow locked, logistics job spawned
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

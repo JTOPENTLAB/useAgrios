@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Package, Repeat2 } from "lucide-react";
+import { toast } from "sonner";
 import api, { fmtNGN, fmtDate } from "@/lib/api";
 
 const STATUS_STYLES = {
@@ -15,12 +16,29 @@ const STATUS_STYLES = {
 };
 
 export default function BuyerOrders() {
+  const nav = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(null);
 
   useEffect(() => {
     api.get("/orders").then((r) => setItems(r.data)).finally(() => setLoading(false));
   }, []);
+
+  const reorder = async (id, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBusy(id);
+    try {
+      const { data } = await api.post(`/orders/${id}/reorder`);
+      toast.success(data.auto_funded ? "Reorder placed & escrow funded!" : "Reorder created — fund escrow to confirm");
+      nav(`/app/orders/${data.order_id}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Reorder failed");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-6" data-testid="orders-page">
@@ -64,6 +82,16 @@ export default function BuyerOrders() {
                     <span className={STATUS_STYLES[o.status] || "af-chip"}>{o.status.replace(/_/g, " ")}</span>
                   </td>
                   <td className="p-4 text-right">
+                    {o.status === "completed" && (
+                      <button
+                        onClick={(e) => reorder(o.id, e)}
+                        disabled={busy === o.id}
+                        className="af-btn-primary py-1.5 px-3 text-xs mr-2 disabled:opacity-60"
+                        data-testid={`reorder-${o.id}`}
+                      >
+                        <Repeat2 className="w-3.5 h-3.5" /> {busy === o.id ? "…" : "Reorder"}
+                      </button>
+                    )}
                     <Link to={`/app/orders/${o.id}`} className="text-brand font-semibold text-sm" data-testid={`view-order-${o.id}`}>View →</Link>
                   </td>
                 </tr>
