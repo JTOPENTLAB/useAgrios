@@ -67,6 +67,19 @@ See `/app/memory/test_credentials.md`.
 - Twilio OTP phone verification
 - `server.py` split into `/routes/*` (deferred — ~2,000 lines now; next dedicated iteration)
 
+### Phase 2e — FOMO + velocity signals (Feb 21, 2026)
+- **Views counter** — `GET /api/listings/{id}` auto-increments `views`
+- **Bookmark system** — `POST /api/listings/{id}/save` (buyer) toggles save; mirrors on user's `saved_listings[]` + listing's `saves` counter
+- **Endpoints**: `GET /api/listings/trending` (top 6 by views) · `GET /api/listings/saved` (buyer's shortlist)
+- **Sort options** on `GET /api/listings?sort=`: newest (default), trending (most viewed), price_low, price_high
+- **Frontend**:
+  - 🔥 "Trending now" strip at top of Marketplace with 6 thumbs + view overlay chips
+  - Bookmark (save) button on every product card — filled green when saved
+  - Social-proof strip on Product Detail: "👁 N views · 🔖 N saved · 🔥 Trending" (fires >5 views)
+  - "Save for later" button in checkout panel
+  - New `/app/buyer/saved` page + "Saved" nav tab
+  - Sort dropdown on marketplace filter bar
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

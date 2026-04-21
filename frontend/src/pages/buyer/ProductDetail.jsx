@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ShieldCheck, MapPin, Sprout, Truck, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, MapPin, Sprout, Truck, CheckCircle2, Eye, Bookmark } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -83,6 +84,11 @@ export default function ProductDetail() {
                   <span className="af-chip">Grade {l.grade}</span>
                   {l.farmer_verified && <span className="af-badge-verified"><ShieldCheck className="w-3 h-3" /> Verified farmer</span>}
                 </div>
+                <div className="flex items-center gap-4 mt-3 text-xs text-ink-muted" data-testid="social-proof-strip">
+                  <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {l.views || 0} views</span>
+                  <span className="flex items-center gap-1"><Bookmark className="w-3.5 h-3.5" /> {l.saves || 0} buyers saved</span>
+                  {(l.views || 0) > 5 && <span className="af-badge-pending">🔥 Trending</span>}
+                </div>
               </div>
               <div className="text-right">
                 <div className="font-heading font-extrabold text-3xl text-ink">{fmtNGN(l.price_per_kg)}</div>
@@ -143,6 +149,11 @@ export default function ProductDetail() {
             <button onClick={makeOffer} className="af-btn-secondary w-full" data-testid="make-offer-btn">
               Make an offer
             </button>
+            {user?.role === "buyer" && (
+              <button onClick={toggleSave} className="af-btn-ghost w-full text-sm" data-testid="detail-save-btn">
+                <Bookmark className={`w-4 h-4 ${isSaved ? "fill-brand text-brand" : ""}`} /> {isSaved ? "Saved" : "Save for later"}
+              </button>
+            )}
           </div>
           <div className="text-[10px] text-ink-muted text-center mt-3 leading-relaxed">
             Escrow is released to the farmer only after you confirm delivery.

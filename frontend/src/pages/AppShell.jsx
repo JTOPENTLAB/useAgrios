@@ -15,6 +15,7 @@ import {
   BarChart3,
   Video,
   Crown,
+  Bookmark,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -33,6 +34,7 @@ const NAV = {
   ],
   buyer: [
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart, end: true },
+    { to: "/app/buyer/saved", label: "Saved", icon: Bookmark },
     { to: "/app/orders", label: "My Orders", icon: Package },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },

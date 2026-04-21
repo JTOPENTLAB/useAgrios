@@ -18,6 +18,7 @@ import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
 import ProductDetail from "@/pages/buyer/ProductDetail";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import BuyerPlans from "@/pages/buyer/BuyerPlans";
+import SavedListings from "@/pages/buyer/SavedListings";
 import OrderDetail from "@/pages/OrderDetail";
 import Wallet from "@/pages/Wallet";
 import Analytics from "@/pages/Analytics";
@@ -74,6 +75,7 @@ function App() {
               <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
               <Route path="buyer/plans" element={<Guard roles={["buyer"]}><BuyerPlans /></Guard>} />
+              <Route path="buyer/saved" element={<Guard roles={["buyer"]}><SavedListings /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
               <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />

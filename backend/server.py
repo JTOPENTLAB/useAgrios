@@ -499,6 +499,7 @@ async def list_listings(
     crop: Optional[str] = None,
     location: Optional[str] = None,
     grade: Optional[str] = None,
+    sort: Optional[str] = None,
 ):
     filt: dict[str, Any] = {"status": "active"}
     if crop:
@@ -513,7 +514,16 @@ async def list_listings(
             {"description": {"$regex": q, "$options": "i"}},
             {"variety": {"$regex": q, "$options": "i"}},
         ]
-    items = await db.listings.find(filt, {"_id": 0}).sort("created_at", -1).to_list(200)
+    cursor = db.listings.find(filt, {"_id": 0})
+    if sort == "trending":
+        cursor = cursor.sort("views", -1)
+    elif sort == "price_low":
+        cursor = cursor.sort("price_per_kg", 1)
+    elif sort == "price_high":
+        cursor = cursor.sort("price_per_kg", -1)
+    else:
+        cursor = cursor.sort("created_at", -1)
+    items = await cursor.to_list(200)
     return items
 
 
@@ -527,12 +537,55 @@ async def my_listings(user: dict = Depends(require_roles("farmer"))):
     return items
 
 
+@api.get("/listings/trending")
+async def trending_listings():
+    items = (
+        await db.listings.find({"status": "active"}, {"_id": 0})
+        .sort("views", -1)
+        .limit(6)
+        .to_list(6)
+    )
+    return items
+
+
+@api.get("/listings/saved")
+async def saved_listings(user: dict = Depends(require_roles("buyer"))):
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    ids = (u or {}).get("saved_listings", [])
+    if not ids:
+        return []
+    items = await db.listings.find({"id": {"$in": ids}, "status": "active"}, {"_id": 0}).to_list(200)
+    return items
+
+
 @api.get("/listings/{listing_id}")
 async def get_listing(listing_id: str):
     l = await db.listings.find_one({"id": listing_id}, {"_id": 0})
     if not l:
         raise HTTPException(404, "Listing not found")
+    # Bump view counter (fire-and-forget style)
+    await db.listings.update_one({"id": listing_id}, {"$inc": {"views": 1}})
+    l["views"] = (l.get("views") or 0) + 1
     return l
+
+
+@api.post("/listings/{listing_id}/save")
+async def toggle_save(listing_id: str, user: dict = Depends(require_roles("buyer"))):
+    listing = await db.listings.find_one({"id": listing_id}, {"_id": 0})
+    if not listing:
+        raise HTTPException(404, "Listing not found")
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    saved = set((u or {}).get("saved_listings", []))
+    if listing_id in saved:
+        saved.discard(listing_id)
+        await db.listings.update_one({"id": listing_id}, {"$inc": {"saves": -1}})
+        action = "unsaved"
+    else:
+        saved.add(listing_id)
+        await db.listings.update_one({"id": listing_id}, {"$inc": {"saves": 1}})
+        action = "saved"
+    await db.users.update_one({"id": user["id"]}, {"$set": {"saved_listings": list(saved)}})
+    return {"ok": True, "action": action, "saved": action == "saved"}
 
 
 @api.patch("/listings/{listing_id}")
