@@ -164,6 +164,24 @@ See `/app/memory/test_credentials.md`.
 - **Frontend** (`/app/digest` route, nav item "Market Pulse" for farmer + buyer): delivery preference toggle, live preview of headline + hot crops + suppliers + WhatsApp text, Send-me-a-test, Share-via-WhatsApp (`wa.me`), Copy-text, mock-mode notice. BuyerHome has a promo card linking to the digest page.
 - **Tests**: `/app/backend/tests/test_phase_c_digest.py` — 12/12 pytest cases pass. Iteration 7 frontend 6/6 pass. Zero open issues.
 
+### Phase D — Config layer + richer Market Pulse templates (Feb 2026)
+- **Env expansion** — `.env` now structured into APP · EMAIL · WHATSAPP · PAYMENT · CRON · SUPPORT · FEATURE_FLAGS · COUNTRY sections. New provider switches: `EMAIL_PROVIDER=mock|resend|sendgrid`, `WHATSAPP_PROVIDER=share_only|twilio`, `PAYMENT_PROVIDER=mock|flutterwave|paystack`. 9 feature flags (FEATURE_MARKET_PULSE, FEATURE_WHATSAPP_SHARE, FEATURE_EMAIL_DIGEST, FEATURE_LOANS, FEATURE_ESCROW, FEATURE_VIDEO_PROMOTION, FEATURE_HOT_DEMAND, FEATURE_REAL_PAYMENTS, FEATURE_REAL_WHATSAPP_PUSH). Stack is Python/FastAPI + MongoDB + React/CRA so Node-ism keys like `NODE_ENV` → `APP_ENV`, `DATABASE_URL` → kept as `MONGO_URL` (protected), `NEXT_PUBLIC_*` → exposed via new `/api/config` endpoint.
+- **Config service** (`/app/backend/services/config.py`) — typed settings reader, computes "effective" provider (fallback to `mock` when API key missing), exposes `public_config()` for frontend.
+- **`GET /api/config`** — unauthenticated endpoint returning app meta + country/currency list + provider states + feature flags + market-pulse schedule. Frontend reads this on the Digest page to show live provider badges.
+- **Richer digest composer** (`services/digest.py` rewritten) now includes:
+  - `regional_price_snapshot[]` — top region per hot crop with price range + listing count
+  - `new_verified_suppliers[]` — verified farmers who posted listings this week (count + crops)
+  - `price_guidance_delta[]` — week-over-week median price change per hot crop
+  - `active_buyers` — count of distinct buyers who ordered in last 7d
+  - Three-variant **subject line rotation** keyed by `md5(user_id) % 3` for stable A/B bucketing
+  - **Role-specific email HTML** matching the user's spec (Top Signal · Top 5 Crops · Regional Snapshot · New Suppliers · Price Guidance Delta · Verified Buyer Activity · CTA)
+  - **Plain-text alternate** for RFC 8058 deliverability
+  - **Dormant-user reactivation** template — users with `last_login_at > 30d` get a softer re-engagement headline + WA text
+- **WhatsApp 3 variants** — buyer / farmer / dormant, auto-selected by role + dormancy. Farmer fallback ensures ≥2 bullets so messages never feel thin.
+- **Pluggable sender** — `send_email()` now dispatches via `EMAIL_PROVIDER` switch; Resend + SendGrid both implemented; plain-text + html multipart. Missing API key auto-degrades to mock + logs a hint in the audit row.
+- **Scheduler hardening** — respects `ENABLE_CRON` + `FEATURE_MARKET_PULSE` flag + configurable `MARKET_PULSE_CRON_HOUR_UTC`.
+- **Tests**: 15/15 pytest + 100% frontend (iteration 8). One minor projection fix (text_bytes missing from /api/digest/log) caught + fixed in-iteration.
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

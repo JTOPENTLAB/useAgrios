@@ -390,14 +390,24 @@ def render_whatsapp(p: Dict[str, Any]) -> str:
         ]
     elif p["role"] == "farmer":
         lines = [f"*AGRIOS Market Pulse* — {p['period']['label']}", ""]
+        bullets: list[str] = []
         if top and top.get("pct_change") and top["pct_change"] > 0:
-            lines.append(f"• List {top['crop']} now — buyer demand is up {top['pct_change']}%")
+            bullets.append(f"• List {top['crop']} now — buyer demand is up {top['pct_change']}%")
         delta_map = {d["crop"].lower(): d for d in (p.get("price_guidance_delta") or [])}
         for h in hc[:2]:
             d = delta_map.get(h["crop"].lower())
             if d and d["wow_pct"]:
-                lines.append(f"• {h['crop']} guidance is up {d['wow_pct']}% this week")
-        lines.append(f"• {p.get('active_buyers', 0)} verified buyers were active in your categories")
+                bullets.append(f"• {h['crop']} guidance is up {d['wow_pct']}% this week")
+        bullets.append(f"• {p.get('active_buyers', 0)} verified buyers were active in your categories")
+        # Ensure at least 2 bullets so farmer messages never feel thin
+        if len(bullets) < 2 and hc:
+            for h in hc[:3]:
+                if any(h["crop"] in b for b in bullets):
+                    continue
+                bullets.append(f"• Consider listing {h['crop']} — active demand across AGRIOS")
+                if len(bullets) >= 3:
+                    break
+        lines.extend(bullets)
         lines.append("")
         lines.append(f"Action: {p['cta_text']} {p['cta_url']}")
     else:  # buyer
