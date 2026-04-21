@@ -80,7 +80,15 @@ See `/app/memory/test_credentials.md`.
 ## Pitch deck
 See `/app/docs/pitch.md`.
 
-### Phase 2b — Premium Buyer Subscription (Feb 21, 2026)
+### Phase 2c — Retention + Compliance + Real Weather (Feb 21, 2026)
+- **Auto-renewal reminder** — `/api/auth/me` checks subscription expiry; if ≤3 days, fires a one-time notification per expiry date (idempotent via `ref=renew:{tier}:{expiry_date}`)
+- **Signed URLs for sensitive uploads** — PDFs auto-tagged `sensitive: true`, stored under `agriflow/uploads/private/...`. Download requires `?sig=<hmac>&exp=<ts>` query params (1h TTL). Public images under `agriflow/uploads/public/...` unchanged. New endpoint `POST /api/files/{path}/sign` for owners/admins to mint fresh URLs.
+- **Live weather** via Open-Meteo (free, no key) — Ogun, Benue, Oyo, Kano, Kaduna. 30-min DB cache. Real temp + rainfall + humidity + alerts (low rainfall, heavy rain, heat stress). Frontend badge: "Live · Open-Meteo".
+
+### Still pending (awaiting user keys)
+- Paystack and/or Flutterwave (for card-based auto-renewal)
+- Twilio OTP phone verification
+- `server.py` split into `/routes/*` (deferred — 1,946 lines now; next dedicated iteration)
 - `/api/subscriptions/plans` (Basic free · Professional ₦25k · Enterprise ₦100k)
 - `/api/subscriptions/me` · `/api/subscriptions/subscribe` · `/api/subscriptions/cancel`
 - Wallet-backed billing: debits wallet on subscribe, ledger entry `subscription_fee` + platform `subscription_revenue`, 30-day expiry

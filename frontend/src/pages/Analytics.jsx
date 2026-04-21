@@ -69,15 +69,21 @@ export default function Analytics() {
       </div>
 
       <div className="af-card p-6">
-        <h3 className="font-heading font-bold flex items-center gap-2 mb-4"><Cloud className="w-4 h-4 text-blue-600" /> Regional weather</h3>
+        <h3 className="font-heading font-bold flex items-center gap-2 mb-4">
+          <Cloud className="w-4 h-4 text-blue-600" /> Regional weather
+          {weather?.source === "open-meteo" && <span className="af-chip text-[10px] ml-2">Live · Open-Meteo</span>}
+        </h3>
         {weather && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {weather.regions.map((r) => (
               <div key={r.region} className={`rounded-2xl p-4 border ${r.alert ? "border-rose-200 bg-rose-50/50" : "border-zinc-100 bg-zinc-50"}`} data-testid={`weather-${r.region}`}>
                 <div className="font-heading font-bold text-ink">{r.region}</div>
-                <div className="flex items-center gap-3 mt-2 text-sm">
-                  <span className="flex items-center gap-1"><Thermometer className="w-4 h-4 text-rose-500" />{r.temp_c}°C</span>
-                  <span className="flex items-center gap-1"><Droplets className="w-4 h-4 text-blue-500" />{r.rainfall_mm_7d}mm</span>
+                <div className="flex items-center gap-3 mt-2 text-sm flex-wrap">
+                  <span className="flex items-center gap-1"><Thermometer className="w-4 h-4 text-rose-500" />{r.temp_c ?? "—"}°C</span>
+                  <span className="flex items-center gap-1"><Droplets className="w-4 h-4 text-blue-500" />{r.rainfall_mm_7d ?? "—"}mm</span>
+                  {r.humidity !== undefined && r.humidity !== null && (
+                    <span className="text-xs text-ink-muted">· {r.humidity}% RH</span>
+                  )}
                 </div>
                 {r.alert && <div className="mt-2 text-xs text-rose-700 font-semibold">{r.alert}</div>}
               </div>

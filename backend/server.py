@@ -6,10 +6,13 @@ All routes are prefixed with /api. No _id leaks to clients.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import os
 import secrets
 import string
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -408,7 +411,36 @@ async def login(body: LoginIn):
 
 @api.get("/auth/me", response_model=UserOut)
 async def me(user: dict = Depends(current_user)):
+    await _check_subscription_reminder(user)
     return UserOut(**user)
+
+
+async def _check_subscription_reminder(user: dict) -> None:
+    """Fire a one-time reminder 3 days before subscription expiry."""
+    exp = user.get("subscription_expires_at")
+    tier = user.get("subscription_tier")
+    if not exp or not tier or tier == "basic":
+        return
+    try:
+        exp_dt = datetime.fromisoformat(exp)
+    except Exception:
+        return
+    now = datetime.now(timezone.utc)
+    days_left = (exp_dt - now).days
+    if days_left < 0 or days_left > 3:
+        return
+    # Only fire once per expiry date
+    ref = f"renew:{tier}:{exp[:10]}"
+    existing = await db.notifications.find_one({"user_id": user["id"], "ref": ref})
+    if existing:
+        return
+    await notify(
+        user["id"],
+        f"Your {tier.title()} plan expires in {days_left} day{'s' if days_left != 1 else ''}",
+        f"Top up your wallet or renew to keep priority sourcing active. Expires {exp_dt.strftime('%b %d, %Y')}.",
+        "subscription",
+        ref,
+    )
 
 
 # ---------------- KYC / Profile ----------------
@@ -1192,7 +1224,9 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(current
     if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
         raise HTTPException(400, f"File too large (max {MAX_UPLOAD_MB}MB)")
     ext = (file.filename or "bin").rsplit(".", 1)[-1].lower()
-    path = f"{APP_NAME}/uploads/{user['id']}/{uuid.uuid4()}.{ext}"
+    sensitive = ct == "application/pdf"
+    prefix = "private" if sensitive else "public"
+    path = f"{APP_NAME}/uploads/{prefix}/{user['id']}/{uuid.uuid4()}.{ext}"
     result = put_object(path, data, ct)
     file_id = new_id()
     await db.files.insert_one(
@@ -1204,23 +1238,58 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(current
             "content_type": ct,
             "size": result.get("size", len(data)),
             "is_deleted": False,
+            "sensitive": sensitive,
             "created_at": utcnow(),
         }
     )
-    public_url = f"/api/files/{result['path']}"
-    return {"id": file_id, "path": result["path"], "url": public_url, "size": len(data)}
+    if sensitive:
+        signed = sign_file_url(result["path"], ttl_seconds=3600)
+        url = f"/api/files/{result['path']}?sig={signed['sig']}&exp={signed['exp']}"
+    else:
+        url = f"/api/files/{result['path']}"
+    return {"id": file_id, "path": result["path"], "url": url, "size": len(data), "sensitive": sensitive}
 
 
-@api.get("/files/{path:path}")
-async def download_file(path: str):
+def sign_file_url(path: str, ttl_seconds: int = 3600) -> dict:
+    exp = int(time.time()) + ttl_seconds
+    msg = f"{path}|{exp}".encode()
+    sig = hmac.new(JWT_SECRET.encode(), msg, hashlib.sha256).hexdigest()
+    return {"sig": sig, "exp": exp}
+
+
+def verify_file_sig(path: str, sig: str, exp: int) -> bool:
+    if exp < int(time.time()):
+        return False
+    msg = f"{path}|{exp}".encode()
+    expected = hmac.new(JWT_SECRET.encode(), msg, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, sig)
+
+
+@api.post("/files/{path:path}/sign")
+async def sign_sensitive_file(path: str, user: dict = Depends(current_user)):
     record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
     if not record:
         raise HTTPException(404, "File not found")
+    # Only owner (or admin) can mint signed URLs for sensitive files
+    if record.get("sensitive") and user["role"] != "admin" and record["user_id"] != user["id"]:
+        raise HTTPException(403, "Forbidden")
+    signed = sign_file_url(path, ttl_seconds=3600)
+    return {"url": f"/api/files/{path}?sig={signed['sig']}&exp={signed['exp']}", "exp": signed["exp"]}
+
+
+@api.get("/files/{path:path}")
+async def download_file(path: str, sig: Optional[str] = None, exp: Optional[int] = None):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(404, "File not found")
+    if record.get("sensitive"):
+        if not sig or not exp or not verify_file_sig(path, sig, exp):
+            raise HTTPException(403, "This file requires a valid signed URL")
     data, ctype = get_object(path)
     return Response(
         content=data,
         media_type=record.get("content_type", ctype),
-        headers={"Cache-Control": "public, max-age=3600"},
+        headers={"Cache-Control": "private, max-age=600" if record.get("sensitive") else "public, max-age=3600"},
     )
 
 
@@ -1506,17 +1575,65 @@ async def analytics_demand(user: dict = Depends(current_user)):
 
 @api.get("/analytics/weather")
 async def analytics_weather(user: dict = Depends(current_user)):
-    # Mocked but structured — ready to wire a real provider later.
-    return {
-        "updated_at": utcnow(),
-        "regions": [
-            {"region": "Ogun", "temp_c": 29, "rainfall_mm_7d": 45, "alert": None},
-            {"region": "Benue", "temp_c": 32, "rainfall_mm_7d": 12, "alert": "Low rainfall — consider irrigation"},
-            {"region": "Oyo", "temp_c": 30, "rainfall_mm_7d": 38, "alert": None},
-            {"region": "Kano", "temp_c": 35, "rainfall_mm_7d": 4, "alert": "Heat stress risk"},
-            {"region": "Kaduna", "temp_c": 28, "rainfall_mm_7d": 55, "alert": None},
-        ],
-    }
+    """Live weather via Open-Meteo (free, no key). Falls back to mocked if API unreachable."""
+    regions = [
+        {"region": "Ogun", "lat": 7.16, "lon": 3.35},
+        {"region": "Benue", "lat": 7.73, "lon": 8.52},
+        {"region": "Oyo", "lat": 8.14, "lon": 3.75},
+        {"region": "Kano", "lat": 12.00, "lon": 8.52},
+        {"region": "Kaduna", "lat": 10.52, "lon": 7.44},
+    ]
+    # Cache for 30 minutes
+    cached = await db.cache.find_one({"_id": "weather"}, {"_id": 0})
+    if cached:
+        try:
+            aged_sec = (datetime.now(timezone.utc) - datetime.fromisoformat(cached["cached_at"])).total_seconds()
+            if aged_sec < 1800:
+                return cached["data"]
+        except Exception:
+            pass
+
+    def fetch_one(r: dict) -> dict:
+        try:
+            url = (
+                f"https://api.open-meteo.com/v1/forecast?latitude={r['lat']}&longitude={r['lon']}"
+                f"&current=temperature_2m,precipitation,relative_humidity_2m"
+                f"&daily=precipitation_sum&past_days=7&forecast_days=1&timezone=Africa%2FLagos"
+            )
+            resp = requests.get(url, timeout=6)
+            resp.raise_for_status()
+            d = resp.json()
+            cur = d.get("current", {})
+            daily = d.get("daily", {}).get("precipitation_sum", [])
+            rain_7d = round(sum(x for x in daily[:7] if x is not None), 1)
+            temp_c = round(cur.get("temperature_2m", 0), 1)
+            humidity = cur.get("relative_humidity_2m")
+            alert = None
+            if rain_7d < 10:
+                alert = "Low rainfall — consider irrigation"
+            elif rain_7d > 120:
+                alert = "Heavy rain — inspect drainage"
+            if temp_c >= 34:
+                alert = "Heat stress risk"
+            return {
+                "region": r["region"],
+                "temp_c": temp_c,
+                "rainfall_mm_7d": rain_7d,
+                "humidity": humidity,
+                "alert": alert,
+            }
+        except Exception:
+            return {"region": r["region"], "temp_c": None, "rainfall_mm_7d": None, "humidity": None, "alert": "Data unavailable"}
+
+    results = [fetch_one(r) for r in regions]
+    # Note: requests is sync; list comp already runs sequentially but is fast with 6s timeouts.
+    data = {"updated_at": utcnow(), "source": "open-meteo", "regions": results}
+    await db.cache.update_one(
+        {"_id": "weather"},
+        {"$set": {"_id": "weather", "cached_at": utcnow(), "data": data}},
+        upsert=True,
+    )
+    return data
 
 
 # ---------------- Video script library ----------------
