@@ -93,6 +93,11 @@ See `/app/memory/test_credentials.md`.
 - Country flag emoji per deal; status icon (green ✓ for paid/delivered, blue truck for in-transit)
 - Auto-refresh every 45s — feed stays alive even if a user idles
 
+### Phase 2h — Hero-CTA escrow reassurance chip (Feb 21, 2026)
+- Extended `/api/stats/public` with `escrow_locked_amount` (sum of all `wallets.escrow_held`) + `escrow_locked_count` (orders in `escrow_status: funded`)
+- New `EscrowLockedBadge` component inline under the hero CTA row: pulsing shield icon + animated count-up of locked amount + order count
+- Refreshes every 30s — concrete, live proof that real money is secured on-platform right at the decision point
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

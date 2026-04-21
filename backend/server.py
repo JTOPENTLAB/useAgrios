@@ -1960,6 +1960,12 @@ async def public_stats():
     active_buyers = await db.users.count_documents({"role": "buyer"})
     active_listings = await db.listings.count_documents({"status": "active"})
     countries_live = len([c for c in COUNTRIES if c["active"]])
+    # Escrow currently locked
+    escrow_agg = await db.wallets.aggregate(
+        [{"$group": {"_id": None, "locked": {"$sum": "$escrow_held"}}}]
+    ).to_list(1)
+    escrow_locked_amount = escrow_agg[0]["locked"] if escrow_agg else 0
+    escrow_locked_count = await db.orders.count_documents({"escrow_status": "funded"})
     return {
         "gmv_week_ngn": round(gmv_week, 2),
         "orders_week": orders_week,
@@ -1967,6 +1973,8 @@ async def public_stats():
         "active_buyers": active_buyers,
         "active_listings": active_listings,
         "countries_live": countries_live,
+        "escrow_locked_amount": round(escrow_locked_amount, 2),
+        "escrow_locked_count": escrow_locked_count,
         "updated_at": utcnow(),
     }
 

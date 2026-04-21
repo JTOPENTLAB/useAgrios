@@ -95,6 +95,38 @@ function LiveStatsStrip() {
   );
 }
 
+function EscrowLockedBadge() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    const load = () => api.get("/stats/public").then((r) => setStats(r.data)).catch(() => {});
+    load();
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, []);
+  const amt = useCountUp(stats?.escrow_locked_amount || 0);
+  const n = useCountUp(stats?.escrow_locked_count || 0);
+  if (!stats) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-3 rounded-2xl border-2 border-brand/20 bg-white/90 backdrop-blur px-4 py-3 shadow-soft"
+      data-testid="escrow-locked-badge"
+    >
+      <div className="relative flex items-center justify-center">
+        <span className="absolute inline-flex h-5 w-5 rounded-full bg-brand opacity-30 animate-ping" />
+        <div className="relative w-9 h-9 rounded-xl bg-brand text-white grid place-items-center">
+          <Shield className="w-4 h-4" />
+        </div>
+      </div>
+      <div className="leading-tight">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Escrow locked right now</div>
+        <div className="font-heading font-extrabold text-lg text-ink">
+          {fmtNGN(amt)} <span className="text-ink-muted font-semibold text-sm">· {Math.round(n).toLocaleString()} order{Math.round(n) !== 1 ? "s" : ""}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, value, testId }) {
   return (
     <div data-testid={testId}>
@@ -155,6 +187,7 @@ export default function Landing() {
                   See a demo account
                 </Link>
               </div>
+              <EscrowLockedBadge />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
                 {stats.map((s) => (
                   <div key={s.l} className="af-card p-4" data-testid={`stat-${s.l.replace(/\s/g, "-").toLowerCase()}`}>
