@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Sprout,
   Share2,
-  Copy,
   CheckCircle2,
   Eye,
   Bookmark,
@@ -271,10 +270,6 @@ export default function PublicListing() {
                     Your payment is held in escrow by AGRIOS and only released to the farmer once
                     you confirm delivery.
                   </span>
-                </div>
-
-                <div className="mt-4 af-chip bg-gold/10 border-gold/30 text-gold-dark w-full justify-center">
-                  <Copy className="w-3 h-3" /> Share URL: <span className="font-mono text-[10px] truncate max-w-[140px]">{shareUrl.replace(/^https?:\/\//, "")}</span>
                 </div>
               </div>
             </aside>

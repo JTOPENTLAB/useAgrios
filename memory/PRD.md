@@ -125,6 +125,14 @@ See `/app/memory/test_credentials.md`.
 - **Landing nav** — new "Explore" link added as first nav item.
 - **`/api/stats/recent-deals` hardening** — now excludes `TEST_`-prefixed crops from the public social-proof feed (prevents test data leakage into production marquee).
 
+### Phase 2l — Per-listing OG social cards + shareable public pages (Feb 2026)
+- **Backend `GET /api/p/{listing_id}`** — returns full OG-tagged HTML scraped by WhatsApp/Twitter/Facebook/Slack/LinkedIn. Includes `og:type=product`, `og:title` (crop + price), `og:description`, `og:image` (1200×630), `og:url`, Twitter Card `summary_large_image`, `product:price:amount` + `product:price:currency`, and JSON-LD `Product` schema with `offers.price` + `offers.priceCurrency`. Humans get `<meta http-equiv="refresh">` + `window.location.replace()` auto-redirect to the SPA listing page.
+- **Backend `GET /api/sitemap-listings.xml`** — dynamic sitemap of all active listings for Google/Bing crawl. Cached 15 min. Referenced from `robots.txt`.
+- **Frontend `/listing/:id`** (new `PublicListing.jsx`) — public, unauthenticated listing detail page: hero image, country flag chip, crop title, price, qty, farmer info, view/save counts, trust rail (escrow/logistics/wallet), "Sign up to place order" CTA (`?ref=listing-{id}`), "I already have an account" login CTA (`?next=/app/marketplace/{id}`), native `navigator.share` with clipboard fallback ("Link copied"), dynamic `document.title` per listing.
+- **`/explore` cards** — now link to `/listing/:id` (not `/signup`) so people landing from a shared link see full detail. Top/bottom CTAs still funnel to signup with `?ref=explore` attribution.
+- **New env**: `PUBLIC_SITE_URL` in `backend/.env` (used for canonical URLs in OG tags; falls back to incoming Host header).
+- **Tests**: `/app/backend/tests/test_social_share.py` — 9/9 pytest cases pass. Frontend tested via Playwright, 100% pass.
+
 ## Deferred (Phase 3 backlog)
 
 ### P1
