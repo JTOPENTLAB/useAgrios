@@ -38,7 +38,10 @@ export default function FarmerDashboard() {
       api.get("/orders").then((r) => setOrders(r.data)),
       api.get("/wallet").then((r) => setWallet(r.data.wallet)),
       api.get("/offers/farmer").then((r) => setOffers(r.data)).catch(() => {}),
-      api.get("/notifications").then((r) => setNotifs(r.data || [])).catch(() => {}),
+      api.get("/notifications").then((r) => {
+        const d = r.data;
+        setNotifs(Array.isArray(d) ? d : d?.items || []);
+      }).catch(() => {}),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -2579,12 +2579,20 @@ async def seed() -> None:
                     "farmer_id": fid,
                     "farmer_name": "Adebayo Ogunleye",
                     "farmer_verified": True,
+                    "country_code": "NG",
+                    "currency": "NGN",
                     **d,
                     "status": "active",
                     "created_at": utcnow(),
                 }
             )
         logger.info("Seeded demo farmer + listings")
+
+    # Backfill country_code / currency on any existing listings missing them
+    await db.listings.update_many(
+        {"country_code": {"$exists": False}},
+        {"$set": {"country_code": "NG", "currency": "NGN"}},
+    )
 
     # Seed demo buyer
     if not await db.users.find_one({"email": "buyer@agriflow.ng"}):
