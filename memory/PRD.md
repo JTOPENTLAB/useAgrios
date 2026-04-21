@@ -133,6 +133,24 @@ See `/app/memory/test_credentials.md`.
 - **New env**: `PUBLIC_SITE_URL` in `backend/.env` (used for canonical URLs in OG tags; falls back to incoming Host header).
 - **Tests**: `/app/backend/tests/test_social_share.py` — 9/9 pytest cases pass. Frontend tested via Playwright, 100% pass.
 
+### Phase A — Premium Africa-first repositioning (Feb 2026)
+- **Repositioning**: Landing, `index.html` meta, OG, Twitter cards, app tagline, and footer copy all updated to **"The Operating System for Agricultural Trade"** (with subtext "Powering agricultural trade and money flow across Africa"). Replaces the older "From Farm to Money" line everywhere user-visible.
+- **BuyerHome** (new `/app/home` — now the default buyer landing route, AppShell nav updated): stat cards (Total Spend · Active Orders · Saved Suppliers), Hot Demand strip, Featured Verified Suppliers carousel, marketplace feed, trending + demand-signals cards, recent orders teaser.
+- **Farmer dashboard reorder**: new hero — large gradient **Wallet + Escrow** card on top with big balance, "Funds protected until delivery is confirmed", In-escrow / Pending-payout / Lifetime tiles, CTA buttons. Then Earnings-this-week / Active-orders / Pending-offers stats. Then "Sell crop" CTA + active listings list. Then Hot Demand + Smart suggestions + Market insights + Notifications + quick-action inbox.
+- **Wallet redesign** (bank-grade): gradient balance card with big currency-aware balance, prominent Deposit / Withdraw action buttons, escrow-held / pending-payout / total-capacity strip, trust rail (Protected transactions · Fast payouts · Immutable ledger), deposit drawer (quick-amount chips), withdraw drawer (bank account + amount), escrow status card, immutable transaction history.
+- **Product Card upgrade** (new shared `ProductCard.jsx`) — used on Marketplace, Explore, BuyerHome, SavedListings: image, country flag, crop + grade, verified badge, **RatingPill (★ 4.X (N))**, **DeliveryBadge (🚚 2–3 days)**, large bold price, qty, farmer pill, optional bookmark toggle.
+- **TrustStrip** (new reusable) — "Protected by AGRIOS escrow · Funds are held securely until delivery is confirmed" banner; rendered on BuyerHome, Marketplace, ProductDetail, Wallet, FarmerDashboard (compact variant).
+- **Promote with Video** — farmer listings page adds a per-listing CTA that deep-links to `/app/farmer/videos?crop=<crop>&listing_id=<id>`. VideoScripts page now shows a prefill banner, reorders templates to surface crop-relevant ones, and the copy-to-clipboard text swaps `[crop]` placeholders with the real crop name.
+
+### Phase B — Intelligence, discovery & growth loops (Feb 2026)
+- **Live Hot Demand** (`GET /api/insights/hot-demand`) — aggregates orders over last 30 days with WoW % change; enriches each crop with active-listings price range; TEST_ crops filtered. Wired into BuyerHome, FarmerDashboard, and Marketplace (compact variant). Graceful fallback to top-viewed listings if no order history.
+- **Featured Verified Suppliers** (`GET /api/insights/featured-suppliers`) — verified farmers ranked by completed_orders + rating (real reviews when present, deterministic placeholder when not). Horizontal snap-scroll cards on BuyerHome.
+- **Recommendations** — `GET /api/recommendations/product/{id}` (same-crop + same-region), `GET /api/recommendations/for-farmer` (price guidance vs market median/p75 + hot-crops-not-yet-listed), `GET /api/recommendations/for-buyer` (popular-in-region + buyers-like-you). Rendered on ProductDetail + FarmerDashboard.
+- **Recently Viewed** (`components/RecentlyViewed.jsx`) — localStorage-backed, zero network. Push happens on every visit to `/app/marketplace/:id` and `/listing/:id`. Rendered on BuyerHome.
+- **Seed hardening** — all seeded listings now carry `country_code='NG'` + `currency='NGN'`; backfill migration added on startup for any legacy rows.
+- **Marketplace** gets a live Hot Demand banner above filters + compact trust strip.
+- **Tests** — `/app/backend/tests/test_phaseab.py` 17/17 pytest cases pass. Iteration 6 frontend regression test 100% green (/explore + FarmerDashboard + BuyerHome + Wallet + Promote-with-Video flow + ProductRecommendations).
+
 ## Deferred (Phase 3 backlog)
 
 ### P1
