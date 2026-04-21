@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, LineChart as LineChartIcon } from "lucide-react";
 import api from "@/lib/api";
 import TrustStrip from "@/components/TrustStrip";
+import RecentlyMaturedCarousel from "@/components/RecentlyMaturedCarousel";
 import { OpportunityCard } from "./InvestorHome";
 
 export default function OpportunityMarketplace() {
@@ -52,6 +53,8 @@ export default function OpportunityMarketplace() {
       </div>
 
       <TrustStrip />
+
+      <RecentlyMaturedCarousel limit={6} />
 
       {/* Filters */}
       <div className="af-card p-4 flex flex-wrap gap-3 items-center">

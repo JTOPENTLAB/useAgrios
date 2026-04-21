@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrendingUp, Clock, ArrowRight, PieChart as PieIcon, CalendarDays } from "lucide-react";
+import { TrendingUp, Clock, ArrowRight, PieChart as PieIcon, CalendarDays, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import api, { fmtMoney, fmtDate } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -21,12 +22,14 @@ export default function InvestorPortfolio() {
   const currency = user?.currency || "NGN";
   const [summary, setSummary] = useState(null);
   const [rows, setRows] = useState([]);
+  const [kyc, setKyc] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api.get("/investments/summary").then((r) => setSummary(r.data)),
       api.get("/investments/mine").then((r) => setRows(r.data)),
+      api.get("/investor/kyc-status").then((r) => setKyc(r.data)).catch(() => setKyc(null)),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -92,6 +95,8 @@ export default function InvestorPortfolio() {
         />
         <UpcomingPayouts items={upcomingPayouts} currency={currency} />
       </div>
+
+      <KycTierCard kyc={kyc} onUpgraded={() => api.get("/investor/kyc-status").then((r) => setKyc(r.data))} />
 
       {/* Investments list */}
       <div className="af-card p-6">
@@ -333,3 +338,118 @@ function UpcomingPayouts({ items, currency }) {
     </div>
   );
 }
+
+const TIER_ORDER = ["unverified", "bronze", "silver", "gold"];
+const TIER_COLORS = {
+  unverified: "bg-zinc-100 text-ink-muted border-zinc-200",
+  bronze: "bg-amber-50 text-amber-800 border-amber-200",
+  silver: "bg-slate-100 text-slate-700 border-slate-300",
+  gold: "bg-gold/15 text-gold-ink border-gold/40",
+};
+
+function KycTierCard({ kyc, onUpgraded }) {
+  const [upgrading, setUpgrading] = useState(false);
+  if (!kyc) return null;
+
+  const currentIdx = TIER_ORDER.indexOf(kyc.tier);
+  const nextTier = TIER_ORDER[currentIdx + 1];
+  const limit = kyc.max_investment || 0;
+  const used = kyc.used || 0;
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+  const upgrade = async () => {
+    if (!nextTier) return;
+    const name = window.prompt(
+      `Upgrade to ${nextTier.toUpperCase()}. Enter your full legal name:`,
+    );
+    if (!name) return;
+    const id = window.prompt("Enter your government-issued ID number:");
+    if (!id) return;
+    setUpgrading(true);
+    try {
+      await api.post("/investor/kyc-upgrade", {
+        requested_tier: nextTier,
+        full_legal_name: name,
+        id_number: id,
+      });
+      toast.success(`Upgraded to ${nextTier.toUpperCase()} tier ✅`);
+      onUpgraded && onUpgraded();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Upgrade failed");
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  return (
+    <div className="af-card p-6" data-testid="kyc-tier-card">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand grid place-items-center">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-heading font-bold text-ink">
+              Investor tier:{" "}
+              <span
+                className={`inline-flex items-center gap-1 text-xs font-bold uppercase rounded-full px-2.5 py-0.5 border align-middle ${
+                  TIER_COLORS[kyc.tier] || TIER_COLORS.unverified
+                }`}
+                data-testid="kyc-tier-badge"
+              >
+                {kyc.label}
+              </span>
+            </h3>
+            <p className="text-sm text-ink-muted mt-1">{kyc.rationale}</p>
+          </div>
+        </div>
+        {nextTier && (
+          <button
+            onClick={upgrade}
+            disabled={upgrading}
+            className="af-btn-primary text-sm disabled:opacity-60"
+            data-testid="kyc-upgrade-btn"
+          >
+            {upgrading ? "Processing…" : `Upgrade to ${nextTier.toUpperCase()}`}
+          </button>
+        )}
+      </div>
+      {limit > 0 && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="text-ink-muted">Investment capacity used</span>
+            <span className="font-heading font-bold text-ink">
+              {pct}% · {fmtMoney(used, "NGN")} / {fmtMoney(limit, "NGN")}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+            <div
+              className="h-full bg-brand transition-all"
+              style={{ width: `${pct}%` }}
+              data-testid="kyc-usage-bar"
+            />
+          </div>
+        </div>
+      )}
+      <div className="mt-4 pt-4 border-t border-zinc-100 grid sm:grid-cols-4 gap-3">
+        {kyc.all_tiers.map((t) => (
+          <div
+            key={t.tier}
+            className={`p-3 rounded-xl border text-xs ${
+              t.tier === kyc.tier
+                ? "bg-brand/5 border-brand/30"
+                : "bg-zinc-50 border-zinc-100"
+            }`}
+            data-testid={`kyc-tier-row-${t.tier}`}
+          >
+            <div className="font-heading font-bold text-ink">{t.label}</div>
+            <div className="text-ink-muted mt-0.5">
+              up to {fmtMoney(t.max_investment, "NGN")}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

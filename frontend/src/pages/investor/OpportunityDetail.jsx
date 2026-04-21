@@ -202,6 +202,8 @@ export default function OpportunityDetail() {
           </div>
         </div>
 
+        <SocialProofStrip oppId={id} currency={currency} />
+
         {/* Risk disclosure */}
         <div
           className="af-card p-5 border-l-4 border-l-gold bg-gold/5"
@@ -598,4 +600,66 @@ function fmtFarmUpdateDate(iso) {
   } catch {
     return "";
   }
+}
+
+
+/* ============ Social proof strip (Phase H) ============ */
+
+function SocialProofStrip({ oppId, currency }) {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    api
+      .get(`/opportunities/${oppId}/social-proof`)
+      .then((r) => setData(r.data))
+      .catch(() => setData(null));
+  }, [oppId]);
+  if (!data) return null;
+  const count = data.last_24h_investor_count || 0;
+  const vol = data.last_24h_volume || 0;
+  if (count === 0 && (data.total_investor_count || 0) === 0) return null;
+  return (
+    <div
+      className="af-card p-4 bg-emerald-50 border-emerald-200"
+      data-testid="social-proof-strip"
+    >
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-shrink-0">
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <Users className="w-5 h-5 text-emerald-700" />
+        </div>
+        <div className="text-sm text-emerald-900 flex-1 min-w-[200px]">
+          {count > 0 ? (
+            <>
+              <strong>{count} investor{count === 1 ? "" : "s"}</strong> backed
+              this cycle in the last 24h{" "}
+              {vol > 0 && (
+                <span className="text-emerald-700">
+                  · {fmtMoney(vol, currency)} committed
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <strong>{data.total_investor_count}</strong> investor
+              {data.total_investor_count === 1 ? "" : "s"} backing this cycle.
+              Be the next.
+            </>
+          )}
+        </div>
+        {data.recent_activity && data.recent_activity.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {data.recent_activity.slice(0, 3).map((a, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold bg-white border border-emerald-200 text-emerald-800 rounded-full px-2.5 py-1"
+                data-testid={`social-pill-${i}`}
+              >
+                {fmtMoney(a.amount, currency)} · {a.when}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

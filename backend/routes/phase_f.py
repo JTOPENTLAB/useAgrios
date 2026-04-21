@@ -42,7 +42,7 @@ def _now() -> datetime:
 
 
 def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
-             ensure_wallet, ledger):
+             ensure_wallet, ledger, kyc_tier_lookup=None, kyc_tiers=None):
     # ---------- Farmer creates opportunity ----------
     @api.post("/opportunities")
     async def create_opportunity(body: OpportunityCreate, user: dict = Depends(require_roles("farmer"))):
@@ -265,6 +265,24 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         remaining = float(o["funding_target"]) - float(o.get("funding_raised", 0) or 0)
         if amount > remaining + 0.01:
             raise HTTPException(400, f"Only {remaining:,.0f} remaining to be raised")
+
+        # KYC tier enforcement (Phase H)
+        if kyc_tier_lookup and kyc_tiers:
+            tier_key = kyc_tier_lookup(user)
+            tier_cfg = kyc_tiers.get(tier_key, {})
+            tier_limit = float(tier_cfg.get("max_investment", 0) or 0)
+            if tier_limit <= 0:
+                raise HTTPException(403, "Complete investor KYC to place investments. Visit Portfolio → Upgrade KYC.")
+            existing = await db.investments.find(
+                {"investor_id": user["id"], "status": {"$in": ["active", "matured"]}},
+                {"_id": 0, "amount": 1},
+            ).to_list(1000)
+            used = sum(float(r.get("amount", 0)) for r in existing)
+            if used + amount > tier_limit + 0.01:
+                raise HTTPException(
+                    403,
+                    f"Exceeds {tier_cfg.get('label','your')} tier limit. Remaining capacity: {tier_limit - used:,.0f}. Upgrade KYC tier to invest more.",
+                )
 
         # Wallet debit
         wallet = await ensure_wallet(user["id"])

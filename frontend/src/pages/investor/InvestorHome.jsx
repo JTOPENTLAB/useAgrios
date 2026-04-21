@@ -19,6 +19,7 @@ import {
 import api, { fmtMoney } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import TrustStrip from "@/components/TrustStrip";
+import RecentlyMaturedCarousel from "@/components/RecentlyMaturedCarousel";
 
 const RISK_CLS = {
   A: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -75,6 +76,8 @@ export default function InvestorHome() {
 
       {/* Platform stats band — always visible, builds trust */}
       <PlatformStatsBand platform={platform} />
+
+      <RecentlyMaturedCarousel limit={6} />
 
       {/* Portfolio hero */}
       <section

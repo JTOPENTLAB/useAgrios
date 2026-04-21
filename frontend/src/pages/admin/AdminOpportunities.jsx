@@ -21,6 +21,8 @@ const TABS = [
   { id: "review", label: "Pending review", icon: Clock },
   { id: "open", label: "Open", icon: CheckCircle2 },
   { id: "funded", label: "Funded", icon: ShieldCheck },
+  { id: "matured", label: "Matured", icon: CheckCircle2 },
+  { id: "closed", label: "Closed / paid out", icon: CheckCircle2 },
   { id: "rejected", label: "Rejected", icon: XCircle },
 ];
 
@@ -53,6 +55,29 @@ export default function AdminOpportunities() {
           ? `'${opp.title}' is now live on the marketplace.`
           : `'${opp.title}' rejected. Farmer notified.`,
       );
+      load(tab);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Action failed");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const maturityAct = async (opp, kind) => {
+    setActingId(opp.id);
+    try {
+      if (kind === "mature") {
+        const input = window.prompt(
+          `Realized return % for '${opp.title}' (leave blank to use target ${opp.target_return_pct}%)`,
+          "",
+        );
+        const body = input ? { realized_return_pct: Number(input) } : {};
+        await api.post(`/admin/opportunities/${opp.id}/mature`, body);
+        toast.success("Marked matured. Investors notified.");
+      } else if (kind === "payout") {
+        await api.post(`/admin/opportunities/${opp.id}/payout`);
+        toast.success("Payouts released to investor wallets.");
+      }
       load(tab);
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Action failed");
@@ -207,6 +232,26 @@ export default function AdminOpportunities() {
                         <XCircle className="w-4 h-4" /> Reject
                       </button>
                     </>
+                  )}
+                  {tab === "funded" && (
+                    <button
+                      onClick={() => maturityAct(o, "mature")}
+                      disabled={actingId === o.id}
+                      className="af-btn-primary justify-center disabled:opacity-60"
+                      data-testid={`mature-${o.id}`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Mark matured
+                    </button>
+                  )}
+                  {tab === "matured" && (
+                    <button
+                      onClick={() => maturityAct(o, "payout")}
+                      disabled={actingId === o.id}
+                      className="af-btn-primary justify-center disabled:opacity-60"
+                      data-testid={`payout-${o.id}`}
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Release payouts
+                    </button>
                   )}
                 </div>
               </div>

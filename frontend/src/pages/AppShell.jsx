@@ -57,7 +57,8 @@ const NAV = {
   ],
   logistics: [
     { to: "/app/jobs", label: "Jobs Board", icon: Truck, end: true },
-    { to: "/app/wallet", label: "Earnings", icon: WalletIcon },
+    { to: "/app/logistics/earnings", label: "Earnings", icon: TrendingUp },
+    { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
   ],
   admin: [
     { to: "/app/admin", label: "Overview", icon: LayoutDashboard, end: true },

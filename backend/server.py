@@ -3050,6 +3050,7 @@ async def admin_webhook_events(limit: int = 50, user: dict = Depends(require_rol
 # ---------------- Phase D: Scale + Moat routes (register on api before include) ----------------
 from routes import phase_d as _phase_d  # noqa: E402
 from routes import phase_f as _phase_f  # noqa: E402
+from routes import phase_h as _phase_h  # noqa: E402
 
 _phase_d_handles = _phase_d.register(
     api,
@@ -3061,6 +3062,17 @@ _phase_d_handles = _phase_d.register(
 )
 _check_alerts_for_listing = _phase_d_handles["check_alerts_for_listing"]
 
+_phase_h_handles = _phase_h.register(
+    api,
+    db=db,
+    current_user=current_user,
+    require_roles=require_roles,
+    notify=notify,
+    new_id=new_id,
+    ensure_wallet=ensure_wallet,
+    ledger=ledger,
+)
+
 _phase_f.register(
     api,
     db=db,
@@ -3070,6 +3082,8 @@ _phase_f.register(
     new_id=new_id,
     ensure_wallet=ensure_wallet,
     ledger=ledger,
+    kyc_tier_lookup=_phase_h_handles.get("user_tier"),
+    kyc_tiers=_phase_h_handles.get("KYC_TIERS"),
 )
 
 
@@ -3265,6 +3279,7 @@ async def seed() -> None:
                 "location": "Lagos",
                 "verified": True,
                 "kyc_status": "verified",
+                "kyc_tier": "silver",
                 "referral_code": "AF-INV001",
                 "country": "NG",
                 "currency": "NGN",

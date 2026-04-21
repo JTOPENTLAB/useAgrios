@@ -41,6 +41,7 @@ import OrderDetail from "@/pages/OrderDetail";
 import Wallet from "@/pages/Wallet";
 import Analytics from "@/pages/Analytics";
 import LogisticsJobs from "@/pages/logistics/LogisticsJobs";
+import LogisticsEarnings from "@/pages/logistics/LogisticsEarnings";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminDisputes from "@/pages/admin/AdminDisputes";
@@ -118,6 +119,7 @@ function App() {
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />
               <Route path="analytics" element={<Guard><Analytics /></Guard>} />
               <Route path="jobs" element={<Guard roles={["logistics", "admin"]}><LogisticsJobs /></Guard>} />
+              <Route path="logistics/earnings" element={<Guard roles={["logistics", "admin"]}><LogisticsEarnings /></Guard>} />
               <Route path="admin" element={<Guard roles={["admin"]}><AdminDashboard /></Guard>} />
               <Route path="admin/users" element={<Guard roles={["admin"]}><AdminUsers /></Guard>} />
               <Route path="admin/loans" element={<Guard roles={["admin"]}><AdminLoans /></Guard>} />
