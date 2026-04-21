@@ -2752,6 +2752,12 @@ async def health():
     return {"ok": True, "service": "agrios-api", "ts": datetime.now(timezone.utc).isoformat()}
 
 
+@app.get("/api/healthz")
+async def api_healthz():
+    """Alias of /healthz exposed through the /api ingress path."""
+    return {"ok": True, "service": "agrios-api"}
+
+
 @app.get("/api/ready")
 async def ready():
     status: dict = {"ok": True, "checks": {}}

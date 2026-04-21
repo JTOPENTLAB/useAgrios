@@ -47,6 +47,19 @@ Tagline: **From Farm to Money.**
 
 ---
 
+### Phase H — Elite UI polish + stability (Feb 21, 2026)
+- **FIXED P0 blocker**: `OpportunityDetail.jsx` was failing to compile due to duplicate `RISK_LABEL` identifier at line 460. Renamed the inner one to `RISK_TYPE_LABEL`. The whole React app was blank/timeout because of this one crash. `/trust` now renders in <3s.
+- **Backend health probes**: Added `@app.get("/healthz")` + `@app.get("/health")` root routes + `@app.get("/api/healthz")` alias for ingress-based probes. All return `{ok:true, service:"agrios-api"}`.
+- **Admin verify endpoint**: `POST /api/admin/users/{id}/verify` now accepts optional body `{verified: bool}` so admins can toggle OFF (revoke) as well as ON. Backward compatible (empty body ⇒ verify=true).
+- **Opportunity detail hydration**: `GET /api/opportunities/{id}` now auto-hydrates `farm_updates` (real from `opportunity_updates`, or synthesised from age-based template), `risk_factors` (typed list: weather/market/execution/reporting w/ level by band), and `use_of_funds_breakdown` (4-bucket default — inputs 45%, labour 25%, logistics 15%, fee+buffer 15%). Tz-aware datetime normalization handled.
+- **Public pages**:
+  - **`/how-it-works`** (new `HowItWorks.jsx`) — 3 tabs (Farmer/Buyer/Investor), 4 steps per track, trust-strip, CTA. Linked from Landing nav (`nav-how-link`).
+- **Authenticated pages**:
+  - **`/app/admin/trust`** (new `AdminTrustOps.jsx`) — farmer verification board. Live trust-score % per farmer (6-badge composite), inline Verify/Revoke button per row, search filter, legend. Added to admin nav as "Trust ops".
+  - **`/app/portfolio`** (rewritten `InvestorPortfolio.jsx`) — Risk allocation donut (A/B/C with legend) + Upcoming payouts strip (5 nearest-maturity rows with days-to-maturity countdown) alongside the existing KPI row + investments list.
+- **Tests**: `/app/backend/tests/test_phase_g.py` — 10/10 pytest pass (health probes, opportunity hydration shape, admin verify toggle, tz-safe datetime handling).
+
+
 ## Key business logic
 - **Commission**: 5% of order total (env `COMMISSION_PCT`)
 - **Loan interest**: set per-approval by admin (default 10%)
