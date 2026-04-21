@@ -17,6 +17,7 @@ import VideoScripts from "@/pages/farmer/VideoScripts";
 import BuyerMarketplace from "@/pages/buyer/BuyerMarketplace";
 import ProductDetail from "@/pages/buyer/ProductDetail";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
+import BuyerPlans from "@/pages/buyer/BuyerPlans";
 import OrderDetail from "@/pages/OrderDetail";
 import Wallet from "@/pages/Wallet";
 import Analytics from "@/pages/Analytics";
@@ -72,6 +73,7 @@ function App() {
               <Route path="farmer/videos" element={<Guard roles={["farmer"]}><VideoScripts /></Guard>} />
               <Route path="marketplace" element={<Guard roles={["buyer", "admin"]}><BuyerMarketplace /></Guard>} />
               <Route path="marketplace/:id" element={<Guard roles={["buyer", "admin"]}><ProductDetail /></Guard>} />
+              <Route path="buyer/plans" element={<Guard roles={["buyer"]}><BuyerPlans /></Guard>} />
               <Route path="orders" element={<Guard roles={["farmer", "buyer"]}><BuyerOrders /></Guard>} />
               <Route path="orders/:id" element={<Guard><OrderDetail /></Guard>} />
               <Route path="wallet" element={<Guard><Wallet /></Guard>} />

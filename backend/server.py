@@ -162,6 +162,8 @@ class UserOut(BaseDoc):
     verified: bool = False
     referral_code: Optional[str] = None
     farm_size_hectares: Optional[float] = None
+    subscription_tier: Optional[str] = "basic"
+    subscription_expires_at: Optional[str] = None
     created_at: str
 
 
@@ -1548,6 +1550,120 @@ async def video_templates(user: dict = Depends(current_user)):
 
 
 # ---------------- Hook: referral bonus on first completed order (amend confirm below is injected elsewhere) ----------------
+
+
+# ---------------- Subscriptions ----------------
+SUBSCRIPTION_PLANS = [
+    {
+        "tier": "basic",
+        "name": "Basic",
+        "price_ngn": 0,
+        "tagline": "Start sourcing on AgriFlow",
+        "features": [
+            "Browse full marketplace",
+            "Escrow-protected orders",
+            "Basic analytics",
+            "Standard support",
+        ],
+    },
+    {
+        "tier": "professional",
+        "name": "Professional",
+        "price_ngn": 25000,
+        "tagline": "For serious buyers moving real volume",
+        "features": [
+            "Priority sourcing (2h head-start on new listings)",
+            "Advanced analytics — trend lines, demand signals",
+            "Saved supplier shortlists",
+            "Priority support",
+            "Export & reorder shortcuts",
+        ],
+        "popular": True,
+    },
+    {
+        "tier": "enterprise",
+        "name": "Enterprise",
+        "price_ngn": 100000,
+        "tagline": "Scale sourcing across teams and countries",
+        "features": [
+            "Everything in Professional",
+            "Dedicated account manager",
+            "Multi-user team seats",
+            "API access + bulk CSV tools",
+            "Custom SLAs + quarterly reviews",
+        ],
+    },
+]
+
+
+class SubscribeIn(BaseModel):
+    tier: Literal["basic", "professional", "enterprise"]
+
+
+def _tier_price(tier: str) -> float:
+    for p in SUBSCRIPTION_PLANS:
+        if p["tier"] == tier:
+            return float(p["price_ngn"])
+    raise HTTPException(400, "Unknown tier")
+
+
+@api.get("/subscriptions/plans")
+async def list_plans():
+    return SUBSCRIPTION_PLANS
+
+
+@api.get("/subscriptions/me")
+async def my_subscription(user: dict = Depends(current_user)):
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    tier = u.get("subscription_tier", "basic") if u else "basic"
+    expires = u.get("subscription_expires_at") if u else None
+    return {"tier": tier, "expires_at": expires, "plans": SUBSCRIPTION_PLANS}
+
+
+@api.post("/subscriptions/subscribe")
+async def subscribe(body: SubscribeIn, user: dict = Depends(require_roles("buyer"))):
+    price = _tier_price(body.tier)
+    if body.tier == "basic":
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"subscription_tier": "basic", "subscription_expires_at": None}},
+        )
+        return {"ok": True, "tier": "basic", "expires_at": None}
+    wallet = await ensure_wallet(user["id"])
+    if wallet["available"] < price:
+        raise HTTPException(400, f"Insufficient wallet balance. Need ₦{price:,.0f}")
+    await db.wallets.update_one({"user_id": user["id"]}, {"$inc": {"available": -price}})
+    await ledger(
+        user["id"],
+        "subscription_fee",
+        price,
+        "debit",
+        body.tier,
+        f"Subscription: {body.tier.title()} (30 days)",
+    )
+    await ledger("platform", "subscription_revenue", price, "credit", body.tier, f"Subscription revenue: {user['email']}")
+    expires = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"subscription_tier": body.tier, "subscription_expires_at": expires}},
+    )
+    await notify(
+        user["id"],
+        f"{body.tier.title()} plan activated 🎉",
+        f"Your plan is live for 30 days. ₦{price:,.0f} was charged from your wallet.",
+        "subscription",
+        body.tier,
+    )
+    return {"ok": True, "tier": body.tier, "expires_at": expires}
+
+
+@api.post("/subscriptions/cancel")
+async def cancel_sub(user: dict = Depends(require_roles("buyer"))):
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"subscription_tier": "basic", "subscription_expires_at": None}},
+    )
+    return {"ok": True, "tier": "basic"}
 
 
 app.include_router(api)

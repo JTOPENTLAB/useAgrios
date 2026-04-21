@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Sprout, ShieldCheck } from "lucide-react";
+import { Search, MapPin, Sprout, ShieldCheck, Crown } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BuyerMarketplace() {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -23,10 +25,23 @@ export default function BuyerMarketplace() {
 
   return (
     <div className="space-y-6" data-testid="marketplace-page">
-      <div>
-        <div className="text-xs font-bold uppercase tracking-wider text-brand">Source</div>
-        <h1 className="font-heading font-extrabold text-3xl text-ink">Marketplace</h1>
-        <p className="text-ink-muted mt-1">Verified farmers. Structured listings. Escrow-protected orders.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-brand">Source</div>
+          <h1 className="font-heading font-extrabold text-3xl text-ink">Marketplace</h1>
+          <p className="text-ink-muted mt-1">Verified farmers. Structured listings. Escrow-protected orders.</p>
+        </div>
+        {user?.role === "buyer" && (
+          user?.subscription_tier && user.subscription_tier !== "basic" ? (
+            <span className="af-badge-verified" data-testid="pro-badge">
+              <Crown className="w-3 h-3" /> {user.subscription_tier.charAt(0).toUpperCase() + user.subscription_tier.slice(1)} · Priority sourcing
+            </span>
+          ) : (
+            <Link to="/app/buyer/plans" className="af-btn-accent py-2 text-sm" data-testid="upgrade-cta">
+              <Crown className="w-4 h-4" /> Upgrade to Pro
+            </Link>
+          )
+        )}
       </div>
 
       <div className="af-card p-4 flex flex-wrap gap-3 items-center">

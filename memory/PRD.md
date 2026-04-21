@@ -79,3 +79,12 @@ See `/app/memory/test_credentials.md`.
 
 ## Pitch deck
 See `/app/docs/pitch.md`.
+
+### Phase 2b — Premium Buyer Subscription (Feb 21, 2026)
+- `/api/subscriptions/plans` (Basic free · Professional ₦25k · Enterprise ₦100k)
+- `/api/subscriptions/me` · `/api/subscriptions/subscribe` · `/api/subscriptions/cancel`
+- Wallet-backed billing: debits wallet on subscribe, ledger entry `subscription_fee` + platform `subscription_revenue`, 30-day expiry
+- `/api/auth/me` surfaces `subscription_tier` + `subscription_expires_at`
+- New page `/app/buyer/plans` with 3-tier pricing cards
+- Marketplace header: "Upgrade to Pro" CTA for basic users · Pro/Enterprise badge for subscribers
+- Nav: "Plans" tab for buyer
