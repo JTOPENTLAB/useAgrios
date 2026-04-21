@@ -188,6 +188,9 @@ export default function Landing() {
                 </Link>
               </div>
               <EscrowLockedBadge />
+              <Link to="/signup" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gold-dark bg-gold/10 rounded-full px-3 py-2 mt-2 hover:bg-gold/20 transition" data-testid="bonus-teaser">
+                🎁 Buyers get ₦5,000 on signup
+              </Link>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
                 {stats.map((s) => (
                   <div key={s.l} className="af-card p-4" data-testid={`stat-${s.l.replace(/\s/g, "-").toLowerCase()}`}>

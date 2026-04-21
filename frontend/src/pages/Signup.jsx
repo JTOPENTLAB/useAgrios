@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Gift } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -61,6 +62,22 @@ export default function Signup() {
         <div className="af-card p-8 sm:p-10">
           <h1 className="font-heading font-extrabold text-3xl text-ink">Create your account</h1>
           <p className="text-ink-muted mt-2">Pick how you plan to use AgriFlow.</p>
+
+          {role === "buyer" && (() => {
+            const c = countries.find((x) => x.code === form.country) || countries[0];
+            if (!c || !c.signup_bonus) return null;
+            return (
+              <div className="mt-5 rounded-2xl border-2 border-gold/30 bg-gold/5 p-4 flex items-center gap-3" data-testid="buyer-bonus-banner">
+                <div className="w-10 h-10 rounded-xl bg-gold text-ink grid place-items-center flex-shrink-0">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-heading font-bold text-ink text-sm">Get {c.symbol}{c.signup_bonus.toLocaleString()} to fund your first order</div>
+                  <div className="text-xs text-ink-muted">Auto-credited to your wallet on signup — zero friction to try AgriFlow.</div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
             {ROLES.map((r) => (

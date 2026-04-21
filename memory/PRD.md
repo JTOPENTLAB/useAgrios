@@ -98,6 +98,13 @@ See `/app/memory/test_credentials.md`.
 - New `EscrowLockedBadge` component inline under the hero CTA row: pulsing shield icon + animated count-up of locked amount + order count
 - Refreshes every 30s — concrete, live proof that real money is secured on-platform right at the decision point
 
+### Phase 2i — First-order-free onboarding bonus (Feb 21, 2026)
+- Buyer auto-credit on signup, per country: NG ₦5,000 · GH ₵50 · KE KSh 500 · CI CFA 3,000
+- Stored as `signup_bonus_given: true` + `signup_bonus_amount` on user doc to prevent double-credit
+- Ledger entry `signup_bonus` + welcome notification "₦5,000 added to your wallet"
+- Gold banner on signup page when role=buyer selected, dynamic currency + amount per country pick
+- Landing hero teaser chip "🎁 Buyers get ₦5,000 on signup" under the CTA
+
 ## Deferred (Phase 3 backlog)
 
 ### P1

@@ -404,6 +404,14 @@ async def signup(body: SignupIn):
             doc["referred_by"] = referrer["id"]
     await db.users.insert_one(doc.copy())
     await ensure_wallet(uid)
+    # First-order signup bonus for buyers
+    if body.role == "buyer":
+        bonus = float(cinfo.get("signup_bonus") or 0)
+        if bonus > 0:
+            await db.wallets.update_one({"user_id": uid}, {"$inc": {"available": bonus}})
+            await ledger(uid, "signup_bonus", bonus, "credit", "welcome", "Welcome bonus — first order on AgriFlow")
+            await db.users.update_one({"id": uid}, {"$set": {"signup_bonus_given": True, "signup_bonus_amount": bonus}})
+            await notify(uid, "Welcome bonus credited 🎁", f"{cinfo['symbol']}{bonus:,.0f} added to your wallet. Fund your first order on AgriFlow.", "bonus", "welcome")
     user_view = {k: v for k, v in doc.items() if k != "password_hash"}
     return AuthResponse(token=make_token(uid, body.role), user=UserOut(**user_view))
 
@@ -1928,10 +1936,10 @@ async def cancel_sub(user: dict = Depends(require_roles("buyer"))):
 
 # ---------------- Country / currency ----------------
 COUNTRIES = [
-    {"code": "NG", "name": "Nigeria", "currency": "NGN", "symbol": "₦", "phone_prefix": "+234", "timezone": "Africa/Lagos", "languages": ["English", "Yoruba", "Hausa", "Igbo"], "flag": "🇳🇬", "active": True},
-    {"code": "GH", "name": "Ghana", "currency": "GHS", "symbol": "₵", "phone_prefix": "+233", "timezone": "Africa/Accra", "languages": ["English", "Twi"], "flag": "🇬🇭", "active": True},
-    {"code": "KE", "name": "Kenya", "currency": "KES", "symbol": "KSh", "phone_prefix": "+254", "timezone": "Africa/Nairobi", "languages": ["English", "Swahili"], "flag": "🇰🇪", "active": True},
-    {"code": "CI", "name": "Côte d'Ivoire", "currency": "XOF", "symbol": "CFA", "phone_prefix": "+225", "timezone": "Africa/Abidjan", "languages": ["French"], "flag": "🇨🇮", "active": True},
+    {"code": "NG", "name": "Nigeria", "currency": "NGN", "symbol": "₦", "phone_prefix": "+234", "timezone": "Africa/Lagos", "languages": ["English", "Yoruba", "Hausa", "Igbo"], "flag": "🇳🇬", "active": True, "signup_bonus": 5000},
+    {"code": "GH", "name": "Ghana", "currency": "GHS", "symbol": "₵", "phone_prefix": "+233", "timezone": "Africa/Accra", "languages": ["English", "Twi"], "flag": "🇬🇭", "active": True, "signup_bonus": 50},
+    {"code": "KE", "name": "Kenya", "currency": "KES", "symbol": "KSh", "phone_prefix": "+254", "timezone": "Africa/Nairobi", "languages": ["English", "Swahili"], "flag": "🇰🇪", "active": True, "signup_bonus": 500},
+    {"code": "CI", "name": "Côte d'Ivoire", "currency": "XOF", "symbol": "CFA", "phone_prefix": "+225", "timezone": "Africa/Abidjan", "languages": ["French"], "flag": "🇨🇮", "active": True, "signup_bonus": 3000},
 ]
 COUNTRY_BY_CODE = {c["code"]: c for c in COUNTRIES}
 
