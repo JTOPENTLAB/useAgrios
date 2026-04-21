@@ -200,7 +200,24 @@ See `/app/memory/test_credentials.md`.
 - SupplierScoreCard renders "+N/-N · 30d" pill when delta available.
 
 ### Phase F — Investor Marketplace (Feb 2026)
+- New user role `investor` + `/app/backend/routes/phase_f.py` module.
+- Endpoints: `POST /opportunities` (farmer) · `GET /opportunities` (public) · `GET /opportunities/mine` (farmer) · `GET /opportunities/{id}` · `POST /opportunities/{id}/approve|reject` (admin) · `POST /opportunities/{id}/invest` (investor) · `GET /investments/mine` · `GET /investments/summary`.
+- Status lifecycle: opportunity `review → open → funded → active → closed` · investment `active → matured → paid`.
+- Frontend: `InvestorHome`, `OpportunityMarketplace`, `OpportunityDetail`, `InvestorPortfolio`.
+- Signup now offers 4 role cards; landing adds a 3rd "For Investors" section.
+- Seed: `investor@agriflow.ng / Invest@123` (₦2M wallet) + 3 demo opportunities.
+- Tests: `test_phase_f.py` (4/4 pass).
+
+### Phase G — Marketplace loop closure (Feb 2026)
+
 - **New user role: `investor`** added to `Role = Literal[...]`. Signup page now offers 4 role cards: Farmer · Buyer · Investor · Logistics.
+- **Admin Opportunity Review UI** — `/app/admin/opportunities` (`AdminOpportunities.jsx`). Tabbed queue (Pending review / Open / Funded / Rejected) with Approve + Reject buttons calling existing `/api/opportunities/{id}/approve|reject`. Notifications fire to farmer automatically.
+- **Farmer "Raise Funding" form** — `/app/farmer/fund` (`FarmerRaiseFunding.jsx`). Full form: title · crop · region · duration · funding target · min ticket · target return % · risk-band picker (A/B/C) · use-of-funds. POSTs to `/api/opportunities`, redirects to `/app/farmer/funding-requests`.
+- **Farmer Funding Requests list** — `/app/farmer/funding-requests` (`FarmerFundingRequests.jsx`). Uses `GET /api/opportunities/mine`. Status pills · raise progress bar · investor count · empty-state CTA.
+- **Investor Risk Acknowledgement modal** — `<RiskAcknowledgementModal/>` gate on first invest. Stores `agrios_investor_ack_v1` in localStorage. 3 protection points + 2 required checkboxes. Modal mounted in `OpportunityDetail.jsx`; blocks first invest, then calls `doInvest()` on confirm.
+- **Nav wiring** — Farmer "Raise funding" → `/app/farmer/funding-requests`. Admin "Opportunities" → `/app/admin/opportunities`.
+- **Lint**: clean. No new pytest (endpoints already tested in `test_phase_f.py`).
+
 - **New module** `/app/backend/routes/phase_f.py` attached via register() pattern — no bloat to server.py.
 - **Opportunities lifecycle** — farmer creates (status=review) → admin approve/reject → open → funded. Endpoints: `POST /api/opportunities` (farmer), `GET /api/opportunities` (public, excludes review/rejected), `GET /api/opportunities/mine` (farmer), `GET /api/opportunities/{id}` (hydrates investments sample), `POST /api/opportunities/{id}/approve|reject` (admin).
 - **Investment flow** — `POST /api/opportunities/{id}/invest` (investor) debits wallet, creates investment doc, updates opportunity counters, flips to `funded` when fully raised, fires notifications for both farmer + investor. Status lifecycle on investment: active → matured → paid.

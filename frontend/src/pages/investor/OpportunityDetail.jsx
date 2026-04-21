@@ -14,6 +14,10 @@ import {
 import { toast } from "sonner";
 import api, { fmtMoney } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import RiskAcknowledgementModal, {
+  hasAcknowledged,
+  setAcknowledged,
+} from "@/components/RiskAcknowledgementModal";
 
 const RISK_CLS = {
   A: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -35,6 +39,7 @@ export default function OpportunityDetail() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ackOpen, setAckOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -69,6 +74,14 @@ export default function OpportunityDetail() {
       toast.error(`Only ${fmtMoney(remaining, currency)} remaining`);
       return;
     }
+    if (!hasAcknowledged()) {
+      setAckOpen(true);
+      return;
+    }
+    await doInvest(n);
+  };
+
+  const doInvest = async (n) => {
     setSubmitting(true);
     try {
       const r = await api.post(`/opportunities/${id}/invest`, { amount: n });
@@ -90,6 +103,16 @@ export default function OpportunityDetail() {
 
   return (
     <div className="grid lg:grid-cols-3 gap-6" data-testid="opp-detail-page">
+      <RiskAcknowledgementModal
+        open={ackOpen}
+        onClose={() => setAckOpen(false)}
+        onConfirm={() => {
+          setAckOpen(false);
+          setAcknowledged();
+          const n = Number(amount);
+          if (n) doInvest(n);
+        }}
+      />
       <div className="lg:col-span-2 space-y-6">
         <Link
           to="/app/opportunities"
