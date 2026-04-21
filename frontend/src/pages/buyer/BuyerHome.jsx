@@ -98,6 +98,27 @@ export default function BuyerHome() {
       {/* Trust strip */}
       <TrustStrip testId="home-trust-strip" />
 
+      {/* Market Pulse promo — drive discovery of digest */}
+      <Link
+        to="/app/digest"
+        className="af-card af-card-hover p-5 flex items-center gap-4 border-l-4 border-l-gold bg-gradient-to-br from-gold/5 to-white"
+        data-testid="market-pulse-promo"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-gold/15 text-gold-dark grid place-items-center flex-shrink-0">
+          <Sparkles className="w-6 h-6" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-bold text-ink">
+            📬 Get the AGRIOS Market Pulse every Monday
+          </div>
+          <div className="text-xs text-ink-muted mt-0.5">
+            Top crops · price ranges · new verified suppliers — personalised for you. One-tap
+            WhatsApp share.
+          </div>
+        </div>
+        <ArrowRight className="w-5 h-5 text-ink-muted" />
+      </Link>
+
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 af-stagger">
         <StatCard

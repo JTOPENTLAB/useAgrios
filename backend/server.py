@@ -2476,7 +2476,146 @@ async def recommend_for_farmer(user: dict = Depends(require_roles("farmer"))):
     return {"suggest_crops": suggest, "price_guidance": guidance}
 
 
+# ---------------- Phase C: Market Pulse (weekly digest) ----------------
+from services.digest import build_digest as _build_digest, send_email as _send_email, wa_share_url as _wa_share_url
+
+
+@api.get("/digest/preview")
+async def digest_preview(user: dict = Depends(current_user)):
+    """Preview the digest this user would receive today."""
+    payload = await _build_digest(db, user)
+    return payload
+
+
+@api.get("/digest/prefs")
+async def digest_prefs(user: dict = Depends(current_user)):
+    prefs = user.get("digest_prefs") or {"email": True, "frequency": "weekly"}
+    return prefs
+
+
+@api.put("/digest/prefs")
+async def update_digest_prefs(body: dict, user: dict = Depends(current_user)):
+    prefs = {
+        "email": bool(body.get("email", True)),
+        "frequency": body.get("frequency") or "weekly",
+    }
+    await db.users.update_one({"id": user["id"]}, {"$set": {"digest_prefs": prefs}})
+    return prefs
+
+
+@api.post("/digest/send-me-now")
+async def send_me_now(user: dict = Depends(current_user)):
+    """Manually trigger the user's own digest (for testing + 'send preview' UX)."""
+    payload = await _build_digest(db, user)
+    result = await _send_email(
+        db,
+        to=user["email"],
+        subject=f"AGRIOS Market Pulse — {payload['period']['label']}",
+        html=payload["html"],
+        meta={"user_id": user["id"], "kind": "self-test", "role": user.get("role")},
+    )
+    return {
+        "dispatch": result,
+        "whatsapp_text": payload["whatsapp_text"],
+        "whatsapp_url": _wa_share_url(payload["whatsapp_text"]),
+    }
+
+
+@api.post("/digest/trigger")
+async def trigger_blast(user: dict = Depends(require_roles("admin"))):
+    """Admin-only: blast the digest to every opted-in user right now."""
+    return await _run_digest_blast(reason="admin-trigger", actor=user["id"])
+
+
+@api.get("/digest/log")
+async def digest_log(limit: int = 50, user: dict = Depends(require_roles("admin"))):
+    rows = (
+        await db.digest_log.find({}, {"_id": 0, "html_bytes": 1, "to": 1, "subject": 1, "sent_at": 1, "provider": 1, "status": 1, "error": 1, "meta": 1})
+        .sort("sent_at", -1)
+        .limit(max(1, min(200, limit)))
+        .to_list(200)
+    )
+    return rows
+
+
+async def _run_digest_blast(*, reason: str = "scheduled", actor: str | None = None) -> dict:
+    """Compose + send the digest for every opted-in user. Idempotent per 7 days."""
+    now = datetime.now(timezone.utc)
+    cursor = db.users.find(
+        {
+            "role": {"$in": ["buyer", "farmer"]},
+            "$or": [
+                {"digest_prefs.email": {"$ne": False}},
+                {"digest_prefs": {"$exists": False}},
+            ],
+        },
+        {"_id": 0, "password_hash": 0},
+    )
+    sent = 0
+    failed = 0
+    users = await cursor.to_list(10_000)
+    for u in users:
+        try:
+            payload = await _build_digest(db, u)
+            result = await _send_email(
+                db,
+                to=u["email"],
+                subject=f"AGRIOS Market Pulse — {payload['period']['label']}",
+                html=payload["html"],
+                meta={"user_id": u["id"], "kind": "blast", "reason": reason, "role": u.get("role")},
+            )
+            if result.get("status") == "failed":
+                failed += 1
+            else:
+                sent += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("digest blast failed for %s: %s", u.get("email"), exc)
+            failed += 1
+
+    await db.system.update_one(
+        {"key": "digest_last_run"},
+        {"$set": {"key": "digest_last_run", "at": now.isoformat(), "sent": sent, "failed": failed, "reason": reason, "actor": actor}},
+        upsert=True,
+    )
+    return {"sent": sent, "failed": failed, "total_users": len(users), "reason": reason, "ran_at": now.isoformat()}
+
+
+async def _digest_scheduler_loop():
+    """Wake hourly, fire a blast once per Monday 09:00 WAT (08:00 UTC)."""
+    import asyncio
+
+    while True:
+        try:
+            now_utc = datetime.now(timezone.utc)
+            is_monday = now_utc.weekday() == 0
+            is_morning = now_utc.hour == 8
+            if is_monday and is_morning:
+                last = await db.system.find_one({"key": "digest_last_run"}, {"_id": 0, "at": 1})
+                last_at = None
+                if last and last.get("at"):
+                    try:
+                        last_at = datetime.fromisoformat(last["at"])
+                    except Exception:
+                        last_at = None
+                if not last_at or (now_utc - last_at) > timedelta(hours=24):
+                    logger.info("Market Pulse: scheduled Monday blast starting")
+                    result = await _run_digest_blast(reason="scheduled-monday")
+                    logger.info("Market Pulse: blast complete %s", result)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("digest scheduler tick failed: %s", exc)
+        await asyncio.sleep(60 * 60)
+
+
+@app.on_event("startup")
+async def start_digest_scheduler() -> None:
+    import asyncio
+    asyncio.create_task(_digest_scheduler_loop())
+
+
 app.include_router(api)
+
+
+# ---------------- Phase C: Market Pulse duplicate guard ----------------
 
 app.add_middleware(
     CORSMiddleware,

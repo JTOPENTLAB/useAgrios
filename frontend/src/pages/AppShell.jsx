@@ -16,6 +16,7 @@ import {
   Video,
   Crown,
   Bookmark,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -31,6 +32,7 @@ const NAV = {
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/farmer/ai", label: "AI Tools", icon: Sparkles },
     { to: "/app/farmer/videos", label: "Video scripts", icon: Video },
+    { to: "/app/digest", label: "Market Pulse", icon: Mail },
   ],
   buyer: [
     { to: "/app/home", label: "Home", icon: LayoutDashboard, end: true },
@@ -40,6 +42,7 @@ const NAV = {
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/buyer/plans", label: "Plans", icon: Crown },
+    { to: "/app/digest", label: "Market Pulse", icon: Mail },
   ],
   logistics: [
     { to: "/app/jobs", label: "Jobs Board", icon: Truck, end: true },
