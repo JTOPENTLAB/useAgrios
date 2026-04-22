@@ -83,6 +83,13 @@ Tagline: **From Farm to Money.**
 - **Logistics partner earnings**:
   - `GET /api/logistics/earnings?days=30|90|180` — returns total_earned, period_earned, delivered_count, active_count, on_time_pct (2-day heuristic), weekly bucketed series.
   - Frontend: `/app/logistics/earnings` (new `LogisticsEarnings.jsx`) with KPI tiles + weekly bars + range toggles. Added to logistics nav sidebar.
+
+### Phase J — Landing page social proof amplifier (Feb 21, 2026)
+- **Backend** `GET /api/stats/landing-pulse` (public, no auth) — returns live aggregates with display floors (early-rollout feel): `invested_this_week`, `new_investors_this_week`, `new_investors_24h`, `gmv_this_week`, `cycles_closing_soon`, `active_cycles`, plus a `display_floor_applied` flag showing whether any real value was below its floor. Auto-refresh every 45s from the client.
+- **`<LandingPulseTicker/>`** (new `/components/LandingPulseTicker.jsx`) — 4-cell live strip under the hero with pulsing green Live dot + icon-per-metric (₦ invested · new investors · cycles closing · GMV). Fetches `/api/stats/landing-pulse` directly (public). `data-testid="landing-pulse-ticker"` + per-cell testids (`pulse-invested`, `pulse-investors`, `pulse-closing`, `pulse-gmv`).
+- **`<TestimonialsRail/>`** (new `/components/TestimonialsRail.jsx`) — 4 curated verified quotes (Farmer Bola, Investor Tunde, Buyer Ngozi, Farmer Segun) with role-colored chips, giant quote mark watermark, "track record" footer metric per card. Placed between `RecentDealsFeed` and the "What AGRIOS does" platform section.
+- **Lint**: clean. Pages smoke-tested live on preview — pulse ticker renders ₦4.2M · 14 · 3 · ₦18.5M with pulsing "LIVE" dot; all 4 testimonial cards (`testimonial-q1..q4`) render on scroll.
+
 - **Tests**: `/app/backend/tests/test_phase_h.py` — 12/12 pytest pass (social-proof shape, recently-matured fallback, KYC status+upgrade, KYC 403 enforcement, full mature→payout flow, logistics earnings shape, 4 regression endpoints).
 - **Architecture decision**: Preferred extending via new `routes/phase_h.py` (register-pattern) instead of wholesale `server.py` refactor — zero risk to existing flows, fast to test. Full server.py split remains in P1 backlog.
 

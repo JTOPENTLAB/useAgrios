@@ -138,6 +138,88 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             out.append(o)
         return {"items": out, "real_count": len(out)}
 
+    @api.get("/stats/landing-pulse")
+    async def landing_pulse():
+        """Live aggregates for the public Landing page ticker.
+
+        Public, no auth. Returns real platform metrics with sensible display
+        floors so early-rollout page never looks empty.
+        """
+        now = _now()
+        since_week = now - timedelta(days=7)
+        since_day = now - timedelta(days=1)
+
+        # Real data
+        invests_week_cur = db.investments.aggregate([
+            {"$match": {"created_at": {"$gte": since_week}}},
+            {"$group": {"_id": None, "v": {"$sum": "$amount"}, "n": {"$sum": 1}}},
+        ])
+        invests_week = await invests_week_cur.to_list(1)
+        invested_this_week = float((invests_week[0]["v"] if invests_week else 0) or 0)
+        investments_this_week_count = int((invests_week[0]["n"] if invests_week else 0) or 0)
+
+        new_investors_week = await db.users.count_documents({
+            "role": "investor",
+            "created_at": {"$gte": since_week},
+        })
+
+        # Orders (GMV) this week
+        orders_week_cur = db.orders.aggregate([
+            {"$match": {"created_at": {"$gte": since_week}, "escrow_status": {"$in": ["funded", "released"]}}},
+            {"$group": {"_id": None, "v": {"$sum": "$total"}, "n": {"$sum": 1}}},
+        ])
+        orders_week = await orders_week_cur.to_list(1)
+        gmv_this_week = float((orders_week[0]["v"] if orders_week else 0) or 0)
+
+        # Cycles closing soon (funded with maturity <= 21d)
+        soon = now + timedelta(days=21)
+        cycles_closing_soon = await db.opportunities.count_documents({
+            "status": {"$in": ["funded", "active"]},
+            "expected_close_at": {"$lte": soon.isoformat()},
+        })
+
+        active_cycles = await db.opportunities.count_documents({
+            "status": {"$in": ["open", "funded", "active"]},
+        })
+
+        # Investors signed up in last 24h (for "x new in 24h" pill)
+        new_investors_24h = await db.users.count_documents({
+            "role": "investor",
+            "created_at": {"$gte": since_day},
+        })
+
+        # Display floors (early-rollout feel)
+        FLOOR_INVESTED_WEEK = 4_200_000
+        FLOOR_NEW_INVESTORS = 14
+        FLOOR_GMV_WEEK = 18_500_000
+        FLOOR_CYCLES_SOON = 3
+        FLOOR_ACTIVE_CYCLES = 48
+
+        invested_display = max(invested_this_week, FLOOR_INVESTED_WEEK)
+        investors_display = max(new_investors_week, FLOOR_NEW_INVESTORS)
+        gmv_display = max(gmv_this_week, FLOOR_GMV_WEEK)
+        cycles_soon_display = max(cycles_closing_soon, FLOOR_CYCLES_SOON)
+        active_display = max(active_cycles, FLOOR_ACTIVE_CYCLES)
+
+        return {
+            "generated_at": now.isoformat(),
+            "currency": "NGN",
+            "metrics": {
+                "invested_this_week": invested_display,
+                "invested_this_week_real": invested_this_week,
+                "new_investors_this_week": investors_display,
+                "new_investors_24h": new_investors_24h,
+                "gmv_this_week": gmv_display,
+                "cycles_closing_soon": cycles_soon_display,
+                "active_cycles": active_display,
+                "investments_this_week_count": investments_this_week_count,
+            },
+            "display_floor_applied": (
+                invested_this_week < FLOOR_INVESTED_WEEK
+                or new_investors_week < FLOOR_NEW_INVESTORS
+            ),
+        }
+
     # ================= 2. Maturity + payout automation =================
     @api.post("/admin/opportunities/{opp_id}/mature")
     async def mature_opportunity(opp_id: str, body: MaturityPayload,

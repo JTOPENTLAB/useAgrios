@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import api, { fmtNGN } from "@/lib/api";
 import RecentDealsFeed from "@/components/RecentDealsFeed";
+import LandingPulseTicker from "@/components/LandingPulseTicker";
+import TestimonialsRail from "@/components/TestimonialsRail";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const HERO_IMG =
@@ -259,6 +261,8 @@ export default function Landing() {
 
               <EscrowLockedBadge />
 
+              <LandingPulseTicker />
+
               <LiveStatsStrip />
             </div>
 
@@ -324,6 +328,9 @@ export default function Landing() {
 
       {/* Live deal marquee */}
       <RecentDealsFeed />
+
+      {/* Testimonials rail */}
+      <TestimonialsRail />
 
       {/* ============ 3. WHAT AGRIOS DOES ============ */}
       <section id="platform" className="py-20 lg:py-28">
