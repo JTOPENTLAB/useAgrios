@@ -173,6 +173,36 @@ def test_cohort_digest_send_me_now(admin_token):
     assert "delivery" in body
     assert body["delivery"]["status"] in ("sent", "logged")
     assert body["delivery"]["provider"] in ("mock", "resend", "sendgrid")
+    # Multichannel status map
+    assert "channels" in body
+    for ch in ("email", "slack", "whatsapp"):
+        assert ch in body["channels"]
+        assert body["channels"][ch] in ("sent", "logged", "skipped", "failed")
+
+
+def test_cohort_digest_test_webhooks(admin_token):
+    r = requests.post(
+        f"{API}/admin/cohort-digest/test-webhooks",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=20,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "preview_text" in body
+    assert "AGRIOS weekly" in body["preview_text"]
+    for ch in ("slack", "whatsapp"):
+        assert ch in body
+        assert body[ch]["status"] in ("sent", "skipped", "failed")
+        assert body[ch]["provider"] in ("slack", "whatsapp")
+
+
+def test_cohort_digest_test_webhooks_forbidden_for_investor(investor_token):
+    r = requests.post(
+        f"{API}/admin/cohort-digest/test-webhooks",
+        headers={"Authorization": f"Bearer {investor_token}"},
+        timeout=15,
+    )
+    assert r.status_code == 403
 
 
 def test_cohort_digest_trigger_admin(admin_token):
@@ -186,6 +216,10 @@ def test_cohort_digest_trigger_admin(admin_token):
     assert body["reason"] == "manual-trigger"
     assert body["sent"] >= 1  # at least the admin account exists
     assert "ran_at" in body
+    # Channels block must be present (even if every channel is skipped)
+    assert "channels" in body
+    for ch in ("slack", "whatsapp"):
+        assert ch in body["channels"]
 
 
 def test_cohort_digest_log(admin_token):

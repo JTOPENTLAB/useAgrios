@@ -430,8 +430,181 @@ def render_cohort_email_subject(p: Dict[str, Any]) -> str:
     return "AGRIOS weekly: no new signups — check traffic"
 
 
+# ─── Webhook (Slack / Discord / WhatsApp via Zapier/Make) ──────────────────
+def render_webhook_summary(p: Dict[str, Any]) -> str:
+    """One-line summary + key metrics block for chat delivery.
+
+    Works in Slack, Discord, Google Chat, and any relay that forwards plain
+    text to WhatsApp/Telegram (Zapier, Make, n8n).
+    """
+    last = p["last_week"]
+    deltas = p["deltas"]
+    retention = p["retention"]
+    w1 = retention.get("W+1", {})
+    w1_str = f"{w1['current']}% {w1['badge']}" if w1.get("current") is not None else "—"
+    one_liner = (
+        f"*AGRIOS weekly* — {last['signups']} signup{'s' if last['signups'] != 1 else ''} · "
+        f"{last['first_investors']} first investor{'s' if last['first_investors'] != 1 else ''} · "
+        f"₦{last['total_invested']:,.0f} invested · W+1 retention {w1_str}"
+    )
+    body = (
+        f"{one_liner}\n"
+        f"_{p['headline']} · {p['window']['label']}_\n"
+        f"• Signups: {last['signups']} ({deltas['signups']})\n"
+        f"• Depositors: {last['depositors']} ({deltas['depositors']})\n"
+        f"• First investors: {last['first_investors']} ({deltas['first_investors']})\n"
+        f"• Volume: ₦{last['total_invested']:,.0f} ({deltas['invested']})\n"
+        f"What to watch: {p['action_items'][0] if p['action_items'] else '—'}"
+    )
+    return body
+
+
+def render_webhook_slack_blocks(p: Dict[str, Any]) -> Dict[str, Any]:
+    """Slack Block Kit payload — renders as a proper card in Slack."""
+    last = p["last_week"]
+    deltas = p["deltas"]
+    retention = p["retention"]
+    w1 = retention.get("W+1", {})
+    w1_str = f"{w1['current']}% {w1['badge']}" if w1.get("current") is not None else "—"
+
+    headline = f":seedling: *AGRIOS weekly* — {p['headline']}"
+    metrics = (
+        f"*Signups:* {last['signups']} _{deltas['signups']}_\n"
+        f"*Depositors:* {last['depositors']} _{deltas['depositors']}_\n"
+        f"*First investors:* {last['first_investors']} _{deltas['first_investors']}_\n"
+        f"*Volume:* ₦{last['total_invested']:,.0f} _{deltas['invested']}_\n"
+        f"*W+1 retention:* {w1_str}"
+    )
+    actions = "\n".join(f"• {a}" for a in p["action_items"][:3]) or "—"
+    return {
+        "text": render_webhook_summary(p),  # fallback for unfurl/plain clients
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": headline}},
+            {"type": "context", "elements": [{"type": "mrkdwn",
+                "text": f"_Week of {p['window']['label']}_"}]},
+            {"type": "section", "text": {"type": "mrkdwn", "text": metrics}},
+            {"type": "divider"},
+            {"type": "section", "text": {"type": "mrkdwn",
+                "text": f"*What to watch next:*\n{actions}"}},
+        ],
+    }
+
+
+async def send_slack_webhook(db, payload: Dict[str, Any], *, reason: str,
+                             actor: Optional[str] = None) -> Dict[str, Any]:
+    """POST to Slack-compatible webhook (SLACK_WEBHOOK_URL).
+
+    Logged to `digest_log` with provider='slack' for audit.
+    """
+    import os
+    import httpx
+    url = os.environ.get("SLACK_WEBHOOK_URL") or os.environ.get("COHORT_DIGEST_WEBHOOK_URL")
+    entry = {
+        "to": "slack-webhook",
+        "subject": render_cohort_email_subject(payload),
+        "text_bytes": 0,
+        "html_bytes": 0,
+        "provider": "slack",
+        "status": "logged",
+        "error": None,
+        "meta": {"kind": "cohort_digest", "reason": reason, "actor": actor, "channel": "slack"},
+        "sent_at": _now().isoformat(),
+    }
+    if not url:
+        entry["status"] = "skipped"
+        entry["error"] = "SLACK_WEBHOOK_URL not set"
+        await db.digest_log.insert_one(entry.copy())
+        entry.pop("_id", None)
+        return entry
+
+    body = render_webhook_slack_blocks(payload)
+    entry["text_bytes"] = len(body.get("text") or "")
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(url, json=body)
+            if r.status_code >= 300:
+                entry["status"] = "failed"
+                entry["error"] = r.text[:500]
+            else:
+                entry["status"] = "sent"
+    except Exception as exc:  # noqa: BLE001
+        entry["status"] = "failed"
+        entry["error"] = str(exc)[:500]
+
+    await db.digest_log.insert_one(entry.copy())
+    entry.pop("_id", None)
+    return entry
+
+
+async def send_whatsapp_cloud(db, payload: Dict[str, Any], *, reason: str,
+                              actor: Optional[str] = None) -> Dict[str, Any]:
+    """Send digest one-liner via WhatsApp Cloud API (Meta).
+
+    Requires env: WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_TO.
+    Free text messages only work within 24h of a user-initiated conversation;
+    otherwise a pre-approved template message is required. For a solo-operator
+    launch, easier to use Slack webhook → Zapier/Make → WhatsApp instead.
+    """
+    import os
+    import httpx
+    phone_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
+    token = os.environ.get("WHATSAPP_ACCESS_TOKEN")
+    to = os.environ.get("WHATSAPP_TO")
+    entry = {
+        "to": to or "whatsapp-cloud",
+        "subject": render_cohort_email_subject(payload),
+        "text_bytes": 0,
+        "html_bytes": 0,
+        "provider": "whatsapp",
+        "status": "logged",
+        "error": None,
+        "meta": {"kind": "cohort_digest", "reason": reason, "actor": actor, "channel": "whatsapp"},
+        "sent_at": _now().isoformat(),
+    }
+    if not (phone_id and token and to):
+        entry["status"] = "skipped"
+        entry["error"] = "WHATSAPP_* env vars not set"
+        await db.digest_log.insert_one(entry.copy())
+        entry.pop("_id", None)
+        return entry
+
+    # Strip markdown asterisks for WhatsApp (it uses single * for bold too, but
+    # keeping the formatting is fine — both render as bold in WhatsApp).
+    text = render_webhook_summary(payload)
+    entry["text_bytes"] = len(text)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(
+                f"https://graph.facebook.com/v20.0/{phone_id}/messages",
+                headers={"Authorization": f"Bearer {token}",
+                         "Content-Type": "application/json"},
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": to,
+                    "type": "text",
+                    "text": {"body": text[:4096]},
+                },
+            )
+            if r.status_code >= 300:
+                entry["status"] = "failed"
+                entry["error"] = r.text[:500]
+            else:
+                entry["status"] = "sent"
+                try:
+                    entry["message_id"] = (r.json().get("messages") or [{}])[0].get("id")
+                except Exception:  # noqa: BLE001
+                    pass
+    except Exception as exc:  # noqa: BLE001
+        entry["status"] = "failed"
+        entry["error"] = str(exc)[:500]
+
+    await db.digest_log.insert_one(entry.copy())
+    entry.pop("_id", None)
+    return entry
+
+
 async def run_cohort_digest_blast(db, reason: str = "manual", actor: Optional[str] = None) -> Dict[str, Any]:
-    """Send the digest to every admin user."""
+    """Send the digest to every admin user via email + Slack + WhatsApp (where configured)."""
     admins = await db.users.find(
         {"role": "admin"}, {"_id": 0, "id": 1, "email": 1, "full_name": 1}
     ).to_list(100)
@@ -440,6 +613,7 @@ async def run_cohort_digest_blast(db, reason: str = "manual", actor: Optional[st
     html = render_cohort_email_html(payload)
     text = render_cohort_email_text(payload)
 
+    # Email each admin
     sent = failed = 0
     for admin in admins:
         if not admin.get("email"):
@@ -451,15 +625,19 @@ async def run_cohort_digest_blast(db, reason: str = "manual", actor: Optional[st
                 subject=subject,
                 html=html,
                 text=text,
-                meta={"kind": "cohort_digest", "reason": reason, "actor": actor},
+                meta={"kind": "cohort_digest", "reason": reason, "actor": actor, "channel": "email"},
             )
             if result.get("status") == "failed":
                 failed += 1
             else:
                 sent += 1
         except Exception as exc:  # noqa: BLE001
-            logger.warning("cohort_digest blast to %s failed: %s", admin.get("email"), exc)
+            logger.warning("cohort_digest email to %s failed: %s", admin.get("email"), exc)
             failed += 1
+
+    # Chat channels (once per blast, not per admin)
+    slack_result = await send_slack_webhook(db, payload, reason=reason, actor=actor)
+    whatsapp_result = await send_whatsapp_cloud(db, payload, reason=reason, actor=actor)
 
     now_iso = _now().isoformat()
     await db.system.update_one(
@@ -471,10 +649,19 @@ async def run_cohort_digest_blast(db, reason: str = "manual", actor: Optional[st
             "failed": failed,
             "reason": reason,
             "actor": actor,
+            "slack_status": slack_result["status"],
+            "whatsapp_status": whatsapp_result["status"],
         }},
         upsert=True,
     )
-    return {"sent": sent, "failed": failed, "total": len(admins), "reason": reason, "ran_at": now_iso}
+    return {
+        "sent": sent,
+        "failed": failed,
+        "total": len(admins),
+        "reason": reason,
+        "ran_at": now_iso,
+        "channels": {"slack": slack_result["status"], "whatsapp": whatsapp_result["status"]},
+    }
 
 
 # ─── Router registration ───────────────────────────────────────────────────
@@ -497,11 +684,42 @@ def register(api: APIRouter, *, db, require_roles):
         subject = render_cohort_email_subject(payload)
         html = render_cohort_email_html(payload)
         text = render_cohort_email_text(payload)
-        result = await digest_service.send_email(
+        email_result = await digest_service.send_email(
             db, to=user["email"], subject=subject, html=html, text=text,
-            meta={"kind": "cohort_digest", "reason": "send-me-now", "actor": user["id"]},
+            meta={"kind": "cohort_digest", "reason": "send-me-now", "actor": user["id"], "channel": "email"},
         )
-        return {"ok": True, "delivery": result, "subject": subject}
+        slack_result = await send_slack_webhook(
+            db, payload, reason="send-me-now", actor=user["id"]
+        )
+        whatsapp_result = await send_whatsapp_cloud(
+            db, payload, reason="send-me-now", actor=user["id"]
+        )
+        return {
+            "ok": True,
+            "delivery": email_result,
+            "subject": subject,
+            "channels": {
+                "email": email_result["status"],
+                "slack": slack_result["status"],
+                "whatsapp": whatsapp_result["status"],
+            },
+        }
+
+    @api.post("/admin/cohort-digest/test-webhooks")
+    async def test_webhooks(user: dict = Depends(require_roles("admin"))):
+        """Fire a test push to both chat channels without emailing."""
+        payload = await build_cohort_digest(db)
+        slack_result = await send_slack_webhook(
+            db, payload, reason="test-webhooks", actor=user["id"]
+        )
+        whatsapp_result = await send_whatsapp_cloud(
+            db, payload, reason="test-webhooks", actor=user["id"]
+        )
+        return {
+            "preview_text": render_webhook_summary(payload),
+            "slack": slack_result,
+            "whatsapp": whatsapp_result,
+        }
 
     @api.post("/admin/cohort-digest/trigger")
     async def trigger(user: dict = Depends(require_roles("admin"))):
@@ -512,7 +730,8 @@ def register(api: APIRouter, *, db, require_roles):
         limit = max(1, min(limit, 200))
         cur = db.digest_log.find(
             {"meta.kind": "cohort_digest"},
-            {"_id": 0, "to": 1, "subject": 1, "status": 1, "sent_at": 1, "provider": 1, "error": 1, "meta": 1},
+            {"_id": 0, "to": 1, "subject": 1, "status": 1, "sent_at": 1,
+             "provider": 1, "error": 1, "meta": 1},
         ).sort("sent_at", -1).limit(limit)
         rows = await cur.to_list(limit)
         last_run = await db.system.find_one({"key": "cohort_digest_last_run"}, {"_id": 0})

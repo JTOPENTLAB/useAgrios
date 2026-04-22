@@ -258,24 +258,29 @@ function _captionRatio(num, den, unitLabel) {
 function WeeklyDigestButton() {
   const [state, setState] = useState("idle"); // idle | sending | sent | error
   const [msg, setMsg] = useState("");
+  const [channels, setChannels] = useState(null);
 
   const send = async () => {
     setState("sending");
     setMsg("");
+    setChannels(null);
     try {
       const r = await api.post("/admin/cohort-digest/send-me-now");
       const status = r.data?.delivery?.status || "logged";
       const provider = r.data?.delivery?.provider || "mock";
+      const ch = r.data?.channels || null;
+      setChannels(ch);
       setState("sent");
       setMsg(
         provider === "mock"
-          ? "Logged (mock mode — set RESEND_API_KEY to send for real)"
-          : `Sent via ${provider}`,
+          ? "Email logged (mock — drop RESEND_API_KEY in .env for real delivery)"
+          : `Email sent via ${provider}`,
       );
       setTimeout(() => {
         setState("idle");
         setMsg("");
-      }, 6000);
+        setChannels(null);
+      }, 10000);
     } catch (e) {
       setState("error");
       setMsg(e?.response?.data?.detail || "Failed to send");
@@ -297,7 +302,7 @@ function WeeklyDigestButton() {
       : "Email me this digest";
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-end gap-1.5">
       <button
         onClick={send}
         disabled={busy}
@@ -312,15 +317,49 @@ function WeeklyDigestButton() {
       >
         <Mail className="w-3.5 h-3.5" /> {label}
       </button>
+      {channels && (
+        <div
+          className="flex items-center gap-1.5 flex-wrap justify-end"
+          data-testid="cohort-digest-channels"
+        >
+          {Object.entries(channels).map(([k, v]) => (
+            <ChannelPill key={k} name={k} status={v} />
+          ))}
+        </div>
+      )}
       {msg && (
         <div
-          className="text-[10px] text-ink-muted max-w-[220px] text-right"
+          className="text-[10px] text-ink-muted max-w-[260px] text-right leading-tight"
           data-testid="cohort-digest-status-msg"
         >
           {msg}
         </div>
       )}
     </div>
+  );
+}
+
+function ChannelPill({ name, status }) {
+  const color =
+    status === "sent"
+      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+      : status === "logged"
+      ? "bg-zinc-100 text-zinc-700 border-zinc-200"
+      : status === "skipped"
+      ? "bg-amber-50 text-amber-800 border-amber-200"
+      : "bg-rose-100 text-rose-800 border-rose-200";
+  return (
+    <span
+      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${color}`}
+      data-testid={`cohort-channel-${name}`}
+      title={
+        status === "skipped"
+          ? `${name.toUpperCase()} not configured — set env var to enable`
+          : `${name.toUpperCase()} ${status}`
+      }
+    >
+      {name} · {status}
+    </span>
   );
 }
 function CohortRetentionCard({ cohorts, loading }) {
