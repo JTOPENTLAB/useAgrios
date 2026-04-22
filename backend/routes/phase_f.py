@@ -347,6 +347,18 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
                 # Never block an invest due to awarder failure
                 pass
 
+        # Launch-mode real-time Slack alert: first-invest fires immediately,
+        # subsequent investments are buffered into a 3-min rollup to avoid spam.
+        try:
+            from services import slack_alerts as _slack
+            prior_count = await db.investments.count_documents({"investor_id": user["id"]})
+            if prior_count == 1:  # this invest IS the first (we inserted above)
+                await _slack.alert_first_investment(db, user, o, amount)
+            else:
+                await _slack.buffer_investment(db, user, o, amount)
+        except Exception:
+            pass
+
         doc.pop("_id", None)
         return doc
 

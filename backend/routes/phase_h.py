@@ -567,6 +567,12 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             "kyc",
             req["id"],
         )
+        # Launch-mode real-time alert
+        try:
+            from services import slack_alerts as _slack
+            await _slack.alert_kyc_completed(db, user, body.requested_tier)
+        except Exception:
+            pass
         req.pop("_id", None)
         if isinstance(req.get("created_at"), datetime):
             req["created_at"] = req["created_at"].isoformat()

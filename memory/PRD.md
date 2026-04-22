@@ -23,6 +23,27 @@ Tagline: **From Farm to Money.**
 - **Scheduler** — `cohort_digest.scheduler_loop(db)` registered at startup. Hourly tick; fires once per Monday at `COHORT_DIGEST_HOUR_UTC` (default 8 UTC = 9am WAT). Idempotent via `system.cohort_digest_last_run` (now also records `slack_status` + `whatsapp_status`). Controlled by `ENABLE_CRON` flag.
 - **Frontend action button** — `<WeeklyDigestButton/>` next to the cohort card title (`cohort-digest-send-btn`). One click → in-place emerald "Sent ✓" confirmation + 3-pill channel status row (`cohort-channel-email`/`slack`/`whatsapp` — emerald when sent, zinc when logged/mock, amber when skipped, rose when failed) + hint explaining which env var to set.
 - **Tests** `/app/backend/tests/test_phase_o.py` — 14/14 pass (cohort auth + shape + clamp + eligibility, pre-launch regression smoke, digest preview/send-me-now/trigger/log + new test-webhooks + multi-channel response shape, 403 guards on every admin endpoint).
+
+### Phase O+1 — Real-time Slack alerts (launch command center) (Feb 2026)
+- **New service** `/app/backend/services/slack_alerts.py`. Env-gated (`SLACK_WEBHOOK_URL`). Fire-and-forget — alert failures never break business flows.
+- **Events wired**:
+  - 🌱 `user.signup` — on `/api/auth/signup`. Full name masked to `First L.`
+  - 💰 `wallet.funded` — on `/api/wallet/fund`. First-deposit gets its own icon + label.
+  - 🟡 `kyc.completed` — on `/api/investor/kyc-upgrade`.
+  - 🚀 `investment.first` — **immediate** (bypasses rollup) — first investment per investor.
+  - 📈 `investment.created` — **buffered** via `slack_rollups` collection; bursts on the same opportunity within 3 min become ONE aggregate alert ("₦500k — 3 investors — Maize — Kaduna") via background flusher.
+  - ⚠️ `user.inactivity_risk` — hourly sweep finds investors who funded ≥24h ago but never invested (once-per-user flag prevents re-firing).
+- **Rollup logic**: flush conditions = 1 min of silence since last buffer OR 3 min total window elapsed. Admin can force-flush via `/admin/slack-alerts/flush-rollups?force=true` for testing.
+- **Background scheduler** (registered at startup) runs every 30s: flushes rollups + runs inactivity sweep hourly. Gated by `ENABLE_CRON`.
+- **Admin endpoints**:
+  - `POST /api/admin/slack-alerts/test` — fire a test message (returns status + webhook_configured flag).
+  - `GET /api/admin/slack-alerts/log` — last 200 alert audit rows with config info.
+  - `POST /api/admin/slack-alerts/flush-rollups?force=true` — force flush for testing.
+  - `POST /api/admin/slack-alerts/inactivity-sweep` — manual sweep trigger for testing.
+- **Audit trail** — every alert logs to `digest_log` with `provider='slack'` + `meta.kind='slack_alert'` + `meta.reason='<event>'`. Works even when webhook unset (status='skipped').
+- **Name masking** — all user-facing names reduced to `First L.` to limit PII exposure in chat channels.
+- **Tests** `/app/backend/tests/test_slack_alerts.py` — 9/9 pass. End-to-end verified: signup → wallet fund → KYC → first-invest all produce correctly-formatted one-liners; 3-investment burst collapses into one aggregate alert; inactivity sweep + 403 guards.
+- **Enablement (no code changes needed)**: drop `SLACK_WEBHOOK_URL=https://hooks.slack.com/...` into `/app/backend/.env`, restart backend. Every subsequent event posts to Slack as a card.
 - **Pre-launch status**: All 10-minute checklist endpoints responding 200. Monday digest will auto-email the admin account with last week's performance — you'll see it without logging in. Ready for controlled go-live with first 10 investors.
 
 ---

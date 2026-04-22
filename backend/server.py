@@ -415,6 +415,12 @@ async def signup(body: SignupIn):
             await db.users.update_one({"id": uid}, {"$set": {"signup_bonus_given": True, "signup_bonus_amount": bonus}})
             await notify(uid, "Welcome bonus credited 🎁", f"{cinfo['symbol']}{bonus:,.0f} added to your wallet. Fund your first order on AgriFlow.", "bonus", "welcome")
     user_view = {k: v for k, v in doc.items() if k != "password_hash"}
+    # Launch-mode real-time alert
+    try:
+        from services import slack_alerts as _slack
+        await _slack.alert_signup(db, doc)
+    except Exception:
+        pass
     return AuthResponse(token=make_token(uid, body.role), user=UserOut(**user_view))
 
 
@@ -955,6 +961,9 @@ async def get_wallet(user: dict = Depends(current_user)):
 async def fund_wallet(body: FundWallet, user: dict = Depends(current_user)):
     # Simulated top-up (no real payment gateway in MVP)
     await ensure_wallet(user["id"])
+    # Is this the FIRST deposit? (any prior 'fund' ledger entry?)
+    prior_funds = await db.ledger.count_documents({"user_id": user["id"], "kind": "fund"})
+    is_first = prior_funds == 0
     await db.wallets.update_one(
         {"user_id": user["id"]}, {"$inc": {"available": body.amount}}
     )
@@ -962,6 +971,12 @@ async def fund_wallet(body: FundWallet, user: dict = Depends(current_user)):
         user["id"], "fund", body.amount, "credit", new_id(), "Wallet top-up (simulated)"
     )
     w = await db.wallets.find_one({"user_id": user["id"]}, {"_id": 0})
+    # Launch-mode real-time alert (fire-and-forget)
+    try:
+        from services import slack_alerts as _slack
+        await _slack.alert_wallet_funded(db, user, float(body.amount), is_first=is_first)
+    except Exception:
+        pass
     return {"ok": True, "wallet": w}
 
 
@@ -2723,6 +2738,17 @@ async def start_cohort_digest_scheduler() -> None:
         logger.info("Cohort digest scheduler disabled (ENABLE_CRON off)")
         return
     asyncio.create_task(_cohort_digest_mod.scheduler_loop(db))
+
+
+@app.on_event("startup")
+async def start_slack_alerts_scheduler() -> None:
+    """Launch-mode real-time Slack alerts — rollup flusher + inactivity sweep."""
+    import asyncio
+    from services import slack_alerts as _slack_alerts
+    if not _cfg.ENABLE_CRON:
+        logger.info("Slack alerts scheduler disabled (ENABLE_CRON off)")
+        return
+    asyncio.create_task(_slack_alerts.scheduler_loop(db))
 
 
 # ---------------- Phase C: Payments + Webhooks + Admin audit ----------------

@@ -737,6 +737,48 @@ def register(api: APIRouter, *, db, require_roles):
         last_run = await db.system.find_one({"key": "cohort_digest_last_run"}, {"_id": 0})
         return {"last_run": last_run, "rows": rows}
 
+    # ═══ Real-time Slack alerts admin controls ═══════════════════════════════
+    from services import slack_alerts as _slack_alerts_mod  # noqa: E402
+
+    @api.post("/admin/slack-alerts/test")
+    async def slack_alerts_test(user: dict = Depends(require_roles("admin"))):
+        """Fire a test alert to verify Slack wiring without triggering real events."""
+        res = await _slack_alerts_mod._post(
+            db,
+            ":test_tube: *Slack alerts wired* — AGRIOS launch command center is live",
+            reason="admin.test",
+            meta={"actor": user["id"]},
+        )
+        return {"ok": True, "delivery": res, "webhook_configured": bool(_slack_alerts_mod._webhook_url())}
+
+    @api.get("/admin/slack-alerts/log")
+    async def slack_alerts_log(limit: int = 50, user: dict = Depends(require_roles("admin"))):
+        limit = max(1, min(limit, 200))
+        cur = db.digest_log.find(
+            {"meta.kind": "slack_alert"},
+            {"_id": 0, "subject": 1, "status": 1, "sent_at": 1, "error": 1, "meta": 1},
+        ).sort("sent_at", -1).limit(limit)
+        rows = await cur.to_list(limit)
+        return {
+            "rows": rows,
+            "webhook_configured": bool(_slack_alerts_mod._webhook_url()),
+            "cooldown_rollup_seconds": _slack_alerts_mod.INVEST_ROLLUP_SECONDS,
+            "inactivity_hours": _slack_alerts_mod.INACTIVITY_HOURS,
+        }
+
+    @api.post("/admin/slack-alerts/flush-rollups")
+    async def slack_alerts_flush(force: bool = False,
+                                 user: dict = Depends(require_roles("admin"))):
+        """Flush any rollups that meet the time gate, or all if force=true."""
+        n = await _slack_alerts_mod.flush_investment_rollups(db, force=force)
+        return {"flushed": n, "forced": bool(force)}
+
+    @api.post("/admin/slack-alerts/inactivity-sweep")
+    async def slack_alerts_inactivity(user: dict = Depends(require_roles("admin"))):
+        """Force-run the inactivity-risk sweep (testing only)."""
+        n = await _slack_alerts_mod.inactivity_risk_sweep(db)
+        return {"alerts_fired": n}
+
 
 # ─── Scheduler ─────────────────────────────────────────────────────────────
 async def scheduler_loop(db) -> None:
