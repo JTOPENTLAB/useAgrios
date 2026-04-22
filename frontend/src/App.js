@@ -34,6 +34,7 @@ import InvestorHome from "@/pages/investor/InvestorHome";
 import OpportunityMarketplace from "@/pages/investor/OpportunityMarketplace";
 import OpportunityDetail from "@/pages/investor/OpportunityDetail";
 import InvestmentSuccess from "@/pages/investor/InvestmentSuccess";
+import MyInvestments from "@/pages/investor/MyInvestments";
 import FirstInvestment from "@/pages/investor/FirstInvestment";
 import InvestorPortfolio from "@/pages/investor/InvestorPortfolio";
 import AdminOpportunities from "@/pages/admin/AdminOpportunities";
@@ -136,6 +137,7 @@ function App() {
               <Route path="opportunities" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityMarketplace /></Guard>} />
               <Route path="opportunities/:id" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityDetail /></Guard>} />
               <Route path="portfolio" element={<Guard roles={["investor"]}><InvestorPortfolio /></Guard>} />
+              <Route path="my-investments" element={<Guard roles={["investor"]}><MyInvestments /></Guard>} />
               <Route path="first-investment" element={<Guard roles={["investor"]}><FirstInvestment /></Guard>} />
               <Route path="investment-success" element={<Guard roles={["investor"]}><InvestmentSuccess /></Guard>} />
               <Route path="admin/opportunities" element={<Guard roles={["admin"]}><AdminOpportunities /></Guard>} />

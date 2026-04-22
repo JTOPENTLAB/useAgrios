@@ -166,6 +166,29 @@ export default function InvestorPortfolio() {
                     <Clock className="w-3 h-3" />
                     Matures {fmtDate(r.maturity_at)}
                   </span>
+                  {r.status === "paid" && (
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          const { data } = await api.post(
+                            `/investments/${r.id}/reinvest`,
+                            { amount: r.amount },
+                          );
+                          window.location.href = `/app/opportunities/${data.suggested_opportunity_id}?prefill=${data.suggested_amount}`;
+                        } catch {
+                          // Fallback — send to marketplace
+                          window.location.href = "/app/opportunities";
+                        }
+                      }}
+                      className="ml-auto inline-flex items-center gap-1 text-brand font-semibold hover:text-brand-dark"
+                      data-testid={`reinvest-${r.id}`}
+                    >
+                      Reinvest now
+                    </button>
+                  )}
                 </div>
               </Link>
             ))}

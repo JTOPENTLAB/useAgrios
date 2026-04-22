@@ -179,6 +179,151 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         rows.sort(key=score)
         return {"items": rows[:limit]}
 
+    # ================= Phase M — Retention & reinvestment =================
+
+    @api.get("/investments/mine/feed")
+    async def my_investments_feed(user: dict = Depends(require_roles("investor"))):
+        """Aggregated farm updates across all of this investor's active/matured cycles."""
+        invs = await db.investments.find(
+            {"investor_id": user["id"], "status": {"$in": ["active", "matured"]}},
+            {"_id": 0, "opportunity_id": 1, "amount": 1, "status": 1, "created_at": 1},
+        ).to_list(500)
+        out = []
+        for inv in invs:
+            opp = await db.opportunities.find_one(
+                {"id": inv["opportunity_id"]},
+                {"_id": 0, "id": 1, "title": 1, "crop": 1, "region": 1,
+                 "created_at": 1, "duration_months": 1, "target_return_pct": 1, "risk_band": 1},
+            )
+            if not opp:
+                continue
+            # Real updates first
+            real_updates = await db.opportunity_updates.find(
+                {"opportunity_id": opp["id"]}, {"_id": 0}
+            ).sort("created_at", -1).to_list(10)
+            if real_updates:
+                for u in real_updates:
+                    out.append({
+                        "id": u.get("id", opp["id"] + "-" + str(u.get("created_at"))),
+                        "opportunity_id": opp["id"],
+                        "opportunity_title": opp.get("title"),
+                        "opportunity_crop": opp.get("crop"),
+                        "opportunity_region": opp.get("region"),
+                        "stage": u.get("stage", "Update"),
+                        "text": u.get("text", ""),
+                        "created_at": (u.get("created_at").isoformat()
+                                       if hasattr(u.get("created_at"), "isoformat")
+                                       else u.get("created_at")),
+                        "verified": bool(u.get("verified", True)),
+                    })
+            else:
+                # Synthesise from age-based template (same logic as get_opportunity hydration)
+                created = opp.get("created_at") or _now()
+                if isinstance(created, str):
+                    try:
+                        created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                    except Exception:
+                        created = _now()
+                if isinstance(created, datetime) and created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                crop = (opp.get("crop") or "Crop").lower()
+                TEMPLATE = [
+                    ("Land prep", f"Land cleared and tilled for the new {crop} cycle.", 3),
+                    ("Inputs delivered", "Seeds and agro-chemicals delivered on site.", 7),
+                    ("Planting", f"{crop.capitalize()} planting completed.", 12),
+                    ("Week 3 check-in", "Germination healthy. No pest pressure observed.", 21),
+                    ("Week 5 check-in", "Canopy development on track. Irrigation cycle completed.", 35),
+                ]
+                days_since = max(0, (_now() - created).days) if created else 0
+                for stage, text, days in TEMPLATE:
+                    if days <= days_since:
+                        out.append({
+                            "id": f"{opp['id']}-syn-{days}",
+                            "opportunity_id": opp["id"],
+                            "opportunity_title": opp.get("title"),
+                            "opportunity_crop": opp.get("crop"),
+                            "opportunity_region": opp.get("region"),
+                            "stage": stage,
+                            "text": text,
+                            "created_at": (created + timedelta(days=days)).isoformat(),
+                            "verified": True,
+                        })
+        # Sort newest first
+        out.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return {"items": out[:50]}
+
+    @api.post("/investments/{investment_id}/reinvest")
+    async def reinvest(investment_id: str, body: dict | None = None,
+                       user: dict = Depends(require_roles("investor"))):
+        """One-click reinvest. Defaults to the same amount into the same opportunity
+        if it's still open. If closed/full, falls back to a similar opportunity.
+        """
+        inv = await db.investments.find_one(
+            {"id": investment_id, "investor_id": user["id"]}, {"_id": 0},
+        )
+        if not inv:
+            raise HTTPException(404, "Investment not found")
+
+        amount = float((body or {}).get("amount", inv.get("amount", 0)) or 0)
+        if amount <= 0:
+            raise HTTPException(400, "amount must be > 0")
+
+        target_opp_id = inv["opportunity_id"]
+        opp = await db.opportunities.find_one({"id": target_opp_id}, {"_id": 0})
+        if not opp or opp.get("status") not in ("open", "active"):
+            # Fallback: recommend similar open
+            alt = await db.opportunities.find(
+                {"id": {"$ne": target_opp_id}, "status": "open",
+                 "$or": [{"crop": opp.get("crop") if opp else None},
+                         {"region": opp.get("region") if opp else None}]},
+                {"_id": 0},
+            ).limit(1).to_list(1)
+            if not alt:
+                raise HTTPException(404, "No open opportunity available to reinvest. Browse marketplace.")
+            target_opp_id = alt[0]["id"]
+        return {
+            "ok": True,
+            "suggested_opportunity_id": target_opp_id,
+            "suggested_amount": round(amount, 2),
+            "note": "Use POST /api/opportunities/{id}/invest to finalize.",
+        }
+
+    @api.get("/investor/milestones")
+    async def investor_milestones(user: dict = Depends(require_roles("investor"))):
+        """Compute earned badges from the investor's history."""
+        invs = await db.investments.find({"investor_id": user["id"]}, {"_id": 0}).to_list(1000)
+        total_count = len(invs)
+        total_invested = sum(float(i.get("amount", 0) or 0) for i in invs)
+        paid_count = sum(1 for i in invs if i.get("status") == "paid")
+        cycles_seen = len({i.get("opportunity_id") for i in invs})
+
+        CATALOG = [
+            {"id": "first_invest", "label": "First investment", "icon": "seedling",
+             "earned": total_count >= 1, "rule": "Your first allocation."},
+            {"id": "three_invests", "label": "3 investments", "icon": "target",
+             "earned": total_count >= 3, "rule": "Diversifying across cycles."},
+            {"id": "ten_invests", "label": "10 investments", "icon": "trending",
+             "earned": total_count >= 10, "rule": "Confident multi-cycle investor."},
+            {"id": "hundred_k", "label": "₦100k invested", "icon": "coin",
+             "earned": total_invested >= 100_000, "rule": "Serious capital deployed."},
+            {"id": "million", "label": "₦1M invested", "icon": "crown",
+             "earned": total_invested >= 1_000_000, "rule": "Top-tier investor."},
+            {"id": "first_payout", "label": "First payout", "icon": "wallet",
+             "earned": paid_count >= 1, "rule": "A cycle paid you back."},
+            {"id": "diversified", "label": "Diversified (3+ cycles)", "icon": "layers",
+             "earned": cycles_seen >= 3, "rule": "Spread across multiple opportunities."},
+        ]
+        return {
+            "totals": {
+                "investments": total_count,
+                "invested_amount": round(total_invested, 2),
+                "paid_out_count": paid_count,
+                "unique_cycles": cycles_seen,
+            },
+            "badges": CATALOG,
+            "earned_count": sum(1 for b in CATALOG if b["earned"]),
+        }
+
     @api.get("/stats/landing-pulse")
     async def landing_pulse():
         """Live aggregates for the public Landing page ticker.

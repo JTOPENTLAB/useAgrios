@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -43,11 +43,13 @@ const RISK_LABEL = {
 
 export default function OpportunityDetail() {
   const { id } = useParams();
+  const [sp] = useSearchParams();
+  const prefill = sp.get("prefill");
   const nav = useNavigate();
   const { user } = useAuth();
   const [opp, setOpp] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(prefill || "");
   const [submitting, setSubmitting] = useState(false);
   const [ackOpen, setAckOpen] = useState(false);
   const [showWalletFund, setShowWalletFund] = useState(false);

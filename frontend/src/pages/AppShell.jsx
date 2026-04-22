@@ -74,6 +74,7 @@ const NAV = {
   ],
   investor: [
     { to: "/app/investor", label: "Home", icon: LayoutDashboard, end: true },
+    { to: "/app/my-investments", label: "My investments", icon: Sparkles },
     { to: "/app/opportunities", label: "Opportunities", icon: Briefcase },
     { to: "/app/portfolio", label: "Portfolio", icon: LineChart },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
