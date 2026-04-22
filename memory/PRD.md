@@ -14,6 +14,14 @@ Tagline: **From Farm to Money.**
 
 ---
 
+### Phase O — Cohort retention (pre-launch) (Feb 2026)
+- **Backend** `GET /api/admin/cohorts/retention?weeks=2..26` (admin-only) — Monday-anchored weekly signup cohorts of `role=investor`. For each cohort: `size`, per-milestone (`W+1`, `W+2`, `W+4`, `W+8`) `{count, pct, eligible}`. `eligible=false` when the milestone window hasn't matured relative to `now`. Overall roll-up computed only over eligible cohorts. Tz-safe against naive datetimes.
+- **Frontend** `<CohortRetentionCard/>` on `/app/admin/growth` — 4-tile Overall row (`cohort-overall-W+1..8`), triangular heatmap table (`cohort-row-*`, `cohort-cell-*-W+*`) with emerald intensity scale (0→40%+) and legend. Greyed cells for ineligible milestones. Reads `/api/admin/cohorts/retention?weeks=8` on mount.
+- **Tests** `/app/backend/tests/test_phase_o.py` — 6/6 pass (auth guard, shape, current-week W+8 ineligibility, param clamping 2..26, no-auth 401/403, pre-launch regression smoke across 7 critical public/admin endpoints).
+- **Pre-launch status**: All 10-minute checklist endpoints responding 200 — `/healthz`, `/opportunities`, `/stats/landing-pulse`, `/stats/public`, `/stats/recent-deals`, `/stats/platform-metrics`, `/admin/cohorts/retention`. Ready for controlled go-live with first 10 investors.
+
+---
+
 ## What's implemented
 
 ### Phase 1 (Feb 20, 2026)

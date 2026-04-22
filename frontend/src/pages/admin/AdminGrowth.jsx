@@ -6,6 +6,7 @@ import {
   Briefcase,
   Activity,
   Target,
+  LineChart,
 } from "lucide-react";
 import api, { fmtMoney } from "@/lib/api";
 
@@ -15,6 +16,9 @@ export default function AdminGrowth() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cohorts, setCohorts] = useState(null);
+  const [cohortLoading, setCohortLoading] = useState(true);
+  const cohortWeeks = 8;
 
   useEffect(() => {
     setLoading(true);
@@ -23,6 +27,15 @@ export default function AdminGrowth() {
       .then((r) => setData(r.data))
       .finally(() => setLoading(false));
   }, [days]);
+
+  useEffect(() => {
+    setCohortLoading(true);
+    api
+      .get(`/admin/cohorts/retention?weeks=${cohortWeeks}`)
+      .then((r) => setCohorts(r.data))
+      .catch(() => setCohorts(null))
+      .finally(() => setCohortLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6" data-testid="admin-growth-page">
@@ -188,6 +201,8 @@ export default function AdminGrowth() {
               )}
             </div>
           </div>
+
+          <CohortRetentionCard cohorts={cohorts} loading={cohortLoading} />
         </>
       )}
     </div>
@@ -236,4 +251,184 @@ function _captionRatio(num, den, unitLabel) {
     return `${num} invested — no prior ${unitLabel} in window`;
   }
   return `${num} / ${den} ${unitLabel}`;
+}
+
+// ─── Cohort retention heatmap ──────────────────────────────────────────────
+function CohortRetentionCard({ cohorts, loading }) {
+  if (loading) {
+    return (
+      <div className="af-card p-6" data-testid="cohort-retention-card">
+        <div className="text-ink-muted text-sm">Loading cohort retention…</div>
+      </div>
+    );
+  }
+  if (!cohorts) {
+    return (
+      <div className="af-card p-6" data-testid="cohort-retention-card">
+        <div className="text-ink-muted text-sm">
+          Cohort retention unavailable.
+        </div>
+      </div>
+    );
+  }
+
+  const milestones = cohorts.milestones || ["W+1", "W+2", "W+4", "W+8"];
+  const rows = cohorts.cohorts || [];
+  const overall = cohorts.overall || {};
+
+  // Heat color based on pct — soft emerald scale
+  const cellBg = (pct, eligible) => {
+    if (!eligible) return "bg-zinc-50 text-zinc-300";
+    if (pct >= 40) return "bg-emerald-600 text-white";
+    if (pct >= 25) return "bg-emerald-500 text-white";
+    if (pct >= 15) return "bg-emerald-400 text-white";
+    if (pct >= 5) return "bg-emerald-200 text-emerald-900";
+    if (pct > 0) return "bg-emerald-100 text-emerald-900";
+    return "bg-zinc-50 text-zinc-400";
+  };
+
+  return (
+    <div className="af-card p-6" data-testid="cohort-retention-card">
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h3 className="font-heading font-bold text-ink flex items-center gap-2">
+            <LineChart className="w-4 h-4 text-brand" /> Investor cohort
+            retention
+          </h3>
+          <p className="text-xs text-ink-muted mt-1">
+            Of investors who signed up in each week, what % had invested by W+1,
+            W+2, W+4, W+8. Greyed cells haven't matured yet.
+          </p>
+        </div>
+        <div className="text-right text-[11px] text-ink-muted">
+          Window: last {cohorts.weeks} weeks ·{" "}
+          <span className="font-semibold text-ink">
+            {cohorts.total_signups} investor signups
+          </span>
+        </div>
+      </div>
+
+      {/* Overall bar */}
+      <div
+        className="grid grid-cols-4 gap-2 mb-4"
+        data-testid="cohort-overall-row"
+      >
+        {milestones.map((m) => {
+          const o = overall[m] || { pct: 0, count: 0, eligible_size: 0 };
+          return (
+            <div
+              key={m}
+              className="rounded-xl border border-zinc-200 p-3 bg-white"
+              data-testid={`cohort-overall-${m}`}
+            >
+              <div className="text-[10px] uppercase tracking-wider font-bold text-ink-muted">
+                Overall {m}
+              </div>
+              <div className="font-heading font-extrabold text-xl text-ink mt-1">
+                {o.pct}%
+              </div>
+              <div className="text-[11px] text-ink-muted">
+                {o.count} of {o.eligible_size} investors
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Matrix */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wider text-ink-muted">
+              <th className="py-2 pr-4 font-bold">Cohort</th>
+              <th className="py-2 pr-4 font-bold text-right">Size</th>
+              {milestones.map((m) => (
+                <th
+                  key={m}
+                  className="py-2 px-2 font-bold text-center"
+                  data-testid={`cohort-header-${m}`}
+                >
+                  {m}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={2 + milestones.length}
+                  className="py-6 text-center text-ink-muted text-sm"
+                >
+                  No investor signups in this window yet.
+                </td>
+              </tr>
+            )}
+            {rows.map((c, idx) => (
+              <tr
+                key={c.week_start}
+                className="border-t border-zinc-100"
+                data-testid={`cohort-row-${idx}`}
+              >
+                <td className="py-2 pr-4 font-semibold text-ink">
+                  Week of {c.label}
+                </td>
+                <td className="py-2 pr-4 text-right text-ink-soft">
+                  {c.size}
+                </td>
+                {milestones.map((m) => {
+                  const cell = c.retention?.[m] || {
+                    pct: 0,
+                    count: 0,
+                    eligible: false,
+                  };
+                  return (
+                    <td
+                      key={m}
+                      className="py-1 px-1"
+                      data-testid={`cohort-cell-${idx}-${m}`}
+                    >
+                      <div
+                        className={`rounded-lg text-center font-semibold text-xs py-2 ${cellBg(
+                          cell.pct,
+                          cell.eligible,
+                        )}`}
+                        title={
+                          cell.eligible
+                            ? `${cell.count} of ${c.size} invested within ${m}`
+                            : "Cohort hasn't matured to this milestone yet"
+                        }
+                      >
+                        {cell.eligible ? `${cell.pct}%` : "—"}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 mt-4 text-[11px] text-ink-muted">
+        <span>Heat scale:</span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded bg-emerald-100 inline-block" /> 1–4%
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded bg-emerald-200 inline-block" /> 5–14%
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded bg-emerald-400 inline-block" /> 15–24%
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded bg-emerald-500 inline-block" /> 25–39%
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 rounded bg-emerald-600 inline-block" /> 40%+
+        </span>
+      </div>
+    </div>
+  );
 }

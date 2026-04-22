@@ -233,5 +233,123 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             "utm_sources": utm_sources,
         }
 
+    # ================= Cohort retention =================
+    @api.get("/admin/cohorts/retention")
+    async def cohort_retention(weeks: int = 8, user: dict = Depends(require_roles("admin"))):
+        """Weekly signup-cohort retention.
+
+        For each of the last `weeks` signup weeks (Monday-anchored, UTC), report how
+        many investor-role users invested by W+1, W+2, W+4, W+8 after their signup.
+        Response shape is designed so the frontend can render a triangular heatmap
+        without further processing.
+        """
+        weeks = max(2, min(weeks, 26))
+        now = _now()
+        # Anchor cohort to the Monday of the current week (UTC, start of day)
+        today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        current_monday = today_midnight - timedelta(days=today_midnight.weekday())
+        # Window starts `weeks` mondays before current
+        window_start = current_monday - timedelta(weeks=weeks - 1)
+
+        # Pull all investor signups in the window + an aggregated first-invest map
+        cur = db.users.find(
+            {
+                "role": "investor",
+                "created_at": {"$gte": window_start},
+            },
+            {"_id": 0, "id": 1, "created_at": 1},
+        )
+        users = await cur.to_list(length=5000)
+
+        # First-investment timestamp per investor
+        agg = db.investments.aggregate([
+            {"$match": {"created_at": {"$gte": window_start}}},
+            {"$group": {"_id": "$investor_id", "first_at": {"$min": "$created_at"}}},
+        ])
+        first_by_user = {r["_id"]: r["first_at"] for r in await agg.to_list(length=10000)}
+
+        milestones = [1, 2, 4, 8]
+        # Initialize cohorts list (oldest → newest) so the triangular matrix reads top-down
+        cohorts = []
+        for i in range(weeks):
+            week_start = window_start + timedelta(weeks=i)
+            week_end = week_start + timedelta(weeks=1)
+            label = week_start.strftime("%b %d")
+            cohorts.append({
+                "week_start": week_start.isoformat(),
+                "week_end": week_end.isoformat(),
+                "label": label,
+                "size": 0,
+                "retention": {f"W+{m}": {"count": 0, "pct": 0.0, "eligible": True} for m in milestones},
+            })
+
+        def _week_index(dt) -> int:
+            # Normalize tz-aware/naive
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            delta = dt - window_start
+            return int(delta.days // 7)
+
+        # Fill cohort sizes + milestone counts
+        for u in users:
+            created = u.get("created_at")
+            if not created:
+                continue
+            idx = _week_index(created)
+            if idx < 0 or idx >= weeks:
+                continue
+            cohorts[idx]["size"] += 1
+            first_at = first_by_user.get(u["id"])
+            if not first_at:
+                continue
+            if first_at.tzinfo is None:
+                first_at = first_at.replace(tzinfo=timezone.utc)
+            cohort_start = window_start + timedelta(weeks=idx)
+            days_elapsed = (first_at - cohort_start).days
+            weeks_elapsed = max(0, days_elapsed // 7)
+            for m in milestones:
+                if weeks_elapsed <= m:
+                    cohorts[idx]["retention"][f"W+{m}"]["count"] += 1
+
+        # Compute pcts + mark eligibility (milestone must fit in the window up to now)
+        for i, c in enumerate(cohorts):
+            cohort_start_dt = window_start + timedelta(weeks=i)
+            weeks_since_cohort = (now - cohort_start_dt).days / 7.0
+            for m in milestones:
+                cell = c["retention"][f"W+{m}"]
+                cell["eligible"] = weeks_since_cohort >= m
+                cell["pct"] = (
+                    round(100.0 * cell["count"] / c["size"], 1) if c["size"] > 0 else 0.0
+                )
+
+        # Totals roll-up (ignoring ineligible cells)
+        total_signups = sum(c["size"] for c in cohorts)
+        totals = {f"W+{m}": 0 for m in milestones}
+        eligible_size = {f"W+{m}": 0 for m in milestones}
+        for c in cohorts:
+            for m in milestones:
+                if c["retention"][f"W+{m}"]["eligible"]:
+                    totals[f"W+{m}"] += c["retention"][f"W+{m}"]["count"]
+                    eligible_size[f"W+{m}"] += c["size"]
+        overall = {
+            m: {
+                "count": totals[m],
+                "pct": round(100.0 * totals[m] / eligible_size[m], 1)
+                if eligible_size[m] > 0
+                else 0.0,
+                "eligible_size": eligible_size[m],
+            }
+            for m in totals
+        }
+
+        return {
+            "weeks": weeks,
+            "window_start": window_start.isoformat(),
+            "milestones": [f"W+{m}" for m in milestones],
+            "total_signups": total_signups,
+            "overall": overall,
+            "cohorts": cohorts,
+        }
+
     # Expose the awarder hook for phase_f to consume.
     return {"maybe_award_invest_referral": maybe_award_invest_referral}
