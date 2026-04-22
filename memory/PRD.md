@@ -105,6 +105,24 @@ Tagline: **From Farm to Money.**
   - `POST /api/onboarding/complete` — sets step=5.
   - Existing `/api/auth/signup` now stamps `onboarding_step=1` on new password users too.
 - **Rebuilt `/signup` page**:
+
+### Phase L — First deposit & first investment conversion optimization (Feb 21, 2026)
+- **Post-onboarding redirect**: `OnboardingSuccess` dashboard CTA now navigates investors to `/app/first-investment` instead of `/app` (other roles still go to `/app`).
+- **New `/app/first-investment` page** (`FirstInvestment.jsx`) — "Start with your first allocation" headline, "Most AGRIOS users begin with ₦50,000" subtext, wallet balance card (gradient brand), 3 featured open opportunities ranked by funded %, each showing KYC-Verified + Escrow-Protected badges. Dynamic CTA: "Fund wallet to continue" (opens WalletFundModal) when balance=0, "Explore all opportunities" when funded. Skip → dashboard.
+- **Global `<WalletFundModal/>` component** — ₦10k / ₦50k (Recommended) / ₦100k preset buttons + custom amount, trust panel with 3 bullets ("Funds released in stages", "Verified farm partners", "Transparent tracking") + quote "You will always see where your money is going.". Auto-credits wallet and fires `onFunded` callback.
+- **Urgency triggers on `OpportunityCard`**: 4 new badge types — `opp-urgent-funded-*` (≥75% amber), `opp-urgent-closing-*` (≤5d rose), `opp-urgent-investors-*` (≥3 investors emerald), `opp-urgent-remaining-*` (<15% black). Animated shimmer on progress bar when urgent (`@keyframes shimmer` added to `index.css`). Seed updated to stagger close dates (3 / 14 / 30d) so badges surface in demo.
+- **`<PulseSignals/>` (auth'd, 10s refresh)** — compact 3-metric live strip reusing `/api/stats/landing-pulse` ("invested this week", "new investors joined", "cycles closing soon"). Rendered on `FirstInvestment`.
+- **Investment confirmation flow**:
+  - Wallet-balance check: OpportunityDetail fetches live balance via `GET /api/wallet` on mount. If `amount > walletBalance`, opens `<WalletFundModal/>` before invest.
+  - After RiskAck (existing), opens `<InvestmentConfirmModal/>` with summary (amount, duration, target return, expected payout, "released in milestones"), required "I understand this investment carries risk" checkbox, **"Allocate capital"** button.
+- **New `/app/investment-success` page** (`InvestmentSuccess.jsx`) — "Your capital is now at work." with confetti animation, 3 stats (amount / timeline / expected payout), opportunity summary with "Next update: within 7 days" pill, `success-track-btn` → `/app/portfolio`, `success-back-to-market` → `/app/opportunities`. Triggered via `nav('/app/investment-success?id=X&amount=Y&payout=Z&duration=N')`.
+- **Recommendation engine** `GET /api/opportunities/{id}/similar?limit=3&include_all=false` — ranks by crop match (+3) / region match (+2) / ROI band match (+1). Defaults to `status=open` only for best conversion. Rendered as `<SimilarOpportunities/>` at the bottom of OpportunityDetail.
+- **Empty dashboard fix**: `InvestorHome.StartHereSteps` copy updated — "Let's get your capital working", "Three minutes to your first farm cycle", 3 action steps pointing to `/app/first-investment`.
+- **Psychological trigger copy** woven throughout: "Most investors start with ₦50,000", "You can diversify later", "Track everything in real time", "Most investors diversify across 3–5 cycles".
+- **Tests**: `/app/backend/tests/test_phase_l.py` — 9/9 pytest pass (similar endpoint happy path + ranking + 404 + regression on /opportunities, /opportunities/{id}, /investments/summary, /stats/landing-pulse).
+- **Not shipped in this pass**: Smart follow-up notifications (+10m/+24h/+3d scheduler). Deferred to P2 — needs a scheduler.
+- **Test iterations**: iteration 14 found a CRITICAL wallet-balance gate bug (gate read user.wallet_balance from /auth/me which doesn't carry that field) → fixed by fetching balance via GET /api/wallet on mount. Iteration 15 retest: 100% backend + 100% frontend, all 7 retest items pass end-to-end.
+
   - URL params: `?role=investor|farmer|buyer|logistics` preselects card. `?next=/app/...` preserved through signup + Google OAuth.
   - Left column: dynamic subtext per role, 4 role cards (icon + desc), **primary full-width "Continue with Google"** button, divider, email form (name/email/password/country/referral), "Continue as [Role]" CTA, "Takes less than 60 seconds" + "Your data is secure and encrypted" trust notes.
   - Right column: sticky contextual gradient panel per role showing 3 context pills (avg allocation, cycle duration, transparent tracking for investor, etc.), Trust Center link.
