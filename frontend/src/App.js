@@ -10,6 +10,13 @@ import Explore from "@/pages/Explore";
 import PublicListing from "@/pages/PublicListing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import AuthCallback from "@/pages/AuthCallback";
+import OnboardingShell from "@/pages/onboarding/OnboardingShell";
+import OnboardingProfile from "@/pages/onboarding/OnboardingProfile";
+import OnboardingKYC from "@/pages/onboarding/OnboardingKYC";
+import OnboardingWallet from "@/pages/onboarding/OnboardingWallet";
+import OnboardingInvest from "@/pages/onboarding/OnboardingInvest";
+import OnboardingSuccess from "@/pages/onboarding/OnboardingSuccess";
 import AppShell from "@/pages/AppShell";
 import FarmerDashboard from "@/pages/farmer/FarmerDashboard";
 import FarmerListings from "@/pages/farmer/FarmerListings";
@@ -78,8 +85,25 @@ function App() {
             <Route path="/trust" element={<TrustCenter />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/listing/:id" element={<PublicListing />} />
+            <Route path="/opportunities/:id" element={<OpportunityDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route
+              path="/onboarding"
+              element={
+                <Guard>
+                  <OnboardingShell />
+                </Guard>
+              }
+            >
+              <Route index element={<Navigate to="/onboarding/profile" replace />} />
+              <Route path="profile" element={<OnboardingProfile />} />
+              <Route path="kyc" element={<OnboardingKYC />} />
+              <Route path="wallet" element={<OnboardingWallet />} />
+              <Route path="invest" element={<OnboardingInvest />} />
+              <Route path="success" element={<OnboardingSuccess />} />
+            </Route>
             <Route
               path="/app"
               element={

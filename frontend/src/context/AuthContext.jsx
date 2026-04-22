@@ -11,6 +11,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(!!localStorage.getItem("agriflow_token") && !user);
 
   useEffect(() => {
+    // Skip auth check during Google OAuth callback — AuthCallback handles it.
+    if (typeof window !== "undefined" && window.location.hash?.includes("session_id=")) {
+      setLoading(false);
+      return;
+    }
     if (localStorage.getItem("agriflow_token") && !user) {
       api
         .get("/auth/me")
@@ -48,7 +53,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const value = useMemo(() => ({ user, loading, login, signup, logout, setUser }), [user, loading]);
+  const applyGoogleSession = (data) => {
+    // data: {token, user, is_new, next_hint}
+    localStorage.setItem("agriflow_token", data.token);
+    localStorage.setItem("agriflow_user", JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
+  };
+
+  const value = useMemo(() => ({ user, loading, login, signup, logout, setUser, applyGoogleSession }), [user, loading]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

@@ -288,13 +288,15 @@ export default function OpportunityDetail() {
             </div>
           ) : !isInvestor ? (
             <div className="mt-4 p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-sm text-ink-muted">
-              Sign in as an investor to back this opportunity.
+              {user
+                ? "Sign in as an investor to back this opportunity."
+                : "Sign up to back this opportunity — takes under 60 seconds."}
               <Link
-                to="/signup"
+                to={`/signup?role=investor&next=${encodeURIComponent(`/app/opportunities/${id}`)}`}
                 className="block mt-2 af-btn-primary"
                 data-testid="signup-investor-cta"
               >
-                Create investor account
+                {user ? "Switch to investor account" : "Continue as Investor"}
               </Link>
             </div>
           ) : (

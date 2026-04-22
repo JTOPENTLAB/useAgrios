@@ -396,6 +396,7 @@ async def signup(body: SignupIn):
         "referred_by": None,
         "country": cinfo["code"],
         "currency": cinfo["currency"],
+        "onboarding_step": 1,
         "created_at": utcnow(),
     }
     # Apply referral if provided
@@ -3051,6 +3052,7 @@ async def admin_webhook_events(limit: int = 50, user: dict = Depends(require_rol
 from routes import phase_d as _phase_d  # noqa: E402
 from routes import phase_f as _phase_f  # noqa: E402
 from routes import phase_h as _phase_h  # noqa: E402
+from routes import phase_i as _phase_i  # noqa: E402
 
 _phase_d_handles = _phase_d.register(
     api,
@@ -3084,6 +3086,17 @@ _phase_f.register(
     ledger=ledger,
     kyc_tier_lookup=_phase_h_handles.get("user_tier"),
     kyc_tiers=_phase_h_handles.get("KYC_TIERS"),
+)
+
+_phase_i.register(
+    api,
+    db=db,
+    current_user=current_user,
+    hash_password=hash_password,
+    new_id=new_id,
+    ensure_wallet=ensure_wallet,
+    ledger=ledger,
+    token_for=lambda u: make_token(u["id"], u["role"]),
 )
 
 
