@@ -3053,6 +3053,7 @@ from routes import phase_d as _phase_d  # noqa: E402
 from routes import phase_f as _phase_f  # noqa: E402
 from routes import phase_h as _phase_h  # noqa: E402
 from routes import phase_i as _phase_i  # noqa: E402
+from routes import phase_n as _phase_n  # noqa: E402
 
 _phase_d_handles = _phase_d.register(
     api,
@@ -3075,6 +3076,17 @@ _phase_h_handles = _phase_h.register(
     ledger=ledger,
 )
 
+_phase_n_handles = _phase_n.register(
+    api,
+    db=db,
+    current_user=current_user,
+    require_roles=require_roles,
+    notify=notify,
+    new_id=new_id,
+    ensure_wallet=ensure_wallet,
+    ledger=ledger,
+)
+
 _phase_f.register(
     api,
     db=db,
@@ -3086,6 +3098,7 @@ _phase_f.register(
     ledger=ledger,
     kyc_tier_lookup=_phase_h_handles.get("user_tier"),
     kyc_tiers=_phase_h_handles.get("KYC_TIERS"),
+    referral_awarder=_phase_n_handles.get("maybe_award_invest_referral"),
 )
 
 _phase_i.register(

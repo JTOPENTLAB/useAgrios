@@ -25,6 +25,7 @@ import api, { fmtNGN } from "@/lib/api";
 import RecentDealsFeed from "@/components/RecentDealsFeed";
 import LandingPulseTicker from "@/components/LandingPulseTicker";
 import TestimonialsRail from "@/components/TestimonialsRail";
+import LandingFeaturedOps from "@/components/LandingFeaturedOps";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const HERO_IMG =
@@ -153,6 +154,36 @@ export default function Landing() {
     description:
       "AGRIOS is the global infrastructure layer for agricultural trade. Marketplace, escrow, wallet, payouts, and market intelligence — in one platform. Launching in Nigeria.",
   });
+
+  // UTM / referrer capture for growth analytics (fire-and-forget, public)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const utm_source = sp.get("utm_source");
+    const utm_campaign = sp.get("utm_campaign");
+    const utm_medium = sp.get("utm_medium");
+    const ref = sp.get("ref");
+    if (utm_source || utm_campaign || ref) {
+      api
+        .post("/events/track", {
+          event: "landing_view",
+          utm_source: utm_source || (ref ? "referral" : null),
+          utm_campaign,
+          utm_medium,
+          referrer: document.referrer || null,
+          path: window.location.pathname,
+          meta: ref ? { ref } : null,
+        })
+        .catch(() => {});
+      // Preserve ref for the Signup page
+      if (ref) {
+        try {
+          localStorage.setItem("agrios_referral", ref);
+        } catch {
+          // ignore storage errors
+        }
+      }
+    }
+  }, []);
 
   return (
     <div
@@ -328,6 +359,9 @@ export default function Landing() {
 
       {/* Live deal marquee */}
       <RecentDealsFeed />
+
+      {/* Featured opportunities (high-impact conversion) */}
+      <LandingFeaturedOps />
 
       {/* Testimonials rail */}
       <TestimonialsRail />

@@ -91,6 +91,7 @@ export default function Signup() {
 
   const [sp] = useSearchParams();
   const preRole = sp.get("role");
+  const preRef = sp.get("ref") || (typeof window !== "undefined" ? localStorage.getItem("agrios_referral") : null);
   const next = sp.get("next");
   const { signup } = useAuth();
   const nav = useNavigate();
@@ -105,7 +106,7 @@ export default function Signup() {
     email: "",
     password: "",
     country: "NG",
-    referral_code: "",
+    referral_code: preRef ? preRef.toUpperCase() : "",
   });
 
   useEffect(() => {

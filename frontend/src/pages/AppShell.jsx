@@ -68,6 +68,7 @@ const NAV = {
     { to: "/app/admin/reconcile", label: "Reconcile", icon: HeartPulse },
     { to: "/app/admin/opportunities", label: "Opportunities", icon: Briefcase },
     { to: "/app/admin/trust", label: "Trust ops", icon: Sparkles },
+    { to: "/app/admin/growth", label: "Growth", icon: LineChart },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/jobs", label: "Logistics", icon: Truck },
@@ -78,6 +79,7 @@ const NAV = {
     { to: "/app/opportunities", label: "Opportunities", icon: Briefcase },
     { to: "/app/portfolio", label: "Portfolio", icon: LineChart },
     { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
+    { to: "/app/referrals", label: "Invite & earn", icon: Mail },
     { to: "/app/digest", label: "Market Pulse", icon: Mail },
   ],
 };

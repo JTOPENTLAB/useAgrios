@@ -42,7 +42,8 @@ def _now() -> datetime:
 
 
 def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
-             ensure_wallet, ledger, kyc_tier_lookup=None, kyc_tiers=None):
+             ensure_wallet, ledger, kyc_tier_lookup=None, kyc_tiers=None,
+             referral_awarder=None):
     # ---------- Farmer creates opportunity ----------
     @api.post("/opportunities")
     async def create_opportunity(body: OpportunityCreate, user: dict = Depends(require_roles("farmer"))):
@@ -336,6 +337,15 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             "investment",
             inv_id,
         )
+
+        # Referral bonus (Phase N) — ₦2,000 to both if this is the investor's
+        # first investment AND they signed up via a referral link.
+        if referral_awarder:
+            try:
+                await referral_awarder(user["id"], opp_id)
+            except Exception:
+                # Never block an invest due to awarder failure
+                pass
 
         doc.pop("_id", None)
         return doc
