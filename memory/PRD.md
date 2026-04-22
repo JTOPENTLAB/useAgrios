@@ -94,6 +94,37 @@ Tagline: **From Farm to Money.**
 - **Architecture decision**: Preferred extending via new `routes/phase_h.py` (register-pattern) instead of wholesale `server.py` refactor — zero risk to existing flows, fast to test. Full server.py split remains in P1 backlog.
 
 - **Loan interest**: set per-approval by admin (default 10%)
+
+### Phase K — High-conversion onboarding system + Google OAuth (Feb 21, 2026)
+- **New `/app/backend/routes/phase_i.py`** module registered via register-pattern. Adds:
+  - `POST /api/auth/google/session` — exchanges Emergent OAuth `session_id` for user profile via `https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data`, creates/updates user, sets httpOnly `session_token` cookie AND returns a JWT for existing flows. Stamps `onboarding_step=1` on new Google users, `5` on returning.
+  - `POST /api/auth/logout` — clears cookie + purges `auth_sessions`.
+  - `GET /api/onboarding/state` — `{step, total_steps:5, percent, role, profile, kyc_status, verified}`.
+  - `PATCH /api/onboarding/profile` — merges role-specific profile fields (investor goal+risk, farmer farm_type+location+funding range, buyer commodity+volume). Auto-bumps step 1→2.
+  - `POST /api/onboarding/advance` — increments step, caps at 5.
+  - `POST /api/onboarding/complete` — sets step=5.
+  - Existing `/api/auth/signup` now stamps `onboarding_step=1` on new password users too.
+- **Rebuilt `/signup` page**:
+  - URL params: `?role=investor|farmer|buyer|logistics` preselects card. `?next=/app/...` preserved through signup + Google OAuth.
+  - Left column: dynamic subtext per role, 4 role cards (icon + desc), **primary full-width "Continue with Google"** button, divider, email form (name/email/password/country/referral), "Continue as [Role]" CTA, "Takes less than 60 seconds" + "Your data is secure and encrypted" trust notes.
+  - Right column: sticky contextual gradient panel per role showing 3 context pills (avg allocation, cycle duration, transparent tracking for investor, etc.), Trust Center link.
+  - **LinkedIn button** below form with "Investors" chip; click shows tooltip "LinkedIn sign-in is enabled for verified investor accounts. Full rollout coming soon."
+- **New `/auth/callback` route** (`AuthCallback.jsx`) processes `#session_id=...` hash synchronously during render, POSTs to `/api/auth/google/session`, preserves `role` + `next` query params, navigates to `next` or `/onboarding/profile` for new users / `/app` for returning.
+- **`AuthContext` hardened** to skip `/auth/me` check when `session_id` is in the URL hash (prevents race with AuthCallback). Added `applyGoogleSession()` helper.
+- **New `/onboarding/*` route tree**:
+  - `OnboardingShell` — sticky header with progress bar (5 gradient step chips), percent indicator, logout.
+  - `OnboardingProfile` (step 1) — role-based: investor (goal + risk), farmer (farm type + location + funding range), buyer (commodity + volume). Minimal, instant save.
+  - `OnboardingKYC` (step 2) — ID upload with camera capture on mobile, 5MB limit, **Skip** button, encrypted-at-rest reassurance.
+  - `OnboardingWallet` (step 3) — gradient balance card, bank/card method toggle, quick-amount chips (₦5k/25k/100k/500k), fund via `/wallet/fund`, Skip button.
+  - `OnboardingInvest` (step 4) — 3 featured opportunities from `/opportunities`, "Most investors start with ₦50,000" callout for investor role, Skip/Explore/Finish CTAs.
+  - `OnboardingSuccess` (step 5) — celebratory state with CSS confetti, Go-to-dashboard + Browse-opportunities CTAs.
+- **Deferred signup**:
+  - New **public route `/opportunities/:id`** reuses `OpportunityDetail` (backend `/api/opportunities/{id}` is already public).
+  - Unauthenticated "Invest" click → `/signup?role=investor&next=/app/opportunities/:id` with copy "Sign up to back this opportunity — takes under 60 seconds."
+- **Auth playbook** saved at `/app/auth_testing.md` per integration playbook requirement.
+- **Tests**: `/app/backend/tests/test_phase_i.py` — 9/9 pytest pass (signup → state, profile patch + step bump, advance cap, complete, google 401, logout, admin regression, investor regression).
+- **Testing agent iteration 13**: 100% backend + 100% frontend. Full 5-step E2E walkthrough as new investor completed cleanly. All 12 signup testids verified. LinkedIn tooltip verified.
+
 - **Referral bonus**: ₦5,000 each side on first completed order after referral signup
 - **Max upload**: 5MB; allowed MIME: jpeg/png/webp/gif/pdf
 

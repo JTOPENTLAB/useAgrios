@@ -183,6 +183,18 @@ export default function OnboardingInvest() {
           </button>
         </div>
       )}
+      {isInvestor && (
+        <div className="text-center text-xs text-ink-muted pt-2">
+          <button
+            type="button"
+            onClick={finish}
+            className="text-brand font-semibold hover:underline"
+            data-testid="finish-onboarding-btn"
+          >
+            I'll invest later — go to my dashboard
+          </button>
+        </div>
+      )}
     </div>
   );
 }

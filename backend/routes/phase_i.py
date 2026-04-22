@@ -31,7 +31,7 @@ EMERGENT_SESSION_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/
 class GoogleSessionPayload(BaseModel):
     session_id: str = Field(..., min_length=8)
     role: Optional[str] = Field(default=None, pattern="^(investor|farmer|buyer|logistics)$")
-    country: Optional[str] = Field(default=None, min_length=2, max_length=4)
+    country: Optional[str] = Field(default=None, pattern="^[A-Za-z]{2}$")
 
 
 class OnboardingProfileUpdate(BaseModel):
