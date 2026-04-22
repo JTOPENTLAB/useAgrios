@@ -33,6 +33,8 @@ import MarketIntel from "@/pages/MarketIntel";
 import InvestorHome from "@/pages/investor/InvestorHome";
 import OpportunityMarketplace from "@/pages/investor/OpportunityMarketplace";
 import OpportunityDetail from "@/pages/investor/OpportunityDetail";
+import InvestmentSuccess from "@/pages/investor/InvestmentSuccess";
+import FirstInvestment from "@/pages/investor/FirstInvestment";
 import InvestorPortfolio from "@/pages/investor/InvestorPortfolio";
 import AdminOpportunities from "@/pages/admin/AdminOpportunities";
 import AdminTrustOps from "@/pages/admin/AdminTrustOps";
@@ -134,6 +136,8 @@ function App() {
               <Route path="opportunities" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityMarketplace /></Guard>} />
               <Route path="opportunities/:id" element={<Guard roles={["investor", "admin", "farmer", "buyer"]}><OpportunityDetail /></Guard>} />
               <Route path="portfolio" element={<Guard roles={["investor"]}><InvestorPortfolio /></Guard>} />
+              <Route path="first-investment" element={<Guard roles={["investor"]}><FirstInvestment /></Guard>} />
+              <Route path="investment-success" element={<Guard roles={["investor"]}><InvestmentSuccess /></Guard>} />
               <Route path="admin/opportunities" element={<Guard roles={["admin"]}><AdminOpportunities /></Guard>} />
               <Route path="admin/trust" element={<Guard roles={["admin"]}><AdminTrustOps /></Guard>} />
               <Route path="farmer/fund" element={<Guard roles={["farmer"]}><FarmerRaiseFunding /></Guard>} />

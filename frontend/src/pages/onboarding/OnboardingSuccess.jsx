@@ -2,12 +2,17 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PartyPopper, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function OnboardingSuccess() {
+  const { user } = useAuth();
   const nav = useNavigate();
   useEffect(() => {
     api.post("/onboarding/complete").catch(() => {});
   }, []);
+
+  const primaryPath = user?.role === "investor" ? "/app/first-investment" : "/app";
+  const primaryLabel = user?.role === "investor" ? "Start your first investment" : "Go to dashboard";
 
   return (
     <div
@@ -33,11 +38,11 @@ export default function OnboardingSuccess() {
 
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <button
-            onClick={() => nav("/app")}
+            onClick={() => nav(primaryPath)}
             className="af-btn-primary"
             data-testid="success-dashboard-btn"
           >
-            Go to dashboard <ArrowRight className="w-4 h-4" />
+            {primaryLabel} <ArrowRight className="w-4 h-4" />
           </button>
           <Link
             to="/app/opportunities"

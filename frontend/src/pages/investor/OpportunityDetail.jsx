@@ -21,6 +21,9 @@ import {
 import { toast } from "sonner";
 import api, { fmtMoney } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import WalletFundModal from "@/components/WalletFundModal";
+import InvestmentConfirmModal from "@/components/InvestmentConfirmModal";
+import SimilarOpportunities from "@/components/SimilarOpportunities";
 import RiskAcknowledgementModal, {
   hasAcknowledged,
   setAcknowledged,
@@ -47,6 +50,8 @@ export default function OpportunityDetail() {
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [ackOpen, setAckOpen] = useState(false);
+  const [showWalletFund, setShowWalletFund] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     api
@@ -81,24 +86,25 @@ export default function OpportunityDetail() {
       toast.error(`Only ${fmtMoney(remaining, currency)} remaining`);
       return;
     }
+    // Wallet balance check — if not enough, trigger fund modal first.
+    const balance = Number(user?.wallet_balance || 0);
+    if (balance < n) {
+      setShowWalletFund(true);
+      return;
+    }
     if (!hasAcknowledged()) {
       setAckOpen(true);
       return;
     }
-    await doInvest(n);
+    setShowConfirm(true);
   };
 
   const doInvest = async (n) => {
     setSubmitting(true);
     try {
       const r = await api.post(`/opportunities/${id}/invest`, { amount: n });
-      toast.success(
-        `Invested ${fmtMoney(n, currency)}. Expected payout: ${fmtMoney(
-          r.data.expected_payout,
-          currency,
-        )}`,
-      );
-      nav("/app/portfolio");
+      setShowConfirm(false);
+      nav(`/app/investment-success?id=${id}&amount=${n}&payout=${r.data.expected_payout || 0}&duration=${opp.duration_months || 0}`);
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Investment failed");
     } finally {
@@ -116,9 +122,26 @@ export default function OpportunityDetail() {
         onConfirm={() => {
           setAckOpen(false);
           setAcknowledged();
-          const n = Number(amount);
-          if (n) doInvest(n);
+          setShowConfirm(true);
         }}
+      />
+      <WalletFundModal
+        open={showWalletFund}
+        onClose={() => setShowWalletFund(false)}
+        recommended={Math.max(Number(amount) || 50000, 50000)}
+        onFunded={() => {
+          setShowWalletFund(false);
+          // Nudge user to retry invest
+        }}
+        ctaLabel="Continue to investment"
+      />
+      <InvestmentConfirmModal
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        opp={opp}
+        amount={Number(amount) || 0}
+        busy={submitting}
+        onConfirm={() => doInvest(Number(amount))}
       />
       <div className="lg:col-span-2 space-y-6">
         <Link
@@ -245,6 +268,8 @@ export default function OpportunityDetail() {
         )}
 
         <FarmUpdatesTimeline updates={opp.farm_updates || []} />
+
+        <SimilarOpportunities oppId={id} />
 
         <div className="af-card p-5">
           <h3 className="font-heading font-bold text-ink mb-3 flex items-center gap-2">

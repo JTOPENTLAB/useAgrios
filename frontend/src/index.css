@@ -129,3 +129,14 @@
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
 }
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+@keyframes fade-up {
+    0% { transform: translateY(30px); opacity: 0; }
+    60% { opacity: 1; }
+    100% { transform: translateY(-60px); opacity: 0; }
+}

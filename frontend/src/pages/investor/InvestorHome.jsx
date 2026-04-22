@@ -314,35 +314,35 @@ function StartHereSteps() {
     {
       icon: WalletIcon,
       title: "Fund your wallet",
-      text: "Top up with Paystack or bank transfer. Only invested capital leaves your wallet.",
-      href: "/app/wallet",
+      text: "Most users start with ₦50,000. Only invested capital leaves your wallet.",
+      href: "/app/first-investment",
       cta: "Fund wallet",
     },
     {
       icon: Sparkles,
       title: "Explore opportunities",
-      text: "Browse verified, admin-reviewed farm cycles. Filter by crop, region, or risk band.",
+      text: "Browse verified, admin-reviewed farm cycles. You can diversify later.",
       href: "/app/opportunities",
       cta: "Browse cycles",
     },
     {
       icon: CheckCircle2,
       title: "Make your first investment",
-      text: "Pick a cycle that matches your risk appetite. Escrow locks funds until disbursement.",
-      href: "/app/opportunities",
+      text: "Pick a cycle that matches your risk appetite. Track everything in real time.",
+      href: "/app/first-investment",
       cta: "Start investing",
     },
   ];
   return (
     <section className="af-card p-6 sm:p-8" data-testid="start-here-section">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand">
-        <Sparkles className="w-3.5 h-3.5" /> Start here
+        <Sparkles className="w-3.5 h-3.5" /> Let's get your capital working
       </div>
       <h2 className="font-heading font-extrabold text-2xl text-ink mt-1">
-        Your first three steps
+        Three minutes to your first farm cycle.
       </h2>
       <p className="text-ink-muted mt-1">
-        Three minutes from here to your first farm cycle.
+        Fund, explore, deploy. You can always diversify later.
       </p>
       <div className="grid md:grid-cols-3 gap-4 mt-6">
         {steps.map((s, i) => {
@@ -478,6 +478,12 @@ export function OpportunityCard({ opp }) {
     opp.funding_target > 0
       ? Math.min(100, Math.round((opp.funding_raised / opp.funding_target) * 100))
       : 0;
+  const remaining = Math.max(0, (opp.funding_target || 0) - (opp.funding_raised || 0));
+  const closeAt = opp.expected_close_at ? new Date(opp.expected_close_at) : null;
+  const daysToClose = closeAt
+    ? Math.max(0, Math.ceil((closeAt.getTime() - Date.now()) / 86400000))
+    : null;
+  const isUrgent = pct >= 75 || (daysToClose !== null && daysToClose <= 5);
   return (
     <Link
       to={`/app/opportunities/${opp.id}`}
@@ -510,17 +516,62 @@ export function OpportunityCard({ opp }) {
         </span>
       </div>
       <div>
-        <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden relative">
           <div
-            className="h-full bg-brand transition-all"
+            className="h-full bg-gradient-to-r from-brand to-emerald-500 transition-all"
             style={{ width: `${pct}%` }}
           />
+          {isUrgent && (
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_linear_infinite] pointer-events-none"
+              style={{ transform: "translateX(-100%)" }}
+            />
+          )}
         </div>
         <div className="flex items-center justify-between mt-1.5 text-xs text-ink-muted">
-          <span>{fmtMoney(opp.funding_raised, opp.currency)} raised</span>
-          <span className="font-semibold text-ink">{pct}%</span>
+          <span>{pct}% funded</span>
+          <span className="font-semibold text-ink">
+            {fmtMoney(opp.funding_raised, opp.currency)}
+          </span>
         </div>
       </div>
+      {/* Urgency strip */}
+      {(isUrgent || (opp.investor_count || 0) >= 3) && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {pct >= 75 && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200"
+              data-testid={`opp-urgent-funded-${opp.id}`}
+            >
+              {pct}% funded
+            </span>
+          )}
+          {daysToClose !== null && daysToClose <= 5 && daysToClose > 0 && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200"
+              data-testid={`opp-urgent-closing-${opp.id}`}
+            >
+              Closes in {daysToClose}d
+            </span>
+          )}
+          {(opp.investor_count || 0) >= 3 && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200"
+              data-testid={`opp-urgent-investors-${opp.id}`}
+            >
+              {opp.investor_count} investors in
+            </span>
+          )}
+          {remaining > 0 && remaining < (opp.funding_target || 0) * 0.15 && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-zinc-900 text-white"
+              data-testid={`opp-urgent-remaining-${opp.id}`}
+            >
+              Only {fmtMoney(remaining, opp.currency)} left
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-2 text-xs text-ink-muted pt-2 border-t border-zinc-100">
         <Clock className="w-3.5 h-3.5" />
         Min {fmtMoney(opp.min_ticket, opp.currency)} · {opp.investor_count || 0} investor
