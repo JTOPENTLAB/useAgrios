@@ -188,8 +188,16 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
             {"investor_id": user["id"], "status": {"$in": ["active", "matured"]}},
             {"_id": 0, "opportunity_id": 1, "amount": 1, "status": 1, "created_at": 1},
         ).to_list(500)
-        out = []
+        # Dedupe by opportunity_id — feed is per-opportunity, not per-investment.
+        seen: set[str] = set()
+        unique_invs = []
         for inv in invs:
+            oid = inv.get("opportunity_id")
+            if oid and oid not in seen:
+                seen.add(oid)
+                unique_invs.append(inv)
+        out = []
+        for inv in unique_invs:
             opp = await db.opportunities.find_one(
                 {"id": inv["opportunity_id"]},
                 {"_id": 0, "id": 1, "title": 1, "crop": 1, "region": 1,
@@ -271,13 +279,19 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         target_opp_id = inv["opportunity_id"]
         opp = await db.opportunities.find_one({"id": target_opp_id}, {"_id": 0})
         if not opp or opp.get("status") not in ("open", "active"):
-            # Fallback: recommend similar open
+            # Fallback 1: similar open (crop/region)
             alt = await db.opportunities.find(
                 {"id": {"$ne": target_opp_id}, "status": "open",
                  "$or": [{"crop": opp.get("crop") if opp else None},
                          {"region": opp.get("region") if opp else None}]},
                 {"_id": 0},
             ).limit(1).to_list(1)
+            if not alt:
+                # Fallback 2: any open opportunity (sorted by funding_raised desc for momentum)
+                alt = await db.opportunities.find(
+                    {"id": {"$ne": target_opp_id}, "status": "open"},
+                    {"_id": 0},
+                ).sort("funding_raised", -1).limit(1).to_list(1)
             if not alt:
                 raise HTTPException(404, "No open opportunity available to reinvest. Browse marketplace.")
             target_opp_id = alt[0]["id"]

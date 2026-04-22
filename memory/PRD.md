@@ -123,6 +123,28 @@ Tagline: **From Farm to Money.**
 - **Not shipped in this pass**: Smart follow-up notifications (+10m/+24h/+3d scheduler). Deferred to P2 — needs a scheduler.
 - **Test iterations**: iteration 14 found a CRITICAL wallet-balance gate bug (gate read user.wallet_balance from /auth/me which doesn't carry that field) → fixed by fetching balance via GET /api/wallet on mount. Iteration 15 retest: 100% backend + 100% frontend, all 7 retest items pass end-to-end.
 
+
+### Phase M — Retention & reinvestment engine (Feb 21, 2026)
+- **Backend (`/app/backend/routes/phase_h.py` extended — Phase M section at bottom)**:
+  - `GET /api/investments/mine/feed` — aggregated farm-update timeline across all of an investor's active + matured cycles. Dedupes by opportunity_id (investors with multiple positions in the same cycle see one feed entry per stage). Real `opportunity_updates` collection first, synthesised from age-based template otherwise. Sorted DESC by created_at, capped at 50.
+  - `POST /api/investments/{id}/reinvest` — one-click reinvest. Returns `{suggested_opportunity_id, suggested_amount, note}`. Fallback ladder: same opp → similar (crop/region) → ANY open (sorted by funding_raised desc) → 404. Tz-safe.
+  - `GET /api/investor/milestones` — 7-badge catalog: first_invest, three_invests, ten_invests, hundred_k, million, first_payout, diversified. Each badge has `{id, label, icon, earned, rule}` plus `totals + earned_count`.
+- **New `/app/my-investments` page** (`MyInvestments.jsx`):
+  - **"Your capital at work"** hero — gradient card with total active capital + cycle count + realized-return mention + "Browse new cycles" / "Top up wallet" CTAs.
+  - **Idle-funds banner** — renders when wallet balance ≥ ₦10k AND no active cycles.
+  - **Active-cycle cards** — per-investment progress bar (elapsed / duration), maturity countdown, "Next update in Xd" pill, inline "Reinvest in a similar cycle" link.
+  - **Paid-cycle cards** — emerald completion banner with profit callout + **"Reinvest now"** button (the high-leverage CTA).
+  - **Live farm feed** — vertical timeline of up to 15 most recent updates across all backed cycles (stage, crop, region, snippet, timestamp, verified dot).
+  - **Milestones card** — 2×4 grid of 7 badges; earned tiles are gold, unearned are greyed with tooltip explaining the rule.
+  - Empty state + fund modal integration.
+- **InvestorPortfolio**: paid rows gained an inline **"Reinvest now"** button → one-click → redirects to `/app/opportunities/{suggested}?prefill=amount`.
+- **OpportunityDetail**: reads `?prefill=` from URL to pre-fill the invest amount, enabling a seamless reinvest landing.
+- **AppShell investor nav**: added "My investments" entry (Sparkles icon) positioned between Home and Opportunities.
+- **Demo DB seed**: open opportunities backdated 35d so farm feed surfaces real content.
+- **Not shipped (deferred to P2)**: scheduled re-engagement notifications (+1d / +3d / +7d / +14d). Requires APScheduler or Celery Beat.
+- **Tests**: `/app/backend/tests/test_phase_m.py` — 12/12 pytest pass after widening the reinvest fallback ladder. Iteration 16 testing: 100% frontend + 10/12 backend initially; both MINOR issues fixed (reinvest fallback widened + feed dedupe by opportunity_id). Retest validated 12/12.
+- **Retention loop achieved**: Invest → see progress + farm feed on My Investments → cycle matures/pays → paid-card "Reinvest now" → prefilled invest confirm → /app/investment-success → back to My Investments. Closed loop.
+
   - URL params: `?role=investor|farmer|buyer|logistics` preselects card. `?next=/app/...` preserved through signup + Google OAuth.
   - Left column: dynamic subtext per role, 4 role cards (icon + desc), **primary full-width "Continue with Google"** button, divider, email form (name/email/password/country/referral), "Continue as [Role]" CTA, "Takes less than 60 seconds" + "Your data is secure and encrypted" trust notes.
   - Right column: sticky contextual gradient panel per role showing 3 context pills (avg allocation, cycle duration, transparent tracking for investor, etc.), Trust Center link.
