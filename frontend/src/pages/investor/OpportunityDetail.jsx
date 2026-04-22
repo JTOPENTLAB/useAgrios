@@ -52,13 +52,26 @@ export default function OpportunityDetail() {
   const [ackOpen, setAckOpen] = useState(false);
   const [showWalletFund, setShowWalletFund] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(null);
 
   useEffect(() => {
     api
       .get(`/opportunities/${id}`)
       .then((r) => setOpp(r.data))
       .finally(() => setLoading(false));
-  }, [id]);
+    if (user) {
+      api
+        .get("/wallet")
+        .then((r) => setWalletBalance(Number(r.data?.wallet?.available || 0)))
+        .catch(() => setWalletBalance(0));
+    }
+  }, [id, user]);
+
+  const refreshBalance = () =>
+    api
+      .get("/wallet")
+      .then((r) => setWalletBalance(Number(r.data?.wallet?.available || 0)))
+      .catch(() => {});
 
   if (loading) {
     return (
@@ -87,8 +100,9 @@ export default function OpportunityDetail() {
       return;
     }
     // Wallet balance check — if not enough, trigger fund modal first.
-    const balance = Number(user?.wallet_balance || 0);
-    if (balance < n) {
+    // Balance=null means still loading; treat as sufficient to avoid false-positive modal.
+    const balance = walletBalance;
+    if (balance !== null && balance < n) {
       setShowWalletFund(true);
       return;
     }
@@ -131,7 +145,7 @@ export default function OpportunityDetail() {
         recommended={Math.max(Number(amount) || 50000, 50000)}
         onFunded={() => {
           setShowWalletFund(false);
-          // Nudge user to retry invest
+          refreshBalance();
         }}
         ctaLabel="Continue to investment"
       />

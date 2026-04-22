@@ -139,8 +139,13 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         return {"items": out, "real_count": len(out)}
 
     @api.get("/opportunities/{opp_id}/similar")
-    async def similar_opportunities(opp_id: str, limit: int = 3):
-        """Recommendation engine — same crop / region / ROI band, excluding self."""
+    async def similar_opportunities(opp_id: str, limit: int = 3, include_all: bool = False):
+        """Recommendation engine — same crop / region / ROI band, excluding self.
+
+        By default only status='open' cycles are recommended for best conversion.
+        Pass include_all=true to include funded/active as well.
+        """
+        limit = max(1, min(limit, 10))
         source = await db.opportunities.find_one({"id": opp_id}, {"_id": 0})
         if not source:
             raise HTTPException(404, "Opportunity not found")
@@ -149,17 +154,19 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
         target = float(source.get("target_return_pct", 0) or 0)
         roi_low = target - 3
         roi_high = target + 3
+        status_filter = (
+            {"$in": ["open", "funded", "active"]} if include_all else "open"
+        )
         query = {
             "id": {"$ne": opp_id},
-            "status": {"$in": ["open", "funded", "active"]},
+            "status": status_filter,
             "$or": [
                 {"crop": crop},
                 {"region": region},
                 {"target_return_pct": {"$gte": roi_low, "$lte": roi_high}},
             ],
         }
-        rows = await db.opportunities.find(query, {"_id": 0}).limit(max(1, min(limit, 10))).to_list(10)
-        # Rank: crop match > region match > roi match
+        rows = await db.opportunities.find(query, {"_id": 0}).limit(10).to_list(10)
         def score(o: dict) -> int:
             s = 0
             if o.get("crop") == crop:
@@ -170,7 +177,7 @@ def register(api: APIRouter, *, db, current_user, require_roles, notify, new_id,
                 s += 1
             return -s
         rows.sort(key=score)
-        return {"items": rows[: max(1, min(limit, 10))]}
+        return {"items": rows[:limit]}
 
     @api.get("/stats/landing-pulse")
     async def landing_pulse():

@@ -3398,9 +3398,12 @@ async def seed() -> None:
                     "investor_count": 2,
                 },
             ]
-            for d in demo_opps:
+            # Stagger close dates across 3/14/30d to surface urgency badges in UI
+            CLOSE_DAYS = [3, 14, 30]
+            for idx, d in enumerate(demo_opps):
                 if d["title"] not in missing_titles:
                     continue
+                close_days = CLOSE_DAYS[idx % len(CLOSE_DAYS)]
                 await db.opportunities.insert_one(
                     {
                         "id": new_id(),
@@ -3411,7 +3414,7 @@ async def seed() -> None:
                         "currency": "NGN",
                         "status": "open",
                         "approved_at": datetime.now(timezone.utc),
-                        "expected_close_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                        "expected_close_at": (datetime.now(timezone.utc) + timedelta(days=close_days)).isoformat(),
                         "created_at": datetime.now(timezone.utc),
                         **d,
                     }
