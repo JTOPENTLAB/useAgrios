@@ -2714,6 +2714,17 @@ async def start_digest_scheduler() -> None:
     asyncio.create_task(_digest_scheduler_loop())
 
 
+@app.on_event("startup")
+async def start_cohort_digest_scheduler() -> None:
+    """Weekly admin cohort-retention email (Monday 9am WAT / 08 UTC)."""
+    import asyncio
+    from services import cohort_digest as _cohort_digest_mod
+    if not _cfg.ENABLE_CRON:
+        logger.info("Cohort digest scheduler disabled (ENABLE_CRON off)")
+        return
+    asyncio.create_task(_cohort_digest_mod.scheduler_loop(db))
+
+
 # ---------------- Phase C: Payments + Webhooks + Admin audit ----------------
 from services import payments as _pay
 
@@ -3111,6 +3122,10 @@ _phase_i.register(
     ledger=ledger,
     token_for=lambda u: make_token(u["id"], u["role"]),
 )
+
+# Phase O — Cohort digest (admin weekly email)
+from services import cohort_digest as _cohort_digest  # noqa: E402
+_cohort_digest.register(api, db=db, require_roles=require_roles)
 
 
 app.include_router(api)

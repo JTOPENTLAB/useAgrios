@@ -7,6 +7,7 @@ import {
   Activity,
   Target,
   LineChart,
+  Mail,
 } from "lucide-react";
 import api, { fmtMoney } from "@/lib/api";
 
@@ -253,7 +254,75 @@ function _captionRatio(num, den, unitLabel) {
   return `${num} / ${den} ${unitLabel}`;
 }
 
-// ─── Cohort retention heatmap ──────────────────────────────────────────────
+// ─── Weekly digest trigger button ──────────────────────────────────────────
+function WeeklyDigestButton() {
+  const [state, setState] = useState("idle"); // idle | sending | sent | error
+  const [msg, setMsg] = useState("");
+
+  const send = async () => {
+    setState("sending");
+    setMsg("");
+    try {
+      const r = await api.post("/admin/cohort-digest/send-me-now");
+      const status = r.data?.delivery?.status || "logged";
+      const provider = r.data?.delivery?.provider || "mock";
+      setState("sent");
+      setMsg(
+        provider === "mock"
+          ? "Logged (mock mode — set RESEND_API_KEY to send for real)"
+          : `Sent via ${provider}`,
+      );
+      setTimeout(() => {
+        setState("idle");
+        setMsg("");
+      }, 6000);
+    } catch (e) {
+      setState("error");
+      setMsg(e?.response?.data?.detail || "Failed to send");
+      setTimeout(() => {
+        setState("idle");
+        setMsg("");
+      }, 6000);
+    }
+  };
+
+  const busy = state === "sending";
+  const label =
+    state === "sending"
+      ? "Sending…"
+      : state === "sent"
+      ? "Sent ✓"
+      : state === "error"
+      ? "Retry"
+      : "Email me this digest";
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        onClick={send}
+        disabled={busy}
+        className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition ${
+          state === "sent"
+            ? "bg-emerald-600 text-white"
+            : state === "error"
+            ? "bg-rose-600 text-white"
+            : "bg-brand text-white hover:bg-brand-dark"
+        } disabled:opacity-60`}
+        data-testid="cohort-digest-send-btn"
+      >
+        <Mail className="w-3.5 h-3.5" /> {label}
+      </button>
+      {msg && (
+        <div
+          className="text-[10px] text-ink-muted max-w-[220px] text-right"
+          data-testid="cohort-digest-status-msg"
+        >
+          {msg}
+        </div>
+      )}
+    </div>
+  );
+}
 function CohortRetentionCard({ cohorts, loading }) {
   if (loading) {
     return (
@@ -300,11 +369,14 @@ function CohortRetentionCard({ cohorts, loading }) {
             W+2, W+4, W+8. Greyed cells haven't matured yet.
           </p>
         </div>
-        <div className="text-right text-[11px] text-ink-muted">
-          Window: last {cohorts.weeks} weeks ·{" "}
-          <span className="font-semibold text-ink">
-            {cohorts.total_signups} investor signups
-          </span>
+        <div className="flex items-center gap-3">
+          <WeeklyDigestButton />
+          <div className="text-right text-[11px] text-ink-muted">
+            Window: last {cohorts.weeks} weeks ·{" "}
+            <span className="font-semibold text-ink">
+              {cohorts.total_signups} investor signups
+            </span>
+          </div>
         </div>
       </div>
 

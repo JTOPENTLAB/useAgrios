@@ -125,3 +125,87 @@ def test_pre_launch_checklist_regression(admin_token):
     for path in endpoints:
         r = requests.get(f"{API}{path}", headers=headers, timeout=15)
         assert r.status_code == 200, f"{path} returned {r.status_code}: {r.text[:200]}"
+
+
+# ─── Cohort digest tests ──────────────────────────────────────────────────
+def test_cohort_digest_preview_admin(admin_token):
+    r = requests.get(
+        f"{API}/admin/cohort-digest/preview",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=15,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "subject" in body
+    assert "payload" in body
+    assert "text" in body
+    p = body["payload"]
+    # Required shape
+    for k in ("headline", "last_week", "prev_week", "deltas", "retention",
+              "cohort_matrix", "action_items", "window"):
+        assert k in p, f"missing {k} in payload"
+    # 4 milestones present in retention + cohort matrix cells
+    assert set(p["retention"].keys()) == {"W+1", "W+2", "W+4", "W+8"}
+    for row in p["cohort_matrix"]:
+        assert set(row["cells"].keys()) == {"W+1", "W+2", "W+4", "W+8"}
+    # Text body is non-trivial
+    assert len(body["text"]) > 200
+
+
+def test_cohort_digest_preview_forbidden_for_investor(investor_token):
+    r = requests.get(
+        f"{API}/admin/cohort-digest/preview",
+        headers={"Authorization": f"Bearer {investor_token}"},
+        timeout=15,
+    )
+    assert r.status_code == 403
+
+
+def test_cohort_digest_send_me_now(admin_token):
+    r = requests.post(
+        f"{API}/admin/cohort-digest/send-me-now",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=20,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["ok"] is True
+    assert "delivery" in body
+    assert body["delivery"]["status"] in ("sent", "logged")
+    assert body["delivery"]["provider"] in ("mock", "resend", "sendgrid")
+
+
+def test_cohort_digest_trigger_admin(admin_token):
+    r = requests.post(
+        f"{API}/admin/cohort-digest/trigger",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=20,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reason"] == "manual-trigger"
+    assert body["sent"] >= 1  # at least the admin account exists
+    assert "ran_at" in body
+
+
+def test_cohort_digest_log(admin_token):
+    r = requests.get(
+        f"{API}/admin/cohort-digest/log?limit=10",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=15,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "last_run" in body
+    assert "rows" in body
+    # After the trigger test above, we must have at least one row
+    assert isinstance(body["rows"], list)
+
+
+def test_cohort_digest_trigger_forbidden_for_investor(investor_token):
+    r = requests.post(
+        f"{API}/admin/cohort-digest/trigger",
+        headers={"Authorization": f"Bearer {investor_token}"},
+        timeout=15,
+    )
+    assert r.status_code == 403
