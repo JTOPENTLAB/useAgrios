@@ -145,6 +145,29 @@ Tagline: **From Farm to Money.**
 - **Tests**: `/app/backend/tests/test_phase_m.py` — 12/12 pytest pass after widening the reinvest fallback ladder. Iteration 16 testing: 100% frontend + 10/12 backend initially; both MINOR issues fixed (reinvest fallback widened + feed dedupe by opportunity_id). Retest validated 12/12.
 - **Retention loop achieved**: Invest → see progress + farm feed on My Investments → cycle matures/pays → paid-card "Reinvest now" → prefilled invest confirm → /app/investment-success → back to My Investments. Closed loop.
 
+### Phase N — Growth engine (Feb 21, 2026)
+- **New `/app/backend/routes/phase_n.py`** (register-pattern, registered BEFORE phase_f so its `maybe_award_invest_referral` helper can be injected).
+- **Referral system (viral loop)**:
+  - `users.referral_code` was already seeded on every signup. Existing `referred_by` column now wired end-to-end.
+  - `GET /api/referrals/stats` — returns `{code, link (public URL via X-Forwarded-Host / Origin headers), invited_count, activated_count, total_earned, bonus_per_referral:2000, recent:[masked]}`.
+  - **Award hook** on first investment: when an investor whose `referred_by` is set makes their FIRST `/opportunities/{id}/invest`, ₦2,000 credits BOTH wallets, writes `ledger(kind='referral_bonus')` entries, sends in-app notifications to both parties, marks `invest_referral_bonus_given=true` (idempotent — second invest won't retrigger).
+  - **Frontend `/app/referrals`** page — KPI tiles (invited / activated / earned), public referral link in copyable box, 5 social share buttons (WhatsApp / Twitter / Telegram / LinkedIn / native), "How it works" 3-step explainer, "Your invites" list with masked initials + activation status.
+- **UTM / growth event capture**:
+  - Public `POST /api/events/track` — captures `{event, utm_source, utm_campaign, utm_medium, referrer, path, meta, ua, ip}` into `growth_events` collection.
+  - `Landing.jsx` fires `landing_view` on mount when URL has `?utm_source` or `?ref`. `?ref=CODE` is persisted to `localStorage.agrios_referral`; Signup auto-prefills the referral field from URL or storage.
+- **Admin growth dashboard** at `/app/admin/growth` (`AdminGrowth.jsx`):
+  - KPI tiles: signups, depositors, investors, volume invested.
+  - Conversion funnel: Signup→Deposit, Deposit→Invest, Signup→Invest with percentages capped at 100% + captions that gracefully handle 0-denominators (show "N invested — no prior signups in window" instead of confusing "4/0").
+  - Signups by role, top 10 UTM sources.
+  - 7 / 30 / 90-day range toggles.
+- **Landing page conversion additions**:
+  - `LandingFeaturedOps` component — 3 highest-funded open cycles with KYC+Escrow badges, linking directly to `/signup?role=investor&next=/app/opportunities/{id}` (zero-friction conversion path from anonymous traffic).
+- **Nav**: investor gets "Invite & earn" entry; admin gets "Growth" entry.
+- **Tests**: `/app/backend/tests/test_phase_n.py` — 11/11 pytest pass (referral stats, events/track, platform-metrics auth+shape, full E2E award loop, idempotency, funnel capping).
+- **Iteration 17 testing**: 100% backend + 100% frontend. Full E2E referral award loop verified: new signup with `AF-INV001` → fund → invest → ₦2,000 to both wallets via ledger entries. Fixed 1 LOW finding (funnel captions now coalesce 0-denominator to a clearer message).
+- **Not shipped (out of code scope)**: #1 Traffic engine (content production), #6 Lifecycle email drip (needs real email rails + scheduler), #8 Content engine (marketing calendar), #9 Partnerships (BD). #11 Analytics dashboard IS shipped as AdminGrowth.
+
+
   - URL params: `?role=investor|farmer|buyer|logistics` preselects card. `?next=/app/...` preserved through signup + Google OAuth.
   - Left column: dynamic subtext per role, 4 role cards (icon + desc), **primary full-width "Continue with Google"** button, divider, email form (name/email/password/country/referral), "Continue as [Role]" CTA, "Takes less than 60 seconds" + "Your data is secure and encrypted" trust notes.
   - Right column: sticky contextual gradient panel per role showing 3 context pills (avg allocation, cycle duration, transparent tracking for investor, etc.), Trust Center link.

@@ -101,25 +101,31 @@ export default function AdminGrowth() {
               <FunnelRow
                 label="Signup → Deposit"
                 pct={data?.funnel?.signup_to_deposit_pct || 0}
-                caption={`${data?.period?.depositor_count || 0} / ${
-                  data?.period?.signups || 0
-                } signups`}
+                caption={_captionRatio(
+                  data?.period?.depositor_count || 0,
+                  data?.period?.signups || 0,
+                  "signups",
+                )}
                 testId="funnel-signup-deposit"
               />
               <FunnelRow
                 label="Deposit → First Invest"
                 pct={data?.funnel?.deposit_to_invest_pct || 0}
-                caption={`${data?.period?.investor_count || 0} / ${
-                  data?.period?.depositor_count || 0
-                } depositors`}
+                caption={_captionRatio(
+                  data?.period?.investor_count || 0,
+                  data?.period?.depositor_count || 0,
+                  "depositors",
+                )}
                 testId="funnel-deposit-invest"
               />
               <FunnelRow
                 label="Signup → Invest (end-to-end)"
                 pct={data?.funnel?.signup_to_invest_pct || 0}
-                caption={`${data?.period?.investor_count || 0} / ${
-                  data?.period?.signups || 0
-                } signups`}
+                caption={_captionRatio(
+                  data?.period?.investor_count || 0,
+                  data?.period?.signups || 0,
+                  "signups",
+                )}
                 testId="funnel-signup-invest"
               />
             </div>
@@ -222,4 +228,12 @@ function FunnelRow({ label, pct, caption, testId }) {
       <div className="text-[11px] text-ink-muted mt-1">{caption}</div>
     </div>
   );
+}
+
+// caption helper — avoid confusing "N / 0" when denominator is 0 in the period
+function _captionRatio(num, den, unitLabel) {
+  if ((den || 0) === 0) {
+    return `${num} invested — no prior ${unitLabel} in window`;
+  }
+  return `${num} / ${den} ${unitLabel}`;
 }
