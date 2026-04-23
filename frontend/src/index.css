@@ -96,6 +96,10 @@
     .af-stagger > *:nth-child(n+7) { animation-delay: 0.35s; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .af-stagger > * { animation: none; }
+}
+
 .hero-pattern {
     background-image:
         radial-gradient(circle at 15% 20%, rgba(15, 81, 50, 0.08), transparent 40%),
@@ -133,10 +137,4 @@
 @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(200%); }
-}
-
-@keyframes fade-up {
-    0% { transform: translateY(30px); opacity: 0; }
-    60% { opacity: 1; }
-    100% { transform: translateY(-60px); opacity: 0; }
 }
