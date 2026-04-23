@@ -110,7 +110,7 @@ function Confetti() {
               background: color,
               borderRadius: i % 2 === 0 ? "50%" : "2px",
               opacity: 0.85,
-              animation: `fade-up 1.4s ease-out ${delay}s both`,
+              animation: `af-fade-up 1.4s ease-out ${delay}s both`,
             }}
           />
         );

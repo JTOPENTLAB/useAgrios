@@ -84,8 +84,10 @@
         @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 text-ink-soft text-xs font-medium;
     }
     .af-stagger > * {
-        opacity: 0;
-        animation: fade-up 0.5s ease-out forwards;
+        /* Start VISIBLE by default. Animation is a pure enhancement.
+           Uses a unique keyframe name so cached legacy CSS bundles from
+           older deploys cannot poison the animation. */
+        animation: af-fade-up 0.5s ease-out both;
     }
     .af-stagger > *:nth-child(1) { animation-delay: 0.05s; }
     .af-stagger > *:nth-child(2) { animation-delay: 0.1s; }
@@ -100,13 +102,17 @@
     .af-stagger > * { animation: none; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .af-stagger > * { animation: none; }
+}
+
 .hero-pattern {
     background-image:
         radial-gradient(circle at 15% 20%, rgba(15, 81, 50, 0.08), transparent 40%),
         radial-gradient(circle at 85% 10%, rgba(245, 158, 11, 0.08), transparent 35%);
 }
 
-@keyframes fade-up {
+@keyframes af-fade-up {
     0% { opacity: 0; transform: translateY(10px); }
     100% { opacity: 1; transform: translateY(0); }
 }
