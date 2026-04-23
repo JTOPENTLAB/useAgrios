@@ -104,10 +104,8 @@ frontend/node_modules/.cache/default-development/37.pack
 frontend/node_modules/.cache/default-development/40.pack
 frontend/node_modules/.cache/default-development/41.pack
 -e 
-# Environment and credential files
-.env
-.env.*
-*.env
+# Environment files are deployed with the app — do NOT ignore them
+# (.env, .env.*, *.env intentionally NOT in .gitignore for Emergent deploy)
 credentials.json
 *.pem
 *.key
