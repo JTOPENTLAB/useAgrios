@@ -3153,6 +3153,10 @@ _phase_i.register(
 from services import cohort_digest as _cohort_digest  # noqa: E402
 _cohort_digest.register(api, db=db, require_roles=require_roles)
 
+# Phase P — Founder concierge support chat
+from routes import phase_p as _phase_p  # noqa: E402
+_phase_p.register(api, db=db, current_user=current_user, require_roles=require_roles, new_id=new_id)
+
 
 app.include_router(api)
 

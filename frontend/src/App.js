@@ -37,6 +37,7 @@ import InvestmentSuccess from "@/pages/investor/InvestmentSuccess";
 import MyInvestments from "@/pages/investor/MyInvestments";
 import Referrals from "@/pages/Referrals";
 import AdminGrowth from "@/pages/admin/AdminGrowth";
+import AdminSupportInbox from "@/pages/admin/AdminSupportInbox";
 import FirstInvestment from "@/pages/investor/FirstInvestment";
 import InvestorPortfolio from "@/pages/investor/InvestorPortfolio";
 import AdminOpportunities from "@/pages/admin/AdminOpportunities";
@@ -145,6 +146,7 @@ function App() {
               <Route path="admin/opportunities" element={<Guard roles={["admin"]}><AdminOpportunities /></Guard>} />
               <Route path="admin/trust" element={<Guard roles={["admin"]}><AdminTrustOps /></Guard>} />
               <Route path="admin/growth" element={<Guard roles={["admin"]}><AdminGrowth /></Guard>} />
+              <Route path="admin/support" element={<Guard roles={["admin"]}><AdminSupportInbox /></Guard>} />
               <Route path="referrals" element={<Guard><Referrals /></Guard>} />
               <Route path="farmer/fund" element={<Guard roles={["farmer"]}><FarmerRaiseFunding /></Guard>} />
               <Route path="farmer/funding-requests" element={<Guard roles={["farmer"]}><FarmerFundingRequests /></Guard>} />

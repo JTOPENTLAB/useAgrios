@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
+import SupportChatWidget from "@/components/SupportChatWidget";
 
 const NAV = {
   farmer: [
@@ -69,6 +70,7 @@ const NAV = {
     { to: "/app/admin/opportunities", label: "Opportunities", icon: Briefcase },
     { to: "/app/admin/trust", label: "Trust ops", icon: Sparkles },
     { to: "/app/admin/growth", label: "Growth", icon: LineChart },
+    { to: "/app/admin/support", label: "Support", icon: Inbox },
     { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/app/marketplace", label: "Marketplace", icon: ShoppingCart },
     { to: "/app/jobs", label: "Logistics", icon: Truck },
@@ -145,6 +147,7 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+      <SupportChatWidget />
     </div>
   );
 }
