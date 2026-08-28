@@ -1199,20 +1199,24 @@ async function loadLiveData() {
     // Debug: log first API record to console so we can see field names
     if (summary.value?.data?.length) {
       console.log('[Agrios] API price sample:', JSON.stringify(summary.value.data[0]));
-      LIVE_PRICES = summary.value.data.map(p => ({
-        n: p.crop_name || p.name || 'Unknown',
-        e: p.emoji || '🌾',
-        avg: parseFloat(p.price_avg) || 0,
-        low: parseFloat(p.price_low) || 0,
-        high: parseFloat(p.price_high) || 0,
-        ch24: (isFinite(parseFloat(p.change_24h_pct)) ? parseFloat(p.change_24h_pct) : 0),
-        ch7:  (isFinite(parseFloat(p.change_7d_pct))  ? parseFloat(p.change_7d_pct)  : 0),
-        unit: p.unit || '50kg bag',
-        mkt: p.market_name || p.market || p.city || 'Nigeria',
-        state: p.state || '',
-        conf: parseInt(p.confidence_score) || 80,
-        updated: p.updated_at,
-      })).filter(p => p.n !== 'Unknown' && p.avg > 0);
+      // API returns: name, emoji, market (name), state, price_avg, price_low, price_high, unit, change_24h_pct
+      LIVE_PRICES = summary.value.data.map(p => {
+        const avg = parseFloat(p.price_avg) || 0;
+        const ch24raw = parseFloat(p.change_24h_pct);
+        // Cap change % at ±50% to filter out bad data from compounding bug
+        const ch24 = isFinite(ch24raw) && Math.abs(ch24raw) <= 50 ? ch24raw : 0;
+        return {
+          n: p.name || p.crop_name || '',
+          e: p.emoji || '🌾',
+          avg, low: parseFloat(p.price_low) || 0, high: parseFloat(p.price_high) || 0,
+          ch24, ch7: 0,
+          unit: p.unit || '50kg bag',
+          mkt: p.market || p.market_name || '',
+          state: p.state || '',
+          conf: parseInt(p.confidence_score) || 80,
+          updated: p.updated_at,
+        };
+      }).filter(p => p.n && p.avg > 0 && p.avg < 10000000);
       // rebuild UI with live data
       buildTicker();
       buildHomePriceCards();
