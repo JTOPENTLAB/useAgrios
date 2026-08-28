@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Agrios Management — Owner Dashboard</title>
+<meta name="robots" content="noindex, nofollow"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#0a3d25;--gm:#1a6b47;--lime:#c8f135;--navy:#0d1f2d;--cream:#f7faf8;--red:#dc2626;--amber:#d97706;--blue:#1d4ed8;--bdr:#e2e8f0;--txt:#0d1f2d;--txt2:#4a6272;--txt3:#8fa0ae}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--txt);font-size:14px;min-height:100vh}
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--g);padding:20px}
+.login-box{background:#fff;border-radius:16px;padding:32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{width:48px;height:48px;background:var(--lime);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--g);margin:0 auto 12px}
+.login-title{text-align:center;font-size:20px;font-weight:700;margin-bottom:4px}
+.login-sub{text-align:center;font-size:12px;color:var(--txt3);margin-bottom:24px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{width:100%;padding:10px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none;transition:.15s;font-family:inherit}
+.form-input:focus{border-color:var(--gm)}
+.login-btn{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
+.login-btn:hover{background:var(--gm)}
+.login-error{background:#fee2e2;color:#991b1b;border-radius:7px;padding:9px 12px;font-size:12px;margin-top:10px;display:none}
+.login-error.show{display:block}
+.app{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--g);padding:20px 0;display:flex;flex-direction:column;z-index:10}
+.sidebar-brand{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px}
+.sidebar-logo{display:flex;align-items:center;gap:9px}
+.sidebar-logo-icon{width:32px;height:32px;background:var(--lime);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g)}
+.sidebar-logo-text{font-size:15px;font-weight:700;color:#fff}
+.sidebar-tag{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.5px;margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;font-size:13px;font-weight:500;transition:.15s;border-left:3px solid transparent}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-item.active{color:#fff;background:rgba(200,241,53,.1);border-left-color:var(--lime)}
+.nav-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
+.sidebar-user{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:8px}
+.logout-btn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:none;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit;width:100%}
+.logout-btn:hover{background:rgba(255,255,255,.2)}
+.main{margin-left:220px;padding:24px;min-height:100vh}
+.page-header{margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700;color:var(--txt)}
+.page-sub{font-size:13px;color:var(--txt3);margin-top:3px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px}
+.stat-label{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:700;color:var(--txt);font-variant-numeric:tabular-nums}
+.stat-chg{font-size:11px;margin-top:4px;font-weight:500}
+.up{color:#16a34a}.dn{color:var(--red)}.flat{color:var(--txt3)}
+.card{background:#fff;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-header{padding:14px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700}
+.card-body{padding:16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead{background:#f8fafc}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr)}
+td{padding:10px 12px;border-bottom:1px solid var(--bdr);font-size:12px}
+tr:last-child td{border:none}
+tbody tr:hover td{background:#f8fafc}
+.badge{display:inline-flex;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600}
+.badge-g{background:#dcfce7;color:#15803d}
+.badge-r{background:#fee2e2;color:#991b1b}
+.badge-a{background:#fef3c7;color:#92400e}
+.badge-b{background:#dbeafe;color:#1e40af}
+.badge-lime{background:#f0f9d4;color:#3a5200}
+.action-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-approve{background:#dcfce7;color:#15803d;border:1px solid #a7f3d0}
+.btn-approve:hover{background:#bbf7d0}
+.btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.btn-reject:hover{background:#fecaca}
+.btn-primary{background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-primary:hover{background:var(--gm)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.loading{text-align:center;padding:40px;color:var(--txt3);font-size:13px}
+.price-edit-row{display:flex;gap:8px;align-items:center}
+.price-input{padding:7px 10px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;width:120px;font-family:inherit;outline:none}
+.price-input:focus{border-color:var(--gm)}
+.price-save{padding:7px 12px;background:var(--g);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.seo-tip{background:#f0f9d4;border:1px solid #c6e89a;border-radius:8px;padding:12px;font-size:11px;color:#3a5200;margin-bottom:12px}
+.seo-tip strong{display:block;margin-bottom:3px}
+.keyword-chip{display:inline-flex;padding:4px 10px;border-radius:100px;font-size:11px;background:#f0f9d4;color:#3a5200;margin:3px;border:1px solid #c6e89a;font-weight:500}
+.traffic-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.traffic-bar-fill{height:6px;border-radius:3px;background:var(--lime)}
+.traffic-bar-bg{flex:1;height:6px;border-radius:3px;background:var(--bdr)}
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.stat-grid{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Ag</div>
+    <div class="login-title">Agrios Management</div>
+    <div class="login-sub">Owner access only — private dashboard</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="mgEmail" type="email" placeholder="admin@useagrios.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="mgPassword" type="password" placeholder="Your admin password" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="mgLogin()">Sign in to dashboard</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- MANAGEMENT APP -->
+<div class="app" id="mgApp">
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">Ag</div>
+        <div>
+          <div class="sidebar-logo-text">Agrios</div>
+          <div class="sidebar-tag">MANAGEMENT</div>
+        </div>
+      </div>
+    </div>
+    <button class="nav-item active" onclick="showMgPage('overview')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" onclick="showMgPage('prices')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Prices
+    </button>
+    <button class="nav-item" onclick="showMgPage('reports')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Price Reports
+    </button>
+    <button class="nav-item" onclick="showMgPage('users')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </button>
+    <button class="nav-item" onclick="showMgPage('transport')">
+      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Transport
+    </button>
+    <button class="nav-item" onclick="showMgPage('seo')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      SEO Monitor
+    </button>
+    <button class="nav-item" onclick="showMgPage('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </button>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="mgUserLabel">admin@useagrios.com</div>
+      <button class="logout-btn" onclick="mgLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- OVERVIEW -->
+    <div id="mg-overview">
+      <div class="page-header">
+        <div class="page-title">Overview</div>
+        <div class="page-sub">Agrios platform health — <span id="mgDateTime"></span></div>
+      </div>
+      <div class="stat-grid" id="overviewStats"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Recent price reports</div><span class="badge badge-a" id="pendingCount">Loading…</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Crop</th><th>Market</th><th>Price</th><th>Reporter</th><th>Status</th><th>Action</th></tr></thead><tbody id="reportsTableBody"><tr><td colspan="6" class="loading">Loading reports…</td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Top contributors</div></div>
+          <div class="table-wrap"><table><thead><tr><th>Name</th><th>State</th><th>Reports</th><th>Accuracy</th><th>Trust</th></tr></thead><tbody id="contribTableBody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICES -->
+    <div id="mg-prices" style="display:none">
+      <div class="page-header"><div class="page-title">Price management</div><div class="page-sub">Edit current market prices directly</div></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Current market prices</div><button class="btn-primary" onclick="loadPrices()">↻ Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Crop</th><th>Market</th><th>State</th><th>Current avg</th><th>Edit price</th><th>Confidence</th><th>Updated</th></tr></thead><tbody id="pricesTableBody"><tr><td colspan="7" class="loading">Loading prices…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="mg-reports" style="display:none">
+      <div class="page-header"><div class="page-title">Price reports moderation</div><div class="page-sub">Review community-submitted price reports</div></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Pending & flagged reports</div><button class="btn-primary" onclick="loadReports()">↻ Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Crop</th><th>Market</th><th>Reported price</th><th>Current avg</th><th>Deviation</th><th>Reporter</th><th>Status</th><th>Actions</th></tr></thead><tbody id="allReportsBody"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="mg-users" style="display:none">
+      <div class="page-header"><div class="page-title">User management</div><div class="page-sub">All registered users and subscription status</div></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Registered users</div><button class="btn-primary" onclick="loadUsers()">↻ Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>State</th><th>Tier</th><th>Joined</th><th>Reports</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="7" class="loading">Loading…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div id="mg-transport" style="display:none">
+      <div class="page-header"><div class="page-title">Transport management</div><div class="page-sub">All transport jobs and vehicle operators</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Active transport jobs</div></div>
+          <div class="table-wrap"><table><thead><tr><th>Route</th><th>Crop</th><th>Pay</th><th>Status</th><th>Posted</th></tr></thead><tbody id="jobsTableBody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Registered vehicles</div></div>
+          <div class="table-wrap"><table><thead><tr><th>Type</th><th>Driver</th><th>State</th><th>Capacity</th><th>Verified</th></tr></thead><tbody id="vehiclesTableBody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEO -->
+    <div id="mg-seo" style="display:none">
+      <div class="page-header"><div class="page-title">SEO monitor</div><div class="page-sub">Track keyword rankings and traffic opportunities</div></div>
+      <div class="seo-tip">
+        <strong>🎯 Next action: Submit sitemap to Google Search Console</strong>
+        Go to search.google.com/search-console → Add property → useagrios.com → Submit sitemap at https://useagrios.com/sitemap.xml
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Top target keywords</div><span class="badge badge-lime">High value</span></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">maize price in nigeria today</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:84%"></div></div><span>8,400/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">rice price in nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:100%"></div></div><span>12,000/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">tomato price nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:52%"></div></div><span>6,200/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">onion price in nigeria today</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:43%"></div></div><span>5,100/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">beans price in nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:48%"></div></div><span>5,800/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">cocoa price nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:33%"></div></div><span>3,900/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">yam price in nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:37%"></div></div><span>4,400/mo</span></div></div>
+              <div><div class="traffic-bar"><span style="width:180px;flex-shrink:0">palm oil price nigeria</span><div class="traffic-bar-bg"><div class="traffic-bar-fill" style="width:34%"></div></div><span>4,100/mo</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Competitor weaknesses</div><span class="badge badge-a">Exploit these</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;font-size:12px">
+            <div style="padding:10px;background:#f8fafc;border-radius:8px"><strong style="color:var(--g)">Bango</strong> — No static pages. Google can't index their prices. Agrios can rank above them immediately.</div>
+            <div style="padding:10px;background:#f8fafc;border-radius:8px"><strong style="color:var(--g)">Yildra</strong> — B2B only, no public price pages. Zero competition for farmer search queries.</div>
+            <div style="padding:10px;background:#f8fafc;border-radius:8px"><strong style="color:var(--g)">PluckAgro</strong> — Has some rankings but thin content, no transport, no export. Agrios covers everything they don't.</div>
+            <div style="padding:10px;background:#f8fafc;border-radius:8px"><strong style="color:var(--g)">MarketNaijaTv</strong> — Outdated prices, no schema markup. Agrios with live prices + schema will outrank them.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">SEO action checklist</div></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12px" id="seoChecklist"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="mg-settings" style="display:none">
+      <div class="page-header"><div class="page-title">Platform settings</div><div class="page-sub">Manage Agrios configuration</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">API status</div></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:12px" id="apiStatusList"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick links</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            <a href="https://useagrios.com" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">🌐 useagrios.com (live site)</a>
+            <a href="https://agrios-api.onrender.com/health" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">💚 API health check</a>
+            <a href="https://app.netlify.com" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">🚀 Netlify dashboard</a>
+            <a href="https://dashboard.render.com" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">⚙️ Render dashboard</a>
+            <a href="https://search.google.com/search-console" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">📊 Google Search Console</a>
+            <a href="https://github.com/JTOPENTLAB" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:var(--txt);font-size:12px;font-weight:500">💾 GitHub repos</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://agrios-api.onrender.com/api';
+let token = null;
+
+// ── LOGIN ──
+async function mgLogin(){
+  const email = document.getElementById('mgEmail').value.trim();
+  const pw = document.getElementById('mgPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if(!email||!pw){errEl.textContent='Enter email and password';errEl.classList.add('show');return;}
+  try {
+    const res = await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    const data = await res.json();
+    if(!res.ok||data.data?.user?.role!=='admin'){
+      errEl.textContent = data.error || 'Access denied — admin only';
+      errEl.classList.add('show');
+      return;
+    }
+    token = data.data.tokens.access;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mgApp').style.display='flex';
+    document.getElementById('mgUserLabel').textContent = data.data.user.email;
+    document.getElementById('mgDateTime').textContent = new Date().toLocaleString('en-NG');
+    loadOverview();
+  } catch(e) {
+    errEl.textContent = 'Connection failed. Check your internet.';
+    errEl.classList.add('show');
+  }
+}
+
+function mgLogout(){
+  token = null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mgApp').style.display='none';
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') mgLogin(); });
+
+// ── NAVIGATION ──
+function showMgPage(p){
+  ['overview','prices','reports','users','transport','seo','settings'].forEach(x=>{
+    document.getElementById('mg-'+x).style.display = x===p ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach((b,i)=>{
+    b.classList.toggle('active', b.getAttribute('onclick')?.includes("'"+p+"'"));
+  });
+  if(p==='prices') loadPrices();
+  if(p==='reports') loadReports();
+  if(p==='users') loadUsers();
+  if(p==='transport') loadTransport();
+  if(p==='seo') loadSEO();
+  if(p==='settings') loadSettings();
+}
+
+// ── API HELPERS ──
+const api = async (path, opts={}) => {
+  const res = await fetch(API+path,{...opts,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,...(opts.headers||{})}});
+  return await res.json();
+};
+const fmt = n => '₦'+Number(Math.round(n)).toLocaleString('en-NG');
+const timeAgo = d => { const s=Math.round((Date.now()-new Date(d))/1000); return s<60?s+'s ago':s<3600?Math.round(s/60)+'m ago':Math.round(s/3600)+'h ago'; };
+
+// ── OVERVIEW ──
+async function loadOverview(){
+  try {
+    const [stats, reports, contribs] = await Promise.all([
+      api('/admin/stats'),
+      api('/admin/reports/pending?limit=8'),
+      api('/admin/contributors')
+    ]);
+    const s = stats.data;
+    document.getElementById('overviewStats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Total users</div><div class="stat-val">${s.users?.total||0}</div><div class="stat-chg up">↑ Pro: ${s.users?.pro||0}</div></div>
+      <div class="stat-card"><div class="stat-label">Pending reports</div><div class="stat-val">${s.reports?.find(r=>r.status==='pending')?.count||0}</div><div class="stat-chg" style="color:var(--amber)">Needs review</div></div>
+      <div class="stat-card"><div class="stat-label">Prices tracked</div><div class="stat-val">${s.prices?.total||0}</div><div class="stat-chg flat">Last: ${s.prices?.last_update?timeAgo(s.prices.last_update):'—'}</div></div>
+      <div class="stat-card"><div class="stat-label">Transport jobs</div><div class="stat-val">${s.transport?.find(t=>t.status==='open')?.count||0}</div><div class="stat-chg up">Open jobs</div></div>
+    `;
+    document.getElementById('pendingCount').textContent = (reports.data?.length||0)+' pending';
+    document.getElementById('reportsTableBody').innerHTML = (reports.data||[]).map((r,i)=>`
+      <tr id="rr-${r.id}">
+        <td>${r.crop_emoji||'🌾'} ${r.crop_name}</td>
+        <td style="color:var(--txt3)">${r.market_name}</td>
+        <td style="font-weight:600">${fmt(r.reported_price)}</td>
+        <td style="color:var(--txt3)">${r.reporter_name||'Anonymous'}</td>
+        <td><span class="badge ${r.status==='flagged'?'badge-a':'badge-b'}">${r.status}</span></td>
+        <td><div style="display:flex;gap:5px">
+          <button class="action-btn btn-approve" onclick="approveReport('${r.id}')">✓ Approve</button>
+          <button class="action-btn btn-reject" onclick="rejectReport('${r.id}')">✗ Reject</button>
+        </div></td>
+      </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--txt3)">No pending reports</td></tr>';
+    document.getElementById('contribTableBody').innerHTML = (contribs.data||[]).slice(0,8).map(c=>`
+      <tr>
+        <td style="font-weight:600">${c.full_name}</td>
+        <td style="color:var(--txt3)">${c.state||'—'}</td>
+        <td>${c.accepted_reports}</td>
+        <td><span class="badge badge-g">${parseFloat(c.accuracy_pct||100).toFixed(0)}%</span></td>
+        <td><span class="badge badge-lime">${c.trust_level?.replace('_',' ')||'new'}</span></td>
+      </tr>`).join('');
+  } catch(e){ console.error(e); }
+}
+
+async function approveReport(id){
+  await api('/admin/reports/'+id+'/approve',{method:'PATCH'});
+  document.getElementById('rr-'+id)?.remove();
+  toast('Report approved ✓');
+}
+async function rejectReport(id){
+  await api('/admin/reports/'+id+'/reject',{method:'PATCH',body:JSON.stringify({reason:'Admin review'})});
+  document.getElementById('rr-'+id)?.remove();
+  toast('Report rejected');
+}
+
+// ── PRICES ──
+async function loadPrices(){
+  const data = await api('/prices/summary');
+  document.getElementById('pricesTableBody').innerHTML = (data.data||[]).slice(0,30).map(p=>`
+    <tr>
+      <td><strong>${p.emoji||'🌾'} ${p.name}</strong></td>
+      <td style="color:var(--txt3);font-size:11px">${p.market}</td>
+      <td style="color:var(--txt3)">${p.state}</td>
+      <td style="font-weight:600;color:var(--g)">${fmt(p.price_avg)}</td>
+      <td>
+        <div class="price-edit-row">
+          <input class="price-input" id="pe-${p.name}-${p.state}" type="number" value="${Math.round(p.price_avg)}" placeholder="${Math.round(p.price_avg)}"/>
+          <button class="price-save" onclick="toast('Price update coming in next sprint')">Save</button>
+        </div>
+      </td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div style="width:40px;height:4px;background:var(--bdr);border-radius:2px"><div style="width:${p.confidence_score}%;height:100%;background:var(--lime);border-radius:2px"></div></div><span style="font-size:11px;color:var(--txt3)">${p.confidence_score}%</span></div></td>
+      <td style="font-size:11px;color:var(--txt3)">${timeAgo(p.updated_at)}</td>
+    </tr>`).join('');
+}
+
+// ── REPORTS ──
+async function loadReports(){
+  const data = await api('/admin/reports/pending?limit=30');
+  document.getElementById('allReportsBody').innerHTML = (data.data||[]).map(r=>`
+    <tr id="ar-${r.id}">
+      <td>${r.crop_emoji||'🌾'} ${r.crop_name}</td>
+      <td style="font-size:11px;color:var(--txt3)">${r.market_name}, ${r.state}</td>
+      <td style="font-weight:600">${fmt(r.reported_price)}</td>
+      <td style="color:var(--txt3)">${r.current_avg?fmt(r.current_avg):'—'}</td>
+      <td><span class="badge ${Math.abs(r.deviation_pct||0)>40?'badge-r':'badge-g'}">${r.deviation_pct?parseFloat(r.deviation_pct).toFixed(1)+'%':'—'}</span></td>
+      <td style="font-size:11px">${r.reporter_name||'Anonymous'}</td>
+      <td><span class="badge ${r.status==='flagged'?'badge-a':r.status==='pending'?'badge-b':'badge-g'}">${r.status}</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="action-btn btn-approve" onclick="approveReport2('${r.id}')">✓</button>
+        <button class="action-btn btn-reject" onclick="rejectReport2('${r.id}')">✗</button>
+      </div></td>
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--txt3)">All clear — no pending reports</td></tr>';
+}
+async function approveReport2(id){ await api('/admin/reports/'+id+'/approve',{method:'PATCH'}); document.getElementById('ar-'+id)?.remove(); toast('Approved ✓'); }
+async function rejectReport2(id){ await api('/admin/reports/'+id+'/reject',{method:'PATCH',body:JSON.stringify({reason:'Rejected by admin'})}); document.getElementById('ar-'+id)?.remove(); toast('Rejected'); }
+
+// ── USERS ──
+async function loadUsers(){
+  const data = await api('/admin/contributors');
+  document.getElementById('usersTableBody').innerHTML = (data.data||[]).map(u=>`
+    <tr>
+      <td style="font-weight:600">${u.full_name}</td>
+      <td style="color:var(--txt3);font-size:11px">${u.email}</td>
+      <td><span class="badge badge-b">${u.role||'farmer'}</span></td>
+      <td style="color:var(--txt3)">${u.state||'—'}</td>
+      <td><span class="badge ${u.subscription_tier==='pro'||u.subscription_tier==='business'?'badge-lime':'badge-g'}">${u.subscription_tier||'free'}</span></td>
+      <td style="font-size:11px;color:var(--txt3)">${u.created_at?new Date(u.created_at).toLocaleDateString('en-NG'):'—'}</td>
+      <td>${u.total_reports||0}</td>
+    </tr>`).join('');
+}
+
+// ── TRANSPORT ──
+async function loadTransport(){
+  const [jobs, stats] = await Promise.all([api('/transport/jobs?limit=10'), api('/admin/stats')]);
+  document.getElementById('jobsTableBody').innerHTML = (jobs.data||[]).map(j=>`
+    <tr>
+      <td style="font-weight:600">${j.pickup_state} → ${j.delivery_state}</td>
+      <td>${j.crop_name||'—'}</td>
+      <td style="color:var(--g);font-weight:600">${j.max_budget?fmt(j.max_budget):'Open'}</td>
+      <td><span class="badge ${j.status==='open'?'badge-g':j.status==='accepted'?'badge-b':'badge-a'}">${j.status}</span></td>
+      <td style="font-size:11px;color:var(--txt3)">${timeAgo(j.created_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--txt3)">No jobs</td></tr>';
+  document.getElementById('vehiclesTableBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--txt3)">Vehicle list coming in next sprint</td></tr>`;
+}
+
+// ── SEO ──
+function loadSEO(){
+  const tasks = [
+    {done:true,  text:'Add sitemap.xml to useAgrios repo'},
+    {done:true,  text:'Add robots.txt to useAgrios repo'},
+    {done:true,  text:'Add schema.org structured data to price pages'},
+    {done:true,  text:'Add dynamic meta titles per page'},
+    {done:false, text:'Register on Google Search Console → submit sitemap'},
+    {done:false, text:'Register Google Business Profile for Agrios'},
+    {done:false, text:'Write first weekly market report (Monday)'},
+    {done:false, text:'Create static /prices/maize, /prices/rice pages for crawlability'},
+    {done:false, text:'Email NBS Nigeria about Agrios as a reference data source'},
+    {done:false, text:'Pitch Punch/Guardian Nigeria: "Nigeria food price tracker" story'},
+    {done:false, text:'Create Google My Business listing'},
+  ];
+  document.getElementById('seoChecklist').innerHTML = tasks.map(t=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:16px">${t.done?'✅':'⬜'}</span>
+      <span style="${t.done?'color:var(--txt3);text-decoration:line-through':'color:var(--txt)'}">${t.text}</span>
+    </div>`).join('');
+}
+
+// ── SETTINGS ──
+async function loadSettings(){
+  try {
+    const health = await fetch('https://agrios-api.onrender.com/health').then(r=>r.json());
+    document.getElementById('apiStatusList').innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)"><span>API status</span><span class="badge badge-g">● Online</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)"><span>Crops in DB</span><span style="font-weight:600">${health.crops}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)"><span>Environment</span><span class="badge badge-b">${health.env}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)"><span>API version</span><span style="color:var(--txt3)">${health.version}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0"><span>DB time</span><span style="color:var(--txt3);font-size:11px">${health.db_time}</span></div>
+    `;
+  } catch(e){
+    document.getElementById('apiStatusList').innerHTML = '<div style="color:var(--red)">⚠ API offline or unreachable</div>';
+  }
+}
+
+// ── TOAST ──
+function toast(msg){
+  let t = document.getElementById('mgToast');
+  if(!t){ t=document.createElement('div'); t.id='mgToast'; t.style.cssText='position:fixed;bottom:20px;right:20px;background:#0a3d25;color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:500;z-index:9999;transition:opacity .3s'; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0', 2500);
+}
+</script>
+</body>
+</html>

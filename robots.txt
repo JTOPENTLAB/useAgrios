@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://useagrios.com/sitemap.xml
+
+# Block admin page from indexing
+Disallow: /?page=admin
+
+# Allow all bots to crawl price pages
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2

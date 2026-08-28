@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+
+  <!-- Home -->
+  <url>
+    <loc>https://useagrios.com/</loc>
+    <changefreq>always</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Price pages — high value SEO targets -->
+  <url><loc>https://useagrios.com/?page=prices</loc><changefreq>always</changefreq><priority>0.9</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Maize</loc><changefreq>always</changefreq><priority>0.9</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Rice</loc><changefreq>always</changefreq><priority>0.9</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Tomato</loc><changefreq>always</changefreq><priority>0.9</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Yam</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Beans</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Cassava</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Cocoa</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Palm+Oil</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Onion</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Pepper</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Groundnut</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Soybean</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Sorghum</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;crop=Plantain</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+
+  <!-- Market pages -->
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Lagos</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Kano</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Abuja</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Oyo</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Abia</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Rivers</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Enugu</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=prices&amp;state=Borno</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+
+  <!-- Feature pages -->
+  <url><loc>https://useagrios.com/?page=transport</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=export</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://useagrios.com/?page=finance</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=demand</loc><changefreq>always</changefreq><priority>0.7</priority></url>
+  <url><loc>https://useagrios.com/?page=heatmap</loc><changefreq>always</changefreq><priority>0.6</priority></url>
+  <url><loc>https://useagrios.com/?page=alerts</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://useagrios.com/?page=report</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+
+</urlset>

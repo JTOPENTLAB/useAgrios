@@ -607,7 +607,7 @@ tbody tr:hover td{background:var(--cream)}
       <button class="nav-link" onclick="showPage('export')" role="listitem">Export</button>
       <button class="nav-link" onclick="showPage('finance')" role="listitem">Finance</button>
       <button class="nav-link" onclick="showPage('demand')" role="listitem">Demand</button>
-      <button class="nav-link" onclick="showPage('admin')" role="listitem">Admin</button>
+      <button class="nav-link" onclick="showPage('admin')" role="listitem" id="navAdminBtn" style="display:none">Admin</button>
     </div>
     <div class="nav-right">
       <div class="live-dot" aria-label="Live data"><span id="apiStatus">LIVE</span></div>
@@ -634,7 +634,7 @@ tbody tr:hover td{background:var(--cream)}
     <button class="mob-drawer-link" onclick="showPage('export');closeDrawer()">Export</button>
     <button class="mob-drawer-link" onclick="showPage('finance');closeDrawer()">Finance</button>
     <button class="mob-drawer-link" onclick="showPage('demand');closeDrawer()">Demand Board</button>
-    <button class="mob-drawer-link" onclick="showPage('admin');closeDrawer()">Admin</button>
+    <button class="mob-drawer-link" onclick="showPage('admin');closeDrawer()" id="drawerAdminBtn" style="display:none">Admin</button>
     <div style="margin-top:auto;padding-top:24px;border-top:1px solid rgba(255,255,255,.1)">
       <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">useagrios.com</div>
       <div style="font-size:11px;color:rgba(255,255,255,.3)">Nigeria's agricultural intelligence platform</div>
@@ -1786,6 +1786,85 @@ function showPage(p){
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
   if(p==='transport'){buildJobGrid();}
   if(p==='export'){buildExportTable();}
+  // Update SEO meta tags dynamically per page
+  updateSEOMeta(p);
+}
+
+function updateSEOMeta(page, cropName, cropPrice, cropUnit){
+  const base = 'Agrios — Nigeria Agricultural Market Intelligence';
+  const descriptions = {
+    home: 'Real-time crop prices, AI predictions, transport matching and export intelligence for Nigerian farmers, buyers and investors. useagrios.com',
+    prices: 'Live crop prices across 48 Nigerian markets — Maize, Rice, Tomato, Yam, Beans, Cocoa and more. Updated every 2 minutes.',
+    transport: 'Agricultural transport jobs across Nigeria. Connect farmers with 1,247 verified vehicle operators. Post or find transport in 60 seconds.',
+    export: 'Nigeria export price intelligence — Cocoa, Sesame, Cashew, Hibiscus, Soybean. Compare local vs international prices and connect to export agents.',
+    finance: 'Agrios Crop Credit Score — get working capital loans for Nigerian farmers based on your market activity. No collateral needed.',
+    demand: 'Verified buyer demand board — find buyers for your produce across Nigeria. Live demand listings updated daily.',
+    heatmap: 'Nigeria crop price heatmap — see where prices are highest and lowest across all states today.',
+    report: 'Report agricultural market prices from your local market. Help build Nigeria's most accurate crop price database.',
+    alerts: 'Set price alerts for Nigerian crop markets. Get notified when maize, rice, tomato and other crops hit your target price.',
+  };
+  const titles = {
+    home: `Agrios — Real-Time Crop Prices Nigeria | useagrios.com`,
+    prices: `Live Crop Prices Nigeria Today — Maize, Rice, Tomato, Yam | Agrios`,
+    transport: `Agricultural Transport Jobs Nigeria — Find & Post Produce Transport | Agrios`,
+    export: `Nigeria Crop Export Prices — Cocoa, Sesame, Cashew | Agrios`,
+    finance: `Farm Loans Nigeria — Crop Credit Score & Working Capital | Agrios`,
+    demand: `Nigeria Buyer Demand Board — Sell Your Produce Today | Agrios`,
+    heatmap: `Nigeria Crop Price Heatmap — Best Buy & Sell Locations | Agrios`,
+    report: `Report Crop Prices Nigeria — Community Price Intelligence | Agrios`,
+    alerts: `Crop Price Alerts Nigeria — Get Notified on Price Changes | Agrios`,
+  };
+  // Update document title
+  if(cropName && cropPrice){
+    document.title = `${cropName} Price in Nigeria Today — ${cropPrice}/${cropUnit} | Agrios`;
+  } else {
+    document.title = titles[page] || base;
+  }
+  // Update meta description
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if(metaDesc) metaDesc.content = descriptions[page] || descriptions.home;
+  // Update OG tags
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if(ogTitle) ogTitle.content = document.title;
+  if(ogDesc) ogDesc.content = metaDesc?.content || descriptions.home;
+  // Update canonical URL
+  let canonical = document.querySelector('link[rel="canonical"]');
+  if(!canonical){ canonical = document.createElement('link'); canonical.rel='canonical'; document.head.appendChild(canonical); }
+  canonical.href = page === 'home' ? 'https://useagrios.com/' : `https://useagrios.com/?page=${page}`;
+  // Inject schema.org structured data for price pages
+  if(page === 'prices' || page === 'home'){
+    injectPriceSchema();
+  }
+}
+
+function injectPriceSchema(){
+  // Remove old schema if any
+  document.getElementById('agrios-schema')?.remove();
+  const prices = getPrices().filter(p=>p.avg>0).slice(0,5);
+  if(!prices.length) return;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Nigeria Agricultural Crop Prices",
+    "description": "Real-time crop prices from 48 Nigerian markets including Mile 12 Lagos, Dawanau Kano, Bodija Ibadan, and more.",
+    "url": "https://useagrios.com",
+    "provider": { "@type": "Organization", "name": "Agrios", "url": "https://useagrios.com" },
+    "temporalCoverage": new Date().toISOString().split('T')[0],
+    "spatialCoverage": { "@type": "Place", "name": "Nigeria" },
+    "variableMeasured": prices.map(p=>({
+      "@type": "PropertyValue",
+      "name": p.n + " price in Nigeria",
+      "value": p.avg,
+      "unitText": "Nigerian Naira per " + p.unit,
+      "description": `Current ${p.n} market price at ${p.mkt}: ₦${p.avg.toLocaleString('en-NG')} per ${p.unit}`
+    }))
+  };
+  const script = document.createElement('script');
+  script.id = 'agrios-schema';
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify(schema);
+  document.head.appendChild(script);
 }
 
 /* ===================== DRAWER ===================== */
@@ -1841,6 +1920,11 @@ function updateNavForUser(user){
     if(signIn) signIn.style.display='';
     if(avatar) avatar.style.display='none';
     if(proBtn) proBtn.style.display='none';
+    // Hide admin when logged out
+    const aBtn = document.getElementById('navAdminBtn');
+    const dBtn = document.getElementById('drawerAdminBtn');
+    if(aBtn) aBtn.style.display='none';
+    if(dBtn) dBtn.style.display='none';
     return;
   }
   if(signIn) signIn.style.display='none';
@@ -1850,6 +1934,11 @@ function updateNavForUser(user){
     avatar.textContent = initials;
   }
   if(proBtn && user.subscription_tier==='free') proBtn.style.display='';
+  // Show admin link only for admin role
+  const adminBtn = document.getElementById('navAdminBtn');
+  const drawerAdminBtn = document.getElementById('drawerAdminBtn');
+  if(adminBtn) adminBtn.style.display = user.role==='admin' ? '' : 'none';
+  if(drawerAdminBtn) drawerAdminBtn.style.display = user.role==='admin' ? '' : 'none';
   // update user menu
   const umName = document.getElementById('umName');
   const umEmail = document.getElementById('umEmail');
