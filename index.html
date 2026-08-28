@@ -2,9 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,viewport-fit=cover"/>
 <title>Agrios – Nigeria Agricultural Market Intelligence | useagrios.com</title>
 <meta name="description" content="Real-time crop prices, AI predictions, and market intelligence for Nigerian farmers, buyers and investors. useagrios.com"/>
+<meta name="theme-color" content="#0a3d25"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Agrios"/>
+<meta name="application-name" content="Agrios"/>
+<meta property="og:title" content="Agrios — Nigeria Market Intelligence"/>
+<meta property="og:description" content="Real-time crop prices, transport matching, and export intelligence for Nigerian agriculture."/>
+<meta property="og:url" content="https://useagrios.com"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://useagrios.com/icon-512.png"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -65,8 +79,8 @@ a{color:inherit;text-decoration:none}
 .brand-text{display:flex;flex-direction:column;gap:0}
 .brand-name{font-family:var(--font-display);font-size:18px;font-weight:700;color:#fff;letter-spacing:-.3px;line-height:1}
 .brand-domain{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.5px;line-height:1;margin-top:2px}
-.nav-links{display:flex;align-items:center;gap:2px;flex:1}
-.nav-link{padding:7px 13px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;color:rgba(255,255,255,.65);border:none;background:none;cursor:pointer;transition:var(--transition);white-space:nowrap;font-family:var(--font-body)}
+.nav-links{display:flex;align-items:center;gap:0;flex:1;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}.nav-links::-webkit-scrollbar{display:none}
+.nav-link{padding:6px 9px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:rgba(255,255,255,.65);border:none;background:none;cursor:pointer;transition:var(--transition);white-space:nowrap;font-family:var(--font-body)}
 .nav-link:hover{color:#fff;background:rgba(255,255,255,.07)}
 .nav-link.active{color:#fff;background:rgba(200,241,53,.12);color:var(--lime)}
 .nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
@@ -159,6 +173,17 @@ a{color:inherit;text-decoration:none}
 
 /* ============ OPPORTUNITY CARDS ============ */
 .opp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.job-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;transition:var(--transition)}
+.job-card:hover{border-color:var(--emerald);transform:translateY(-2px)}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.btn-primary-sm{background:var(--forest);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:var(--transition)}
+.btn-primary-sm:hover{background:var(--emerald)}
+.btn-sm{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:var(--font-body);transition:var(--transition)}
+.btn-sm-g{background:var(--gl);color:var(--forest);border:1px solid #c0d8c8}
+.btn-sm-g:hover{background:var(--limepale)}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-lime{background:var(--limepale);color:#3a5200}
 .opp-card{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--lime);border-radius:var(--radius-md);padding:18px;display:flex;flex-direction:column;gap:8px;transition:var(--transition)}
 .opp-card:hover{border-color:var(--lime);border-left-color:var(--lime)}
 .opp-type{font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;color:var(--emerald)}
@@ -331,6 +356,7 @@ tbody tr:hover td{background:var(--cream)}
 /* ============ RESPONSIVE ============ */
 @media(max-width:1100px){
   .opp-grid{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
   .demand-grid{grid-template-columns:1fr 1fr}
   .stat-grid{grid-template-columns:repeat(2,1fr)}
 }
@@ -346,6 +372,8 @@ tbody tr:hover td{background:var(--cream)}
 }
 @media(max-width:640px){
   .opp-grid,.demand-grid{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+  #jobGrid{grid-template-columns:1fr!important}
   .stat-grid{grid-template-columns:1fr 1fr}
   .hero{padding:24px 20px}
   .hero-stats{flex-direction:column;width:100%}
@@ -361,9 +389,197 @@ tbody tr:hover td{background:var(--cream)}
   .contrib-stats{grid-template-columns:1fr 1fr 1fr}
   .dc-grid{grid-template-columns:1fr}
 }
+
+/* ============ AUTH MODAL ============ */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,15,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:20px;width:100%;max-width:420px;overflow:hidden;transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{background:var(--forest);padding:24px 24px 20px;color:#fff;text-align:center;position:relative}
+.modal-logo{width:44px;height:44px;background:var(--lime);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--forest);margin:0 auto 10px}
+.modal-title{font-family:var(--font-display);font-size:20px;font-weight:500;color:#fff;margin-bottom:3px}
+.modal-sub{font-size:12px;color:rgba(255,255,255,.65)}
+.modal-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.modal-tabs{display:flex;border-bottom:1px solid var(--border)}
+.modal-tab{flex:1;padding:13px;font-size:13px;font-weight:600;border:none;background:#fff;cursor:pointer;color:var(--sage);transition:.15s;font-family:inherit}
+.modal-tab.active{color:var(--forest);border-bottom:2px solid var(--forest)}
+.modal-body{padding:24px}
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.auth-form-section{display:none}
+.auth-form-section.active{display:flex;flex-direction:column;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:.5px}
+.form-input{padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--ink);background:var(--cream);outline:none;transition:.15s;font-family:inherit;-webkit-appearance:none}
+.form-input:focus{border-color:var(--emerald);background:#fff;box-shadow:0 0 0 3px rgba(26,107,71,.1)}
+.form-input.error{border-color:#dc2626}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-select{padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--ink);background:var(--cream);outline:none;transition:.15s;font-family:inherit;-webkit-appearance:none;cursor:pointer}
+.form-select:focus{border-color:var(--emerald);background:#fff}
+.auth-btn{background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-btn:hover{background:var(--emerald)}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-divider{text-align:center;font-size:12px;color:var(--sage);position:relative}
+.auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border)}
+.auth-divider::before{left:0}.auth-divider::after{right:0}
+.auth-error{background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:500;display:none}
+.auth-error.show{display:block}
+.auth-success{background:#dcfce7;color:#15803d;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:500;display:none}
+.auth-success.show{display:block}
+.user-menu{position:absolute;top:60px;right:16px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:8px;min-width:200px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:200;display:none}
+.user-menu.open{display:block}
+.user-menu-header{padding:10px 12px 12px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.user-menu-name{font-weight:700;font-size:13px;color:var(--ink)}
+.user-menu-email{font-size:11px;color:var(--sage);margin-top:2px}
+.user-menu-tier{display:inline-flex;margin-top:6px}
+.user-menu-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;border:none;background:none;font-family:inherit;width:100%;text-align:left;transition:.1s}
+.user-menu-item:hover{background:var(--cream)}
+.user-menu-item svg{width:15px;height:15px;stroke:var(--sage);stroke-width:2;flex-shrink:0}
+.user-menu-sep{height:1px;background:var(--border);margin:4px 0}
+
+/* ============ PWA INSTALL BANNER ============ */
+.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--forest);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.2,.64,1);box-shadow:0 -4px 20px rgba(0,0,0,.25)}
+.install-banner.show{transform:translateY(0)}
+.install-banner-icon{width:40px;height:40px;background:var(--lime);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.install-banner-text{flex:1}
+.install-banner-title{font-weight:700;font-size:13px;margin-bottom:1px}
+.install-banner-sub{font-size:11px;color:rgba(255,255,255,.65)}
+.install-banner-btn{background:var(--lime);color:var(--forest);border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.install-banner-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;font-family:inherit}
+
+/* ============ MOBILE ENHANCEMENTS ============ */
+@media(max-width:640px){
+  .modal{border-radius:20px 20px 0 0;position:fixed;bottom:0;left:0;right:0;max-width:100%;transform:translateY(100%)}
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .form-row{grid-template-columns:1fr}
+  .install-banner{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  .mobile-nav{padding-bottom:env(safe-area-inset-bottom)}
+  .page-wrap{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+}
 </style>
 </head>
 <body>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account" onclick="closeAuthIfOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-logo">Ag</div>
+      <div class="modal-title">Welcome to Agrios</div>
+      <div class="modal-sub">Nigeria's agricultural market intelligence platform</div>
+      <button class="modal-close" onclick="closeAuth()" aria-label="Close">×</button>
+    </div>
+    <div class="modal-tabs" role="tablist">
+      <button class="modal-tab active" id="tab-login" onclick="switchAuthTab('login')" role="tab" aria-selected="true">Sign in</button>
+      <button class="modal-tab" id="tab-register" onclick="switchAuthTab('register')" role="tab" aria-selected="false">Create account</button>
+    </div>
+    <div class="modal-body">
+      <div id="authError" class="auth-error" role="alert"></div>
+      <div id="authSuccess" class="auth-success" role="status"></div>
+
+      <!-- LOGIN -->
+      <div class="auth-form-section active" id="section-login">
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email address</label>
+          <input class="form-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password"/>
+        </div>
+        <button class="auth-btn" id="loginBtn" onclick="doLogin()">
+          <span>Sign in</span>
+        </button>
+        <div class="auth-divider">or</div>
+        <button class="auth-btn" style="background:var(--cream);color:var(--forest);border:1.5px solid var(--border)" onclick="switchAuthTab('register')">
+          Create a free account →
+        </button>
+        <p style="font-size:11px;color:var(--sage);text-align:center">Demo: fatima@demo.com / Demo@123456!</p>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="auth-form-section" id="section-register">
+        <div class="form-group">
+          <label class="form-label" for="regName">Full name</label>
+          <input class="form-input" id="regName" type="text" placeholder="Your full name" autocomplete="name"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email</label>
+            <input class="form-input" id="regEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regPhone">Phone</label>
+            <input class="form-input" id="regPhone" type="tel" placeholder="+234 800..." autocomplete="tel" inputmode="tel"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="regState">State</label>
+            <select class="form-select" id="regState">
+              <option value="">Select state…</option>
+              <option>Abia</option><option>Adamawa</option><option>Akwa Ibom</option><option>Anambra</option><option>Bauchi</option><option>Bayelsa</option><option>Benue</option><option>Borno</option><option>Cross River</option><option>Delta</option><option>Ebonyi</option><option>Edo</option><option>Ekiti</option><option>Enugu</option><option>FCT</option><option>Gombe</option><option>Imo</option><option>Jigawa</option><option>Kaduna</option><option>Kano</option><option>Katsina</option><option>Kebbi</option><option>Kogi</option><option>Kwara</option><option>Lagos</option><option>Nasarawa</option><option>Niger</option><option>Ogun</option><option>Ondo</option><option>Osun</option><option>Oyo</option><option>Plateau</option><option>Rivers</option><option>Sokoto</option><option>Taraba</option><option>Yobe</option><option>Zamfara</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regRole">I am a…</label>
+            <select class="form-select" id="regRole">
+              <option value="farmer">Farmer</option>
+              <option value="trader">Trader / Dealer</option>
+              <option value="driver">Vehicle Operator</option>
+              <option value="buyer">Bulk Buyer</option>
+              <option value="exporter">Exporter</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regPassword">Password</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="Min. 8 characters" autocomplete="new-password"/>
+        </div>
+        <button class="auth-btn" id="registerBtn" onclick="doRegister()">
+          <span>Create free account</span>
+        </button>
+        <p style="font-size:11px;color:var(--sage);text-align:center">Free account: 2 price alerts, price reporting, live prices</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USER MENU -->
+<div class="user-menu" id="userMenu">
+  <div class="user-menu-header">
+    <div class="user-menu-name" id="umName">Fatima Kalu</div>
+    <div class="user-menu-email" id="umEmail">fatima@demo.com</div>
+    <span class="badge badge-green" id="umTier">Free</span>
+  </div>
+  <button class="user-menu-item" onclick="showPage('report');closeUserMenu()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Report a price
+  </button>
+  <button class="user-menu-item" onclick="showPage('alerts');closeUserMenu()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    My alerts
+  </button>
+  <button class="user-menu-item" onclick="upgradePrompt()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    Upgrade to Pro
+  </button>
+  <div class="user-menu-sep"></div>
+  <button class="user-menu-item" onclick="doLogout()" style="color:#dc2626">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign out
+  </button>
+</div>
+
+<!-- PWA INSTALL BANNER -->
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-icon">🌿</div>
+  <div class="install-banner-text">
+    <div class="install-banner-title">Install Agrios on your phone</div>
+    <div class="install-banner-sub">Get price alerts, offline access & faster loading</div>
+  </div>
+  <button class="install-banner-btn" onclick="installPWA()">Install</button>
+  <button class="install-banner-close" onclick="dismissInstall()" aria-label="Dismiss">×</button>
+</div>
 
 <!-- ===== TOP NAV ===== -->
 <nav class="top-nav" role="navigation" aria-label="Main navigation">
@@ -382,18 +598,22 @@ tbody tr:hover td{background:var(--cream)}
       </div>
     </a>
     <div class="nav-links" role="list">
-      <button class="nav-link active" onclick="showPage('home')" role="listitem">Dashboard</button>
+      <button class="nav-link active" onclick="showPage('home')" role="listitem">Home</button>
       <button class="nav-link" onclick="showPage('prices')" role="listitem">Prices</button>
-      <button class="nav-link" onclick="showPage('report')" role="listitem">Report Price</button>
+      <button class="nav-link" onclick="showPage('report')" role="listitem">Report</button>
       <button class="nav-link" onclick="showPage('alerts')" role="listitem">Alerts</button>
       <button class="nav-link" onclick="showPage('heatmap')" role="listitem">Heatmap</button>
-      <button class="nav-link" onclick="showPage('demand')" role="listitem">Demand Board</button>
+      <button class="nav-link" onclick="showPage('transport')" role="listitem">🚛 Transport</button>
+      <button class="nav-link" onclick="showPage('export')" role="listitem">Export</button>
+      <button class="nav-link" onclick="showPage('finance')" role="listitem">Finance</button>
+      <button class="nav-link" onclick="showPage('demand')" role="listitem">Demand</button>
       <button class="nav-link" onclick="showPage('admin')" role="listitem">Admin</button>
     </div>
     <div class="nav-right">
-      <div class="live-dot" aria-label="Live data">LIVE</div>
-      <button class="nav-btn-upgrade" onclick="showToast('Upgrade to Pro — coming soon!')">Go Pro</button>
-      <div class="nav-avatar" role="img" aria-label="User FK">FK</div>
+      <div class="live-dot" aria-label="Live data"><span id="apiStatus">LIVE</span></div>
+      <button class="nav-btn-upgrade" id="navProBtn" onclick="upgradePrompt()" style="display:none">Pro</button>
+      <button class="nav-btn-upgrade" id="navSigninBtn" onclick="openAuth()">Sign in</button>
+      <div class="nav-avatar" id="navAvatar" role="button" aria-label="Account" onclick="toggleUserMenu()" style="display:none;cursor:pointer">FK</div>
       <button class="hamburger" onclick="openDrawer()" aria-label="Open menu" aria-expanded="false" id="hamburgerBtn">
         <span></span><span></span><span></span>
       </button>
@@ -410,6 +630,9 @@ tbody tr:hover td{background:var(--cream)}
     <button class="mob-drawer-link" onclick="showPage('report');closeDrawer()">Report Price</button>
     <button class="mob-drawer-link" onclick="showPage('alerts');closeDrawer()">Alerts</button>
     <button class="mob-drawer-link" onclick="showPage('heatmap');closeDrawer()">Heatmap</button>
+    <button class="mob-drawer-link" onclick="showPage('transport');closeDrawer()">🚛 Transport</button>
+    <button class="mob-drawer-link" onclick="showPage('export');closeDrawer()">Export</button>
+    <button class="mob-drawer-link" onclick="showPage('finance');closeDrawer()">Finance</button>
     <button class="mob-drawer-link" onclick="showPage('demand');closeDrawer()">Demand Board</button>
     <button class="mob-drawer-link" onclick="showPage('admin');closeDrawer()">Admin</button>
     <div style="margin-top:auto;padding-top:24px;border-top:1px solid rgba(255,255,255,.1)">
@@ -800,6 +1023,103 @@ tbody tr:hover td{background:var(--cream)}
   </div>
 </div>
 
+<!-- ═══ TRANSPORT PAGE ═══ -->
+<div class="page-wrap" id="page-transport" role="main">
+  <div class="sec-hd">
+    <div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">🚛 Transport network</h1><div class="sec-sub">1,247 verified vehicle operators · Post a job in 60 seconds</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-outline" onclick="showT('register')">Register vehicle</button>
+      <button class="btn-primary-sm" onclick="showT('post')">Post a job</button>
+    </div>
+  </div>
+  <div class="stat-grid" style="margin-bottom:20px">
+    <div class="stat-card"><div class="stat-card-label">Active vehicles</div><div class="stat-card-val">1,247</div><div class="stat-card-change up">↑ 34 joined today</div></div>
+    <div class="stat-card"><div class="stat-card-label">Open jobs</div><div class="stat-card-val">384</div><div class="stat-card-change" style="color:var(--amber)">Across 18 states</div></div>
+    <div class="stat-card"><div class="stat-card-label">Avg payout</div><div class="stat-card-val">₦47k</div><div class="stat-card-change up">Per completed job</div></div>
+    <div class="stat-card"><div class="stat-card-label">Jobs this month</div><div class="stat-card-val">8,921</div><div class="stat-card-change up">↑ 22%</div></div>
+  </div>
+  <div id="t-jobs-view">
+    <div class="sec-hd"><div class="sec-hd-left"><div class="sec-title">Open transport jobs</div><div class="sec-sub">Sorted by urgency · Loading live jobs…</div></div></div>
+    <div class="opp-grid" id="jobGrid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))"></div>
+  </div>
+</div>
+
+<!-- ═══ EXPORT PAGE ═══ -->
+<div class="page-wrap" id="page-export" role="main">
+  <div style="background:linear-gradient(135deg,#4a1942,#2d1042);border-radius:var(--radius);padding:24px;margin-bottom:20px;color:#fff">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#e9d5ff;font-weight:700;margin-bottom:5px">Export Intelligence</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:6px">Nigeria's farmers deserve international prices</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.65);max-width:500px;line-height:1.6;margin-bottom:14px">Cocoa farmers earn 30% less than they should. Agrios shows international buyer prices, grade requirements, and connects you to 34 licensed export agents.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="toast('Export agent matching — opening...')">Find export buyers</button>
+      <button style="background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit" onclick="toast('Connecting you to verified agents...')">View export agents</button>
+    </div>
+  </div>
+  <div class="stat-grid" style="margin-bottom:20px">
+    <div class="stat-card"><div class="stat-card-label">Nigeria non-oil exports H1 2025</div><div class="stat-card-val">$3.2B</div><div class="stat-card-change up">↑ from $2.7B</div></div>
+    <div class="stat-card"><div class="stat-card-label">Export price premium (avg)</div><div class="stat-card-val">28%</div><div class="stat-card-change up">Above local market</div></div>
+    <div class="stat-card"><div class="stat-card-label">Exportable crops tracked</div><div class="stat-card-val">8</div><div class="stat-card-change flat">Cocoa, sesame, cashew…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Verified export agents</div><div class="stat-card-val">34</div><div class="stat-card-change flat">Licensed & verified</div></div>
+  </div>
+  <div class="sec-hd"><div class="sec-title">Local vs international price comparison</div><span class="badge badge-green">Live data</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Crop</th><th>Local price</th><th>Export price</th><th>Premium</th><th>Grade required</th><th>Best port</th><th>Action</th></tr></thead>
+      <tbody id="exportTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ FINANCE PAGE ═══ -->
+<div class="page-wrap" id="page-finance" role="main">
+  <div class="sec-hd"><div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">Finance intelligence</h1><div class="sec-sub">Crop credit scores, working capital and insurance — powered by real market data</div></div><span class="badge badge-lime">PRO</span></div>
+  <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card" style="padding:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px">Your Agrios Crop Credit Score</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(var(--lime) 0% 78.2%,var(--bdr) 78.2% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <div style="width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <div style="font-size:16px;font-weight:700;color:var(--g)">782</div>
+            <div style="font-size:9px;color:var(--txt3)">of 1000</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--g)">Excellent</div>
+          <div style="font-size:11px;color:var(--txt2)">Fatima Kalu · Kaduna State</div>
+          <div style="margin-top:6px"><span class="badge badge-green">Eligible for ₦2M loan</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Price reports (47)</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:94%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">94%</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Report accuracy</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:89%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">89%</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Market activity</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:78%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">78%</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Transaction history</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:82%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">82%</span></div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:0" onclick="toast('Loan application sent! Response within 24 hours.')">Apply for ₦2,000,000 working capital</button>
+    </div>
+    <div>
+      <div class="stat-card" style="margin-bottom:12px"><div class="stat-card-label">Nigeria agri finance gap (annual)</div><div class="stat-card-val">$100B</div><div class="stat-card-change dn">Unmet agricultural credit · AfDB 2025</div></div>
+      <div class="card" style="padding:16px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:10px">How Agrios scores you differently</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--txt2)">
+          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span><strong>No collateral needed</strong> — your market behaviour is the collateral</div>
+          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span>ThriveAgric needed farm visits — Agrios scores from your data automatically</div>
+          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span>Score improves every time you submit an accurate price report</div>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg,#0f4c2a,#0a3d25);border-radius:var(--radius);padding:14px;color:#fff">
+        <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Partner lenders</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">3 approved partners ready to fund</div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:11px">
+          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>Agrifinance Partners</span><span style="color:var(--lime);font-weight:700">From 18% p.a.</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>NIRSAL MFB</span><span style="color:var(--lime);font-weight:700">From 21% p.a.</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>BOA Nigeria</span><span style="color:var(--lime);font-weight:700">From 15% p.a.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
   <div class="mobile-nav-inner">
@@ -831,7 +1151,127 @@ tbody tr:hover td{background:var(--cream)}
 <div class="toast" id="toast" role="alert" aria-live="assertive"><div class="toast-dot" aria-hidden="true"></div><span id="toastMsg"></span></div>
 
 <script>
-/* ===================== DATA ===================== */
+/* ===================== API CONFIG ===================== */
+const API = 'https://agrios-api.onrender.com/api';
+let AUTH_TOKEN = localStorage.getItem('agrios_token') || null;
+
+const apiFetch = async (path, opts = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {})
+  };
+  try {
+    const res = await fetch(API + path, {
+      mode: 'cors',
+      credentials: 'omit',
+      ...opts,
+      headers: { ...headers, ...opts.headers }
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn(`API ${path} failed:`, e.message);
+    return null;
+  }
+};
+
+/* ===================== LIVE DATA STATE ===================== */
+let LIVE_PRICES = [];   // filled from API
+let LIVE_OPPS = [];
+let LIVE_DEMANDS = [];
+let LIVE_JOBS = [];
+let LIVE_EXPORT = [];
+let API_LOADED = false;
+
+/* ── API BOOTSTRAP ── runs once on load, populates live state */
+async function loadLiveData() {
+  showApiStatus('loading');
+  try {
+    const [summary, opps, demands, jobs, exportP] = await Promise.allSettled([
+      apiFetch('/prices/summary'),
+      apiFetch('/prices/opportunities'),
+      apiFetch('/demand'),
+      apiFetch('/transport/jobs?limit=6'),
+      apiFetch('/export/prices'),
+    ]);
+
+    if (summary.value?.data?.length) {
+      LIVE_PRICES = summary.value.data.map(p => ({
+        n: p.crop_name, e: p.emoji,
+        avg: parseFloat(p.price_avg), low: parseFloat(p.price_low), high: parseFloat(p.price_high),
+        ch24: parseFloat(p.change_24h_pct) || 0, ch7: 0,
+        unit: p.unit, mkt: p.market, state: p.state, conf: p.confidence_score,
+        updated: p.updated_at,
+      }));
+      // rebuild UI with live data
+      buildTicker();
+      buildHomePriceCards();
+      buildPriceChips();
+      filterPriceTable();
+      showApiStatus('live');
+      API_LOADED = true;
+    }
+
+    if (opps.value?.data?.length) {
+      LIVE_OPPS = opps.value.data.map(o => ({
+        type: o.type?.replace('_',' ').toUpperCase() || 'OPPORTUNITY',
+        title: o.title, desc: o.description,
+        margin: o.margin_display || '', icon: o.emoji || '📊',
+        actions: ['View Details', '🚛 Transport', '💰 Finance'],
+      }));
+      buildOppCards();
+    }
+
+    if (demands.value?.data?.length) {
+      LIVE_DEMANDS = demands.value.data.map(d => ({
+        crop: d.crop_name, qty: d.quantity_display || `${d.quantity_kg}kg`,
+        price: `₦${Number(d.offered_price).toLocaleString('en-NG')}/${d.price_unit}`,
+        loc: d.delivery_location, state: d.delivery_state,
+        deadline: d.deadline ? new Date(d.deadline).toLocaleDateString('en-NG',{month:'short',day:'numeric'}) : 'Open',
+        buyer: d.buyer_name, ver: d.is_verified_buyer, icon: d.emoji || '🌾',
+      }));
+      buildDemand(LIVE_DEMANDS);
+    }
+
+    if (jobs.value?.data?.length) {
+      LIVE_JOBS = jobs.value.data.map(j => ({
+        from: j.pickup_state, to: j.delivery_state,
+        crop: j.crop_name, qty: `${j.quantity} ${j.unit}`,
+        date: j.pickup_date ? new Date(j.pickup_date).toLocaleDateString('en-NG',{month:'short',day:'numeric'}) : 'Flexible',
+        pay: j.max_budget ? `₦${Number(j.max_budget).toLocaleString('en-NG')}` : 'Negotiable',
+        veh: j.vehicle_type || 'Any vehicle', poster: j.poster_name || 'Verified Farmer',
+        urgent: j.is_urgent,
+      }));
+      buildJobGrid();
+    }
+
+    if (exportP.value?.data?.length) {
+      LIVE_EXPORT = exportP.value.data;
+      buildExportTable();
+    }
+
+  } catch (e) {
+    console.warn('Live data load error:', e);
+    showApiStatus('offline');
+  }
+}
+
+function showApiStatus(state) {
+  const el = document.getElementById('apiStatus');
+  if (!el) return;
+  if (state === 'loading') { el.textContent = '⟳ Connecting to live data…'; el.style.color = 'rgba(255,255,255,.5)'; }
+  else if (state === 'live') { el.textContent = '● LIVE'; el.style.color = 'var(--lime)'; }
+  else { el.textContent = '○ Demo data'; el.style.color = 'rgba(255,255,255,.4)'; }
+}
+
+/* helper — pick live prices or fall back to static */
+function getPrices() { return LIVE_PRICES.length ? LIVE_PRICES : CROPS; }
+function getOpps()   { return LIVE_OPPS.length   ? LIVE_OPPS   : OPPS;  }
+function getDemands(){ return LIVE_DEMANDS.length ? LIVE_DEMANDS : DEMANDS; }
+function getJobs()   { return LIVE_JOBS.length    ? LIVE_JOBS   : JOBS_STATIC; }
+
+/* ===================== STATIC FALLBACK DATA ===================== */
 const CROPS=[
   {n:"Maize",e:"🌽",avg:87000,low:72000,high:102000,ch24:8.2,ch7:12.1,unit:"50kg bag",mkt:"Mile 12, Lagos",state:"Lagos",conf:94},
   {n:"Rice",e:"🍚",avg:145000,low:128000,high:168000,ch24:-2.1,ch7:-1.4,unit:"50kg bag",mkt:"Garki, Abuja",state:"Abuja",conf:91},
@@ -872,6 +1312,14 @@ const DEMANDS=[
   {crop:"Beans",qty:"80 bags",price:"₦115,000/bag",loc:"Ibadan",state:"Oyo",deadline:"Dec 1",buyer:"Bodija Wholesale Depot",ver:false,icon:"🫘"},
   {crop:"Cassava",qty:"30 tonnes",price:"₦40,000/bag",loc:"Enugu",state:"Enugu",deadline:"Dec 20",buyer:"Starch Industries SE",ver:true,icon:"🥔"}
 ];
+const JOBS_STATIC=[
+  {from:"Lagos",to:"Abuja",crop:"Maize",qty:"12 tonnes",date:"Dec 1",pay:"₦78,000",veh:"Heavy Truck",poster:"Adewale Farms",urgent:true},
+  {from:"Ibadan",to:"Kano",crop:"Yam",qty:"20 tonnes",date:"Dec 5",pay:"₦95,000",veh:"Heavy Truck",poster:"Oyo Agro Ltd",urgent:false},
+  {from:"Aba",to:"Lagos",crop:"Palm Oil",qty:"6 tonnes",date:"Nov 30",pay:"₦42,000",veh:"Medium Truck",poster:"Ariaria Coop",urgent:true},
+  {from:"Kano",to:"Abuja",crop:"Onion",qty:"8 tonnes",date:"Dec 3",pay:"₦52,000",veh:"Pickup/Van",poster:"Dawanau Traders",urgent:false},
+  {from:"Enugu",to:"Lagos",crop:"Cassava",qty:"15 tonnes",date:"Dec 7",pay:"₦68,000",veh:"Heavy Truck",poster:"Ogbete Market",urgent:false},
+  {from:"Lagos",to:"Port Harcourt",crop:"Rice",qty:"10 tonnes",date:"Dec 2",pay:"₦55,000",veh:"Medium Truck",poster:"Mile 12 Depot",urgent:true}
+];
 const HEAT={
   maize:{sell:[{m:"Lagos",s:"Lagos",p:"₦102k"},{m:"Abuja",s:"FCT",p:"₦98k"},{m:"Port Harcourt",s:"Rivers",p:"₦95k"},{m:"Enugu",s:"Enugu",p:"₦91k"}],buy:[{m:"Kaduna",s:"Kaduna",p:"₦72k"},{m:"Kano",s:"Kano",p:"₦75k"},{m:"Ibadan",s:"Oyo",p:"₦79k"},{m:"Aba",s:"Abia",p:"₦82k"}],bars:[72,75,79,82,84,91,95,98,102],labels:["Kaduna","Kano","Ibadan","Aba","Enugu","Enugu","PH","Abuja","Lagos"]},
   rice:{sell:[{m:"Abuja",s:"FCT",p:"₦168k"},{m:"Lagos",s:"Lagos",p:"₦162k"},{m:"Enugu",s:"Enugu",p:"₦155k"},{m:"PH",s:"Rivers",p:"₦150k"}],buy:[{m:"Kano",s:"Kano",p:"₦128k"},{m:"Ibadan",s:"Oyo",p:"₦132k"},{m:"Maiduguri",s:"Borno",p:"₦135k"},{m:"Aba",s:"Abia",p:"₦138k"}],bars:[128,132,135,138,150,155,162,168],labels:["Kano","Ibadan","Maiduguri","Aba","PH","Enugu","Lagos","Abuja"]},
@@ -902,7 +1350,10 @@ function chgLabel(v){return v>0?`↑ ${Math.abs(v).toFixed(1)}%`:v<0?`↓ ${Math
 
 /* ===================== TICKER ===================== */
 function buildTicker(){
-  const items=CROPS.map(c=>`
+  const prices=getPrices();
+  // deduplicate by crop name (show each crop once in ticker)
+  const seen=new Set(); const unique=prices.filter(c=>{if(seen.has(c.n))return false;seen.add(c.n);return true;});
+  const items=unique.map(c=>`
     <div class="ticker-item">
       <span class="t-name">${c.e} ${c.n}</span>
       <span class="t-price">${fmt(c.avg)}/${c.unit}</span>
@@ -915,7 +1366,8 @@ function buildTicker(){
 function buildHomePriceCards(){
   const el=document.getElementById('homePriceCards');
   if(!el)return;
-  el.innerHTML=CROPS.map(c=>`
+  const seen2=new Set();const cropList=getPrices().filter(c=>{if(seen2.has(c.n))return false;seen2.add(c.n);return true;});
+  el.innerHTML=cropList.map(c=>`
     <div class="crop-card" onclick="showPage('prices')" role="button" tabindex="0" aria-label="${c.n}: ${fmt(c.avg)} per ${c.unit}">
       <div class="cc-top">
         <div class="cc-icon" aria-hidden="true">${c.e}</div>
@@ -935,7 +1387,7 @@ function buildHomePriceCards(){
 function buildOppCards(){
   const el=document.getElementById('oppGrid');
   if(!el)return;
-  el.innerHTML=OPPS.map(o=>`
+  el.innerHTML=getOpps().map(o=>`
     <div class="opp-card" role="article">
       <div class="opp-type">${o.type}</div>
       <div class="opp-title">${o.icon} ${o.title}</div>
@@ -1009,9 +1461,10 @@ let activePriceChip='';
 function buildPriceChips(){
   const el=document.getElementById('priceChips');
   if(!el)return;
-  const all=['All',...CROPS.map(c=>c.n)];
+  const prices=getPrices();const seen3=new Set();const uCrops=prices.filter(c=>{if(seen3.has(c.n))return false;seen3.add(c.n);return true;});
+  const all=['All',...uCrops.map(c=>c.n)];
   el.innerHTML=all.map((c,i)=>`
-    <div class="chip ${i===0?'active':''}" onclick="setPriceChip(this,'${i===0?'':c}')" role="button" tabindex="0" aria-pressed="${i===0}">${i===0?c:(CROPS.find(x=>x.n===c)?.e+' '||'')+c}</div>`).join('');
+    <div class="chip ${i===0?'active':''}" onclick="setPriceChip(this,'${i===0?'':c}')" role="button" tabindex="0" aria-pressed="${i===0}">${i===0?c:(uCrops.find(x=>x.n===c)?.e+' '||'')+c}</div>`).join('');
 }
 function setPriceChip(el,crop){
   document.querySelectorAll('#priceChips .chip').forEach(c=>{c.classList.remove('active');c.setAttribute('aria-pressed','false')});
@@ -1024,7 +1477,7 @@ function filterPriceTable(){
   const trend=document.getElementById('trendFilter')?.value||'';
   const tbody=document.getElementById('priceTableBody');
   if(!tbody)return;
-  const filtered=CROPS.filter(c=>{
+  const filtered=getPrices().filter(c=>{
     const matchQ=!q||(c.n.toLowerCase().includes(q)||c.mkt.toLowerCase().includes(q)||c.state.toLowerCase().includes(q));
     const matchChip=!activePriceChip||c.n===activePriceChip;
     const matchState=!state||c.state.toLowerCase().includes(state);
@@ -1065,20 +1518,27 @@ function validateReportPrice(){
   else if(v>avg*1.4){h.textContent='⚠ Price seems high — will be flagged for review';h.className='form-hint warn'}
   else{h.textContent='✓ Price is within normal range — will be auto-approved';h.className='form-hint ok'}
 }
-function submitReport(){
-  const crop=document.getElementById('rCrop').value;
-  const price=document.getElementById('rPrice').value;
-  const market=document.getElementById('rMarket').value;
+async function submitReport(){
+  const cropEl=document.getElementById('rCrop');
+  const priceEl=document.getElementById('rPrice');
+  const marketEl=document.getElementById('rMarket');
+  const dateEl=document.getElementById('rDate');
+  const notesEl=document.getElementById('rNotes');
+  const unitEl=document.getElementById('rUnit');
+  const crop=cropEl?.value; const price=priceEl?.value;
+  const market=marketEl?.value; const date=dateEl?.value;
   if(!crop){showToast('Please select a crop');return}
   if(!price||parseFloat(price)<=0){showToast('Please enter a valid price');return}
   if(!market){showToast('Please select a market');return}
-  showToast('Price report submitted — pending community review');
-  document.getElementById('rCrop').value='';
-  document.getElementById('rPrice').value='';
-  document.getElementById('rMarket').value='';
-  document.getElementById('rNotes').value='';
-  document.getElementById('rPriceHint').textContent='Enter the price you observed today';
-  document.getElementById('rPriceHint').className='form-hint';
+  // Try to POST to API if we have a token (future auth)
+  // For now submit optimistically and show confirmation
+  showToast('✅ Price report submitted — pending community review');
+  if(cropEl)cropEl.value='';
+  if(priceEl)priceEl.value='';
+  if(marketEl)marketEl.value='';
+  if(notesEl)notesEl.value='';
+  const hint=document.getElementById('rPriceHint');
+  if(hint){hint.textContent='Enter the price you observed today';hint.className='form-hint';}
 }
 
 /* ===================== ALERTS ===================== */
@@ -1186,13 +1646,64 @@ function filterDemand(){
   const q=(document.getElementById('demandSearch')?.value||'').toLowerCase();
   const crop=document.getElementById('demandCropFilter')?.value||'';
   const state=document.getElementById('demandStateFilter')?.value||'';
-  const filtered=DEMANDS.filter(d=>{
+  const filtered=getDemands().filter(d=>{
     const matchQ=!q||(d.crop.toLowerCase().includes(q)||d.buyer.toLowerCase().includes(q)||d.loc.toLowerCase().includes(q));
     const matchCrop=!crop||d.crop===crop;
     const matchState=!state||d.state===state;
     return matchQ&&matchCrop&&matchState;
   });
   buildDemand(filtered);
+}
+
+/* ===================== TRANSPORT JOBS ===================== */
+function buildJobGrid(){
+  const el=document.getElementById('jobGrid');
+  if(!el)return;
+  const jobs=getJobs();
+  if(!jobs.length){el.innerHTML='<div style="color:var(--txt3);padding:20px;text-align:center;font-size:12px">No open jobs right now. Check back soon.</div>';return;}
+  el.innerHTML=jobs.map(j=>`
+    <div class="job-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:5px">${j.from}<span style="color:var(--limedark)">→</span>${j.to}</div>
+          <div style="font-size:10px;color:var(--txt3);margin-top:2px">${j.crop} · ${j.poster}</div>
+        </div>
+        ${j.urgent?'<span class="badge badge-red">Urgent</span>':'<span class="badge badge-green">Open</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <div style="font-size:11px;color:var(--txt2)">Cargo: <strong>${j.qty}</strong></div>
+        <div style="font-size:11px;color:var(--txt2)">Vehicle: <strong>${j.veh}</strong></div>
+        <div style="font-size:11px;color:var(--txt2)">Pickup: <strong>${j.date}</strong></div>
+        <div style="font-size:11px;color:var(--txt2)">Pay: <strong style="color:var(--g)">${j.pay}</strong></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-primary" style="padding:8px 12px;font-size:11px;margin-top:0" onclick="toast('Job accepted — farmer notified!')">Accept job</button>
+        <button class="btn-outline" style="padding:7px 10px;font-size:11px" onclick="toast('Route map loading...')">View route</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ===================== EXPORT TABLE ===================== */
+function buildExportTable(){
+  const el=document.getElementById('exportTableBody');
+  if(!el)return;
+  const data=LIVE_EXPORT.length?LIVE_EXPORT:[
+    {crop_name:'Cocoa',   emoji:'🍫',local_price:890000,export_price:1180000,premium_pct:32.5,grade_required:'Grade 1 fermented',best_port:'Apapa, Lagos'},
+    {crop_name:'Sesame',  emoji:'🌿',local_price:820000,export_price:1060000,premium_pct:29.3,grade_required:'99% purity, no aflatoxin',best_port:'Apapa, Lagos'},
+    {crop_name:'Cashew',  emoji:'🥜',local_price:1200000,export_price:1540000,premium_pct:28.3,grade_required:'Grade W240/W320',best_port:'Tin Can Island'},
+    {crop_name:'Hibiscus',emoji:'🌺',local_price:680000,export_price:920000,premium_pct:35.3,grade_required:'≤5% moisture, deep red',best_port:'Kano dry port'},
+    {crop_name:'Soybean', emoji:'🫘',local_price:135000,export_price:165000,premium_pct:22.2,grade_required:'≥40% protein, non-GMO',best_port:'Beja port, Kano'},
+  ];
+  el.innerHTML=data.map(e=>`
+    <tr>
+      <td><div class="td-crop-cell"><span class="td-icon">${e.emoji||'🌾'}</span>${e.crop_name}</div></td>
+      <td class="td-mono">₦${Number(e.local_price).toLocaleString('en-NG')}</td>
+      <td class="td-mono" style="color:var(--gm);font-weight:600">₦${Number(e.export_price).toLocaleString('en-NG')}</td>
+      <td><span class="badge badge-green">+${parseFloat(e.premium_pct).toFixed(1)}%</span></td>
+      <td style="color:var(--txt2);font-size:11px">${e.grade_required||'—'}</td>
+      <td style="color:var(--txt2);font-size:11px">${e.best_port||'—'}</td>
+      <td><button class="btn-sm btn-sm-g" onclick="toast('Connecting to export agents...')">Connect</button></td>
+    </tr>`).join('');
 }
 
 /* ===================== ADMIN ===================== */
@@ -1230,25 +1741,26 @@ function adminAction(i,action){
 }
 
 /* ===================== PAGE ROUTING ===================== */
-const PAGE_NAV={home:'mbn-home',prices:'mbn-prices',report:'mbn-report',alerts:'mbn-alerts',demand:'mbn-demand'};
+const PAGE_NAV={home:'mbn-home',prices:'mbn-prices',report:'mbn-report',alerts:'mbn-alerts',demand:'mbn-demand',transport:'mbn-transport',export:'mbn-demand',finance:'mbn-demand',heatmap:'mbn-prices',admin:'mbn-demand'};
 function showPage(p){
   document.querySelectorAll('.page-wrap').forEach(x=>x.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
   if(pg)pg.classList.add('active');
-  document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.mob-drawer-link').forEach(x=>x.classList.remove('active'));
-  const pages=['home','prices','report','alerts','heatmap','demand','admin'];
-  const idx=pages.indexOf(p);
-  const navLinks=document.querySelectorAll('.nav-link');
-  if(navLinks[idx])navLinks[idx].classList.add('active');
-  const drawerLinks=document.querySelectorAll('.mob-drawer-link');
-  if(drawerLinks[idx])drawerLinks[idx].classList.add('active');
+  // update nav active state by matching onclick text
+  document.querySelectorAll('.nav-link').forEach(x=>{
+    x.classList.toggle('active', x.getAttribute('onclick')?.includes(`'${p}'`));
+  });
+  document.querySelectorAll('.mob-drawer-link').forEach(x=>{
+    x.classList.toggle('active', x.getAttribute('onclick')?.includes(`'${p}'`));
+  });
   document.querySelectorAll('.mob-nav-item').forEach(x=>x.classList.remove('active'));
   const mbn=document.getElementById(PAGE_NAV[p]||'');
   if(mbn)mbn.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
-  if(p==='home'){setTimeout(buildPriceChart,80)}
-  if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize')}
+  if(p==='home'){setTimeout(buildPriceChart,80);}
+  if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
+  if(p==='transport'){buildJobGrid();}
+  if(p==='export'){buildExportTable();}
 }
 
 /* ===================== DRAWER ===================== */
@@ -1275,6 +1787,264 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
+// alias so new pages can call toast() directly
+const toast=showToast;
+
+/* ============================================================
+   AUTH — login, register, session, user state
+   ============================================================ */
+let currentUser = null;
+
+// ── Restore session on load ──
+(function restoreSession(){
+  const token = localStorage.getItem('agrios_token');
+  const user  = localStorage.getItem('agrios_user');
+  if(token && user){
+    try {
+      AUTH_TOKEN = token;
+      currentUser = JSON.parse(user);
+      updateNavForUser(currentUser);
+    } catch(e){ localStorage.removeItem('agrios_user'); }
+  }
+})();
+
+function updateNavForUser(user){
+  const signIn = document.getElementById('navSigninBtn');
+  const avatar = document.getElementById('navAvatar');
+  const proBtn = document.getElementById('navProBtn');
+  if(!user){
+    if(signIn) signIn.style.display='';
+    if(avatar) avatar.style.display='none';
+    if(proBtn) proBtn.style.display='none';
+    return;
+  }
+  if(signIn) signIn.style.display='none';
+  if(avatar){
+    avatar.style.display='flex';
+    const initials = user.full_name ? user.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : 'FK';
+    avatar.textContent = initials;
+  }
+  if(proBtn && user.subscription_tier==='free') proBtn.style.display='';
+  // update user menu
+  const umName = document.getElementById('umName');
+  const umEmail = document.getElementById('umEmail');
+  const umTier = document.getElementById('umTier');
+  if(umName) umName.textContent = user.full_name || 'User';
+  if(umEmail) umEmail.textContent = user.email || '';
+  if(umTier){
+    const tier = user.subscription_tier || 'free';
+    umTier.textContent = tier.charAt(0).toUpperCase()+tier.slice(1);
+    umTier.className = tier==='pro'||tier==='business' ? 'badge badge-lime' : 'badge badge-green';
+  }
+}
+
+// ── Modal open/close ──
+function openAuth(tab){
+  const modal = document.getElementById('authModal');
+  if(modal) modal.classList.add('open');
+  if(tab) switchAuthTab(tab);
+  clearAuthMessages();
+  document.body.style.overflow='hidden';
+}
+function closeAuth(){
+  const modal = document.getElementById('authModal');
+  if(modal) modal.classList.remove('open');
+  document.body.style.overflow='';
+}
+function closeAuthIfOutside(e){
+  if(e.target===document.getElementById('authModal')) closeAuth();
+}
+function switchAuthTab(tab){
+  ['login','register'].forEach(t=>{
+    document.getElementById('tab-'+t)?.classList.toggle('active',t===tab);
+    document.getElementById('section-'+t)?.classList.toggle('active',t===tab);
+    document.getElementById('tab-'+t)?.setAttribute('aria-selected',t===tab);
+  });
+  clearAuthMessages();
+}
+function clearAuthMessages(){
+  const err = document.getElementById('authError');
+  const suc = document.getElementById('authSuccess');
+  if(err){err.textContent='';err.classList.remove('show');}
+  if(suc){suc.textContent='';suc.classList.remove('show');}
+}
+function showAuthError(msg){
+  const el = document.getElementById('authError');
+  if(el){el.textContent=msg;el.classList.add('show');}
+}
+function showAuthSuccess(msg){
+  const el = document.getElementById('authSuccess');
+  if(el){el.textContent=msg;el.classList.add('show');}
+}
+
+// ── Login ──
+async function doLogin(){
+  const email    = document.getElementById('loginEmail')?.value?.trim();
+  const password = document.getElementById('loginPassword')?.value;
+  const btn      = document.getElementById('loginBtn');
+  clearAuthMessages();
+  if(!email||!password){ showAuthError('Please enter your email and password'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span>Signing in…</span>'; }
+  try {
+    const res = await fetch(API+'/auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Login failed');
+    AUTH_TOKEN = data.data.tokens.access;
+    currentUser = data.data.user;
+    localStorage.setItem('agrios_token', AUTH_TOKEN);
+    localStorage.setItem('agrios_user', JSON.stringify(currentUser));
+    updateNavForUser(currentUser);
+    closeAuth();
+    showToast('Welcome back, '+currentUser.full_name.split(' ')[0]+'! 🌿');
+    loadLiveData(); // reload with authenticated context
+  } catch(e){
+    showAuthError(e.message || 'Login failed. Check your email and password.');
+  } finally {
+    if(btn){ btn.disabled=false; btn.innerHTML='<span>Sign in</span>'; }
+  }
+}
+
+// ── Register ──
+async function doRegister(){
+  const full_name = document.getElementById('regName')?.value?.trim();
+  const email     = document.getElementById('regEmail')?.value?.trim();
+  const phone     = document.getElementById('regPhone')?.value?.trim();
+  const state     = document.getElementById('regState')?.value;
+  const role      = document.getElementById('regRole')?.value || 'farmer';
+  const password  = document.getElementById('regPassword')?.value;
+  const btn       = document.getElementById('registerBtn');
+  clearAuthMessages();
+  if(!full_name){ showAuthError('Please enter your full name'); return; }
+  if(!email){ showAuthError('Please enter your email address'); return; }
+  if(!password||password.length<8){ showAuthError('Password must be at least 8 characters'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span>Creating account…</span>'; }
+  try {
+    const res = await fetch(API+'/auth/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({full_name,email,password,phone,state,role})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Registration failed');
+    AUTH_TOKEN = data.data.tokens.access;
+    currentUser = data.data.user;
+    localStorage.setItem('agrios_token', AUTH_TOKEN);
+    localStorage.setItem('agrios_user', JSON.stringify(currentUser));
+    updateNavForUser(currentUser);
+    showAuthSuccess('Account created! Welcome to Agrios 🌿');
+    setTimeout(()=>{ closeAuth(); showToast('Account created! Welcome, '+full_name.split(' ')[0]+'!'); loadLiveData(); }, 1500);
+  } catch(e){
+    showAuthError(e.message || 'Registration failed. Please try again.');
+  } finally {
+    if(btn){ btn.disabled=false; btn.innerHTML='<span>Create free account</span>'; }
+  }
+}
+
+// ── Logout ──
+function doLogout(){
+  AUTH_TOKEN = null;
+  currentUser = null;
+  localStorage.removeItem('agrios_token');
+  localStorage.removeItem('agrios_user');
+  updateNavForUser(null);
+  closeUserMenu();
+  showToast('Signed out. See you soon!');
+}
+
+// ── User menu ──
+function toggleUserMenu(){
+  if(!currentUser){ openAuth(); return; }
+  document.getElementById('userMenu')?.classList.toggle('open');
+}
+function closeUserMenu(){ document.getElementById('userMenu')?.classList.remove('open'); }
+document.addEventListener('click', e=>{
+  const menu = document.getElementById('userMenu');
+  const avatar = document.getElementById('navAvatar');
+  if(menu && !menu.contains(e.target) && e.target!==avatar) closeUserMenu();
+});
+
+// ── Upgrade prompt ──
+function upgradePrompt(){
+  closeUserMenu();
+  showToast('Upgrade to Pro — ₦2,500/month · Paystack payment coming soon!');
+}
+
+// ── Auth keyboard support ──
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    closeAuth();
+    closeUserMenu();
+  }
+  if(e.key==='Enter'){
+    const modal = document.getElementById('authModal');
+    if(modal?.classList.contains('open')){
+      const activeSection = document.querySelector('.auth-form-section.active');
+      if(activeSection?.id==='section-login') doLogin();
+      if(activeSection?.id==='section-register') doRegister();
+    }
+  }
+});
+
+/* ============================================================
+   PWA — install prompt + service worker registration
+   ============================================================ */
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show banner after 30s on first visit, or if user hasn't dismissed
+  if(!localStorage.getItem('agrios_install_dismissed')){
+    setTimeout(showInstallBanner, 30000);
+  }
+});
+
+window.addEventListener('appinstalled', ()=>{
+  hideInstallBanner();
+  deferredInstallPrompt = null;
+  showToast('Agrios installed! 🎉 Open it from your home screen.');
+  localStorage.setItem('agrios_installed', '1');
+});
+
+function showInstallBanner(){
+  const banner = document.getElementById('installBanner');
+  if(banner && !localStorage.getItem('agrios_installed')) banner.classList.add('show');
+}
+function hideInstallBanner(){
+  document.getElementById('installBanner')?.classList.remove('show');
+}
+function dismissInstall(){
+  hideInstallBanner();
+  localStorage.setItem('agrios_install_dismissed', '1');
+}
+async function installPWA(){
+  if(!deferredInstallPrompt){ 
+    // iOS — show manual instructions
+    showToast('On iPhone: tap Share → "Add to Home Screen"');
+    hideInstallBanner();
+    return;
+  }
+  hideInstallBanner();
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if(outcome==='accepted') showToast('Installing Agrios… 🌿');
+  deferredInstallPrompt = null;
+}
+
+// Register service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      console.log('SW registered:', reg.scope);
+    }).catch(err=>{
+      console.log('SW registration failed (not critical):', err.message);
+    });
+  });
+}
 
 /* ===================== KEYBOARD NAVIGATION ===================== */
 document.addEventListener('keydown',e=>{
@@ -1289,6 +2059,7 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   const today=new Date().toISOString().split('T')[0];
   const dateEl=document.getElementById('rDate');
   if(dateEl)dateEl.value=today;
+  // render with static data immediately (fast first paint)
   buildTicker();
   buildHomePriceCards();
   buildOppCards();
@@ -1296,11 +2067,22 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   buildPriceChips();
   filterPriceTable();
   buildAlerts();
-  buildDemand(DEMANDS);
+  buildDemand(getDemands());
+  buildJobGrid();
   buildHeatmap('maize');
   buildAdmin();
+  buildExportTable();
   setTimeout(buildPriceChart,100);
   document.getElementById('mobDrawer').style.display='none';
+  // Handle PWA shortcut deep links (?page=prices etc)
+  const urlParams = new URLSearchParams(window.location.search);
+  const deepPage = urlParams.get('page');
+  if(deepPage) showPage(deepPage);
+
+  // then fetch live data from API and re-render (replaces static data)
+  loadLiveData();
+  // refresh prices every 2 minutes to stay current
+  setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveData();}, 120000);
 })();
 </script>
 </body>
