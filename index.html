@@ -1196,14 +1196,23 @@ async function loadLiveData() {
       apiFetch('/export/prices'),
     ]);
 
+    // Debug: log first API record to console so we can see field names
     if (summary.value?.data?.length) {
+      console.log('[Agrios] API price sample:', JSON.stringify(summary.value.data[0]));
       LIVE_PRICES = summary.value.data.map(p => ({
-        n: p.crop_name, e: p.emoji,
-        avg: parseFloat(p.price_avg), low: parseFloat(p.price_low), high: parseFloat(p.price_high),
-        ch24: parseFloat(p.change_24h_pct) || 0, ch7: 0,
-        unit: p.unit, mkt: p.market, state: p.state, conf: p.confidence_score,
+        n: p.crop_name || p.name || 'Unknown',
+        e: p.emoji || '🌾',
+        avg: parseFloat(p.price_avg) || 0,
+        low: parseFloat(p.price_low) || 0,
+        high: parseFloat(p.price_high) || 0,
+        ch24: (isFinite(parseFloat(p.change_24h_pct)) ? parseFloat(p.change_24h_pct) : 0),
+        ch7:  (isFinite(parseFloat(p.change_7d_pct))  ? parseFloat(p.change_7d_pct)  : 0),
+        unit: p.unit || '50kg bag',
+        mkt: p.market_name || p.market || p.city || 'Nigeria',
+        state: p.state || '',
+        conf: parseInt(p.confidence_score) || 80,
         updated: p.updated_at,
-      }));
+      })).filter(p => p.n !== 'Unknown' && p.avg > 0);
       // rebuild UI with live data
       buildTicker();
       buildHomePriceCards();
@@ -1351,14 +1360,21 @@ function chgLabel(v){return v>0?`↑ ${Math.abs(v).toFixed(1)}%`:v<0?`↓ ${Math
 /* ===================== TICKER ===================== */
 function buildTicker(){
   const prices=getPrices();
-  // deduplicate by crop name (show each crop once in ticker)
-  const seen=new Set(); const unique=prices.filter(c=>{if(seen.has(c.n))return false;seen.add(c.n);return true;});
-  const items=unique.map(c=>`
-    <div class="ticker-item">
-      <span class="t-name">${c.e} ${c.n}</span>
+  const seen=new Set();
+  const unique=prices.filter(c=>{
+    if(!c.n||c.n==='Unknown'||!c.avg||c.avg<=0)return false;
+    if(seen.has(c.n))return false;
+    seen.add(c.n);return true;
+  });
+  if(!unique.length)return;
+  const items=unique.map(c=>{
+    const chg=isFinite(c.ch24)?c.ch24:0;
+    return`<div class="ticker-item">
+      <span class="t-name">${c.e||'🌾'} ${c.n}</span>
       <span class="t-price">${fmt(c.avg)}/${c.unit}</span>
-      <span class="${c.ch24>=0?'t-up':'t-dn'}">${c.ch24>=0?'↑':'↓'}${Math.abs(c.ch24).toFixed(1)}%</span>
-    </div>`).join('');
+      <span class="${chg>=0?'t-up':'t-dn'}">${chg>=0?'↑':'↓'}${Math.abs(chg).toFixed(1)}%</span>
+    </div>`;
+  }).join('');
   document.getElementById('ticker').innerHTML=items+items;
 }
 
@@ -1366,7 +1382,12 @@ function buildTicker(){
 function buildHomePriceCards(){
   const el=document.getElementById('homePriceCards');
   if(!el)return;
-  const seen2=new Set();const cropList=getPrices().filter(c=>{if(seen2.has(c.n))return false;seen2.add(c.n);return true;});
+  const seen2=new Set();
+  const cropList=getPrices().filter(c=>{
+    if(!c.n||c.n==='Unknown'||!c.avg||c.avg<=0)return false;
+    if(seen2.has(c.n))return false;
+    seen2.add(c.n);return true;
+  });
   el.innerHTML=cropList.map(c=>`
     <div class="crop-card" onclick="showPage('prices')" role="button" tabindex="0" aria-label="${c.n}: ${fmt(c.avg)} per ${c.unit}">
       <div class="cc-top">
