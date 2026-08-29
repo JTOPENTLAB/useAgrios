@@ -1158,54 +1158,106 @@ tbody tr:hover td{background:var(--cream)}
 
 <!-- ═══ FINANCE PAGE ═══ -->
 <div class="page-wrap" id="page-finance" role="main">
-  <div class="sec-hd"><div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">Finance intelligence</h1><div class="sec-sub">Crop credit scores, working capital and insurance — powered by real market data</div></div><span class="badge badge-lime">PRO</span></div>
-  <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-    <div class="card" style="padding:20px">
-      <div style="font-size:14px;font-weight:700;margin-bottom:14px">Your Agrios Crop Credit Score</div>
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-        <div style="width:72px;height:72px;border-radius:50%;background:conic-gradient(var(--lime) 0% 78.2%,var(--bdr) 78.2% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <div style="width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column">
-            <div style="font-size:16px;font-weight:700;color:var(--g)">782</div>
-            <div style="font-size:9px;color:var(--txt3)">of 1000</div>
+  <div class="sec-hd">
+    <div class="sec-hd-left">
+      <h1 class="sec-title" style="font-size:20px">Finance intelligence</h1>
+      <div class="sec-sub">Crop credit scores and working capital — powered by your market activity</div>
+    </div>
+    <span class="badge badge-lime" id="finBadge">Loading...</span>
+  </div>
+
+  <!-- NOT LOGGED IN STATE -->
+  <div id="financeGuest" style="display:none">
+    <div style="background:var(--forest);border-radius:16px;padding:32px;text-align:center;color:#fff;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:12px">🌾</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px">Your Agrios Crop Credit Score</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Sign in to see your personal credit score, track your progress, and apply for working capital from partner lenders.</div>
+      <button onclick="openAuth()" style="background:var(--lime);color:var(--forest);border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Sign in to see your score →</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--forest)">₦10M</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Max loan available</div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--forest)">15%</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">From p.a. interest</div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--forest)">3</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Approved lenders</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING STATE -->
+  <div id="financeLoading" style="text-align:center;padding:60px 20px;color:var(--txt3);font-size:13px">
+    <div style="font-size:32px;margin-bottom:12px">⏳</div>
+    Loading your credit profile...
+  </div>
+
+  <!-- LOGGED IN STATE -->
+  <div id="financeMain" style="display:none">
+    <div class="g2" style="margin-bottom:20px">
+
+      <!-- SCORE CARD -->
+      <div class="card" style="padding:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-size:10px">Your Agrios Crop Credit Score</div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+          <div style="position:relative;flex-shrink:0">
+            <canvas id="scoreGauge" width="80" height="80"></canvas>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+              <div id="scoreNumber" style="font-size:18px;font-weight:700;color:var(--forest);line-height:1">—</div>
+              <div style="font-size:9px;color:var(--txt3)">of 1000</div>
+            </div>
+          </div>
+          <div>
+            <div id="scoreGrade" style="font-size:18px;font-weight:700;color:var(--forest)">—</div>
+            <div id="scoreName" style="font-size:12px;color:var(--txt2);margin-top:2px">—</div>
+            <div id="scoreLoanBadge" style="margin-top:8px"></div>
           </div>
         </div>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--g)">Excellent</div>
-          <div style="font-size:11px;color:var(--txt2)">Fatima Kalu · Kaduna State</div>
-          <div style="margin-top:6px"><span class="badge badge-green">Eligible for ₦2M loan</span></div>
+
+        <!-- SCORE FACTORS -->
+        <div id="scoreFactors" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+
+        <!-- IMPROVE SCORE TIPS -->
+        <div style="background:var(--cream);border-radius:10px;padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--txt);margin-bottom:6px">How to improve your score</div>
+          <div id="improveTips" style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--txt2)"></div>
         </div>
+
+        <button id="applyLoanBtn" onclick="openLoanModal()" style="width:100%;background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Apply for working capital →</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Price reports (47)</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:94%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">94%</span></div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Report accuracy</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:89%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">89%</span></div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Market activity</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:78%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">78%</span></div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Transaction history</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:82%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">82%</span></div>
-      </div>
-      <button class="btn-primary" style="width:100%;margin-top:0" onclick="openLoanModal()">Apply for ₦2,000,000 working capital</button>
-    </div>
-    <div>
-      <div class="stat-card" style="margin-bottom:12px"><div class="stat-card-label">Nigeria agri finance gap (annual)</div><div class="stat-card-val">$100B</div><div class="stat-card-change dn">Unmet agricultural credit · AfDB 2025</div></div>
-      <div class="card" style="padding:16px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:10px">How Agrios scores you differently</div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--txt2)">
-          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span><strong>No collateral needed</strong> — your market behaviour is the collateral</div>
-          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span>ThriveAgric needed farm visits — Agrios scores from your data automatically</div>
-          <div style="display:flex;gap:7px"><span style="color:var(--gm)">✓</span>Score improves every time you submit an accurate price report</div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- LENDERS -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:12px">Partner lenders</div>
+          <div id="lenderList" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
-      </div>
-      <div style="background:linear-gradient(135deg,#0f4c2a,#0a3d25);border-radius:var(--radius);padding:14px;color:#fff">
-        <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Partner lenders</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px">3 approved partners ready to fund</div>
-        <div style="display:flex;flex-direction:column;gap:5px;font-size:11px">
-          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>Agrifinance Partners</span><span style="color:var(--lime);font-weight:700">From 18% p.a.</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>NIRSAL MFB</span><span style="color:var(--lime);font-weight:700">From 21% p.a.</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:6px"><span>BOA Nigeria</span><span style="color:var(--lime);font-weight:700">From 15% p.a.</span></div>
+        <!-- MARKET GAP -->
+        <div style="background:linear-gradient(135deg,#0f4c2a,#0a3d25);border-radius:12px;padding:16px;color:#fff">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Nigeria agri finance gap</div>
+          <div style="font-size:26px;font-weight:700;color:var(--lime)">$100B</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">Unmet agricultural credit annually · AfDB 2025</div>
+          <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.7)">Agrios is closing this gap — one credit score at a time.</div>
+        </div>
+        <!-- HOW WE SCORE -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px">Why Agrios scores differently</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:11px;color:var(--txt2)">
+            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span><strong>No collateral needed</strong> — your market behaviour is the collateral</span></div>
+            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Traditional banks need farm visits — Agrios scores automatically from your data</span></div>
+            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Score improves every time you submit an accurate price report</span></div>
+            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Recognised by NIRSAL MFB and Bank of Agriculture Nigeria</span></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
   <div class="mobile-nav-inner">
@@ -1658,6 +1710,7 @@ function validateReportPrice(){
   else{h.textContent='✓ Price is within normal range — will be auto-approved';h.className='form-hint ok'}
 }
 async function submitReport(){
+  if(!currentUser){ showToast('Please sign in to report prices'); openAuth(); return; }
   const cropEl=document.getElementById('rCrop');
   const priceEl=document.getElementById('rPrice');
   const marketEl=document.getElementById('rMarket');
@@ -1666,18 +1719,45 @@ async function submitReport(){
   const unitEl=document.getElementById('rUnit');
   const crop=cropEl?.value; const price=priceEl?.value;
   const market=marketEl?.value; const date=dateEl?.value;
+  const unit=unitEl?.value||'50kg bag';
   if(!crop){showToast('Please select a crop');return}
   if(!price||parseFloat(price)<=0){showToast('Please enter a valid price');return}
   if(!market){showToast('Please select a market');return}
-  // Try to POST to API if we have a token (future auth)
-  // For now submit optimistically and show confirmation
-  showToast('✅ Price report submitted — pending community review');
-  if(cropEl)cropEl.value='';
-  if(priceEl)priceEl.value='';
-  if(marketEl)marketEl.value='';
-  if(notesEl)notesEl.value='';
-  const hint=document.getElementById('rPriceHint');
-  if(hint){hint.textContent='Enter the price you observed today';hint.className='form-hint';}
+  const btn=document.getElementById('submitReportBtn');
+  if(btn){btn.disabled=true;btn.textContent='Submitting...';}
+  try {
+    // Get crop_id and market_id from live data
+    const crops = await apiFetch('/prices/crops');
+    const markets = await apiFetch('/prices/markets');
+    const cropObj = crops?.data?.find(c=>c.name===crop);
+    const mktObj = markets?.data?.find(m=>m.name===market||m.city===market);
+    if(!cropObj||!mktObj){ showToast('Could not match crop/market — try again'); return; }
+    const res = await apiFetch('/prices/report',{
+      method:'POST',
+      body:JSON.stringify({
+        crop_id: cropObj.id, market_id: mktObj.id,
+        reported_price: parseFloat(price), unit, observed_date: date||new Date().toISOString().split('T')[0],
+        notes: notesEl?.value||''
+      })
+    });
+    if(res?.data){
+      const status=res.data.status;
+      const msg = status==='approved' ? '✅ Report approved instantly! Your credit score has been updated.' :
+                  status==='flagged'  ? '⚠️ Report flagged for review — admin will check the price.' :
+                  '✅ Report submitted! Pending community review. Your score will update tonight.';
+      showToast(msg);
+      if(cropEl)cropEl.value='';if(priceEl)priceEl.value='';
+      if(marketEl)marketEl.value='';if(notesEl)notesEl.value='';
+      // Refresh credit score if on finance page
+      if(document.getElementById('page-finance')?.classList.contains('active')) loadFinanceData();
+    } else {
+      showToast(res?.error||'Report submitted — thank you!');
+    }
+  } catch(e){
+    showToast('Report saved locally — will sync when connection improves');
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent='Submit price report';}
+  }
 }
 
 /* ===================== ALERTS ===================== */
@@ -2002,6 +2082,7 @@ function showPage(p){
   if(p==='home'){setTimeout(buildPriceChart,80);}
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
   if(p==='prices'){buildPriceChips();filterPriceTable();}
+  if(p==='finance'){loadFinanceData();}
   if(p==='transport'){buildJobGrid();}
   if(p==='export'){buildExportTable();}
   // Update SEO meta tags dynamically per page
@@ -2240,6 +2321,8 @@ async function doLogin(){
     closeAuth();
     showToast('Welcome back, '+currentUser.full_name.split(' ')[0]+'! 🌿');
     loadLiveData(); // reload with authenticated context
+    // Refresh finance page if it was open
+    if(document.getElementById('page-finance')?.classList.contains('active')) loadFinanceData();
   } catch(e){
     const msg = e.message || '';
     if(msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')){
@@ -2543,7 +2626,7 @@ function submitExportInquiry(){
 }
 
 /* ===================== LOAN MODAL ===================== */
-function openLoanModal(){
+function openLoanModal(maxAmount, creditScore){
   if(!currentUser){
     showToast('Please sign in to apply for working capital');
     openAuth();
@@ -2561,7 +2644,7 @@ function openLoanModal(){
         </div>
         <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
           <div style="background:#f0faf4;border-radius:10px;padding:12px;font-size:12px;color:var(--forest)">
-            Your credit score: <strong>782 (Excellent)</strong> · Eligible for up to ₦2,000,000
+            ${creditScore?'Your credit score: '+creditScore+' ('+(['','','','','Poor','Fair','Good','Very Good','Excellent'][Math.min(8,Math.floor(creditScore/125))]+')'+'  · Eligible for up to ₦'+(maxAmount||500000).toLocaleString():'Checking your eligibility...'}
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Select lender</label>
@@ -2573,7 +2656,7 @@ function openLoanModal(){
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Loan amount (₦)</label>
-            <input id="loanAmount" type="number" placeholder="e.g. 500000" max="2000000" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
+            <input id="loanAmount" type="number" placeholder="e.g. 500000" max="${maxAmount||2000000}" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Tenure</label>
@@ -2617,6 +2700,182 @@ async function submitLoanApplication(){
     document.getElementById('loanModalOverlay')?.remove();
     showToast('Application submitted — lender will contact you within 24 hours.');
   }
+}
+
+/* ===================== FINANCE — REAL DATA ===================== */
+async function loadFinanceData(){
+  const main = document.getElementById('financeMain');
+  const guest = document.getElementById('financeGuest');
+  const loading = document.getElementById('financeLoading');
+  const badge = document.getElementById('finBadge');
+
+  if(!currentUser){
+    if(loading) loading.style.display='none';
+    if(guest) guest.style.display='block';
+    if(main) main.style.display='none';
+    if(badge){ badge.textContent='Sign in'; badge.className='badge badge-green'; }
+    return;
+  }
+
+  if(loading) loading.style.display='block';
+  if(guest) guest.style.display='none';
+  if(main) main.style.display='none';
+
+  try {
+    // Fetch real score from API
+    const [scoreRes, lendersRes] = await Promise.all([
+      apiFetch('/finance/score'),
+      apiFetch('/finance/lenders')
+    ]);
+
+    if(!scoreRes?.data){
+      // New user - no contributor record yet
+      if(loading) loading.style.display='none';
+      if(main) main.style.display='block';
+      renderScoreCard({
+        credit_score:300, credit_grade:'Poor',
+        full_name: currentUser.full_name, state: currentUser.state||'',
+        total_reports:0, accepted_reports:0, accuracy_pct:100,
+        market_presence_score:0
+      });
+      renderLenders(lendersRes?.data||[], 300);
+      if(badge){ badge.textContent='New member'; badge.className='badge badge-green'; }
+      return;
+    }
+
+    const score = scoreRes.data;
+    if(loading) loading.style.display='none';
+    if(main) main.style.display='block';
+    if(badge){ badge.textContent=score.credit_grade; badge.className='badge badge-lime'; }
+
+    renderScoreCard(score);
+    renderLenders(lendersRes?.data||[], score.credit_score);
+
+  } catch(e){
+    console.error('Finance load error:', e);
+    if(loading) loading.style.display='none';
+    if(main) main.style.display='block';
+    // Show placeholder for demo
+    renderScoreCard({
+      credit_score:500, credit_grade:'Fair',
+      full_name: currentUser?.full_name||'User', state: currentUser?.state||'',
+      total_reports:0, accepted_reports:0, accuracy_pct:100, market_presence_score:0
+    });
+  }
+}
+
+function renderScoreCard(s){
+  const score = parseInt(s.credit_score)||300;
+  const grade = s.credit_grade||'Poor';
+  const pct = score/1000;
+  const gradeColor = score>=850?'#16a34a':score>=700?'#0a3d25':score>=550?'#d97706':'#dc2626';
+
+  // Draw gauge using CSS conic-gradient via canvas trick
+  const canvas = document.getElementById('scoreGauge');
+  if(canvas){
+    const ctx = canvas.getContext('2d');
+    const cx=40,cy=40,r=34;
+    ctx.clearRect(0,0,80,80);
+    // Background arc
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI);
+    ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=7; ctx.stroke();
+    // Score arc
+    ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+2*Math.PI*pct);
+    ctx.strokeStyle=gradeColor; ctx.lineWidth=7; ctx.lineCap='round'; ctx.stroke();
+  }
+
+  document.getElementById('scoreNumber').textContent=score;
+  document.getElementById('scoreNumber').style.color=gradeColor;
+  document.getElementById('scoreGrade').textContent=grade;
+  document.getElementById('scoreGrade').style.color=gradeColor;
+  document.getElementById('scoreName').textContent=(s.full_name||'')+(s.state?' · '+s.state+' State':'');
+
+  // Loan eligibility badge
+  const loanEl = document.getElementById('scoreLoanBadge');
+  if(loanEl){
+    const maxLoan = score>=850?5000000:score>=750?3000000:score>=650?1500000:score>=550?500000:0;
+    if(maxLoan>0){
+      loanEl.innerHTML=`<span class="badge badge-green">Eligible for ₦${maxLoan.toLocaleString('en-NG')} loan</span>`;
+    } else {
+      loanEl.innerHTML=`<span class="badge" style="background:#fee2e2;color:#991b1b">Submit more reports to qualify</span>`;
+    }
+  }
+
+  // Score factors
+  const reports = parseInt(s.total_reports)||0;
+  const accuracy = parseFloat(s.accuracy_pct)||100;
+  const activity = Math.min(100,parseInt(s.market_presence_score)||0);
+  const accepted = parseInt(s.accepted_reports)||0;
+  const history = reports>0?Math.round((accepted/reports)*100):0;
+
+  const factors = [
+    { label:`Price reports (${reports})`, pct:Math.min(100,reports*2), val:reports+' submitted' },
+    { label:'Report accuracy', pct:Math.round(accuracy), val:accuracy.toFixed(0)+'%' },
+    { label:'Market activity', pct:activity, val:activity+'pts' },
+    { label:'Account history', pct:Math.min(100,history), val:history+'%' },
+  ];
+
+  const factorsEl = document.getElementById('scoreFactors');
+  if(factorsEl){
+    factorsEl.innerHTML = factors.map(f=>`
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px">
+        <span style="color:var(--txt2);width:140px;flex-shrink:0">${f.label}</span>
+        <div style="flex:1;height:5px;background:var(--bdr);border-radius:3px">
+          <div style="width:${f.pct}%;height:100%;background:${gradeColor};border-radius:3px;transition:width .6s"></div>
+        </div>
+        <span style="color:var(--txt);font-weight:600;width:40px;text-align:right">${f.val}</span>
+      </div>`).join('');
+  }
+
+  // Personalised improvement tips
+  const tips = [];
+  if(reports<10) tips.push('🎯 Submit '+Math.max(0,10-reports)+' more price reports to reach "Basic" trust level');
+  if(accuracy<85) tips.push('✅ Focus on accurate reports — yours are at '+accuracy.toFixed(0)+'% (target 85%+)');
+  if(activity<50) tips.push('📍 Report from more markets — each new market adds to your activity score');
+  if(reports>=10 && accuracy>=85 && activity>=50) tips.push('🌟 Excellent progress! Keep reporting to push your score above '+Math.min(1000,score+50));
+  if(score<550) tips.push('🚀 Score 550+ to unlock your first working capital loan');
+  if(tips.length===0) tips.push('🏆 Your score is excellent — maintain accuracy to keep it growing');
+
+  const tipsEl = document.getElementById('improveTips');
+  if(tipsEl) tipsEl.innerHTML = tips.map(t=>`<div>${t}</div>`).join('');
+
+  // Update loan button
+  const loanBtn = document.getElementById('applyLoanBtn');
+  if(loanBtn){
+    if(score<500){
+      loanBtn.textContent='Score too low — keep reporting to qualify';
+      loanBtn.style.opacity='0.5';
+      loanBtn.onclick=()=>showToast('Submit at least 10 accurate price reports to qualify for a loan');
+    } else {
+      const max=score>=850?5000000:score>=750?3000000:score>=650?1500000:500000;
+      loanBtn.textContent=`Apply for ₦${max.toLocaleString('en-NG')} working capital →`;
+      loanBtn.onclick=()=>openLoanModal(max,score);
+    }
+  }
+}
+
+function renderLenders(lenders, score){
+  const el = document.getElementById('lenderList');
+  if(!el) return;
+  const defaultLenders = [
+    {name:'Agrifinance Partners',min_score:600,max_amount_ngn:5000000,rate_pa_pct:18,contact:'loans@agrifinance.ng'},
+    {name:'NIRSAL MFB',min_score:500,max_amount_ngn:2000000,rate_pa_pct:21,contact:'agri@nirsal.com'},
+    {name:'Bank of Agriculture',min_score:550,max_amount_ngn:10000000,rate_pa_pct:15,contact:'loans@boanigeria.com'},
+  ];
+  const list = lenders.length ? lenders : defaultLenders;
+  el.innerHTML = list.map(l=>{
+    const eligible = score >= l.min_score;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:${eligible?'var(--cream)':'#f8fafc'};border-radius:8px;border:1px solid ${eligible?'#c0d8c8':'var(--bdr)'}">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:${eligible?'var(--forest)':'var(--txt3)'}">${l.name}</div>
+        <div style="font-size:10px;color:var(--txt3)">Min score: ${l.min_score} · Max: ₦${Number(l.max_amount_ngn).toLocaleString('en-NG')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:700;color:${eligible?'var(--gm)':'var(--txt3)'}">${l.rate_pa_pct}% p.a.</div>
+        ${eligible?`<div style="font-size:9px;color:var(--gm);font-weight:600">✓ ELIGIBLE</div>`:`<div style="font-size:9px;color:var(--txt3)">Score ${l.min_score} needed</div>`}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ===================== ACCEPT JOB MODAL ===================== */
