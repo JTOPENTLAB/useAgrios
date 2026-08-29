@@ -390,6 +390,39 @@ tbody tr:hover td{background:var(--cream)}
   .dc-grid{grid-template-columns:1fr}
 }
 
+/* ============ UPGRADE MODAL ============ */
+.upgrade-overlay{position:fixed;inset:0;background:rgba(10,20,15,.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s}
+.upgrade-overlay.open{opacity:1;pointer-events:all}
+.upgrade-modal{background:#fff;border-radius:20px;width:100%;max-width:480px;overflow:hidden;transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.upgrade-overlay.open .upgrade-modal{transform:translateY(0)}
+.upgrade-hero{background:linear-gradient(135deg,#0a3d25,#1a6b47);padding:28px 24px 24px;color:#fff;text-align:center;position:relative}
+.upgrade-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;line-height:1;font-family:inherit}
+.upgrade-badge{display:inline-flex;align-items:center;gap:5px;background:var(--lime);color:var(--forest);padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;margin-bottom:10px}
+.upgrade-title{font-family:var(--font-display);font-size:22px;font-weight:500;margin-bottom:6px}
+.upgrade-sub{font-size:13px;color:rgba(255,255,255,.7);line-height:1.6}
+.upgrade-plans{padding:20px 24px;display:flex;flex-direction:column;gap:10px}
+.plan-card{border:2px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:.15s;position:relative}
+.plan-card:hover{border-color:var(--emerald)}
+.plan-card.selected{border-color:var(--forest);background:#f0faf4}
+.plan-popular{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--forest);color:var(--lime);font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;white-space:nowrap}
+.plan-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.plan-name{font-weight:700;font-size:14px}
+.plan-price{text-align:right}
+.plan-amount{font-size:20px;font-weight:700;color:var(--forest)}
+.plan-period{font-size:11px;color:var(--txt3)}
+.plan-features{display:flex;flex-direction:column;gap:4px}
+.plan-feature{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--txt2)}
+.plan-feature::before{content:"✓";color:var(--gm);font-weight:700;flex-shrink:0}
+.upgrade-actions{padding:0 24px 24px;display:flex;flex-direction:column;gap:8px}
+.upgrade-pay-btn{background:var(--forest);color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.upgrade-pay-btn:hover{background:var(--emerald)}
+.upgrade-pay-btn:disabled{opacity:.6;cursor:not-allowed}
+.upgrade-secure{text-align:center;font-size:11px;color:var(--txt3);display:flex;align-items:center;justify-content:center;gap:5px}
+@media(max-width:640px){
+  .upgrade-modal{border-radius:20px 20px 0 0;position:fixed;bottom:0;left:0;right:0;max-width:100%}
+  .upgrade-overlay.open .upgrade-modal{transform:translateY(0)}
+}
+
 /* ============ AUTH MODAL ============ */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,20,15,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
@@ -458,6 +491,64 @@ tbody tr:hover td{background:var(--cream)}
 </style>
 </head>
 <body>
+
+<!-- UPGRADE MODAL -->
+<div class="upgrade-overlay" id="upgradeModal" onclick="closeUpgradeIfOutside(event)">
+  <div class="upgrade-modal">
+    <div class="upgrade-hero">
+      <button class="upgrade-close" onclick="closeUpgrade()">×</button>
+      <div class="upgrade-badge">⚡ Upgrade to Pro</div>
+      <div class="upgrade-title">More intelligence.<br>More money in your pocket.</div>
+      <div class="upgrade-sub">Join traders making smarter decisions with Agrios Pro — unlimited alerts, AI predictions, and export intelligence.</div>
+    </div>
+    <div class="upgrade-plans">
+      <!-- Pro Monthly -->
+      <div class="plan-card selected" id="plan-pro" onclick="selectPlan('pro')">
+        <div class="plan-popular">Most popular</div>
+        <div class="plan-header">
+          <div>
+            <div class="plan-name">Pro Monthly</div>
+            <div style="font-size:11px;color:var(--txt3)">Renews monthly — cancel anytime</div>
+          </div>
+          <div class="plan-price">
+            <div class="plan-amount">₦2,500</div>
+            <div class="plan-period">per month</div>
+          </div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feature">Unlimited price alerts (WhatsApp + email)</div>
+          <div class="plan-feature">AI price predictions & trend analysis</div>
+          <div class="plan-feature">Export intelligence — 8 commodities</div>
+          <div class="plan-feature">Market opportunity cards</div>
+          <div class="plan-feature">Priority support</div>
+        </div>
+      </div>
+      <!-- Pro Annual -->
+      <div class="plan-card" id="plan-pro_year" onclick="selectPlan('pro_year')">
+        <div class="plan-header">
+          <div>
+            <div class="plan-name">Pro Annual <span style="background:#f0faf4;color:var(--gm);font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-left:4px">Save 17%</span></div>
+            <div style="font-size:11px;color:var(--txt3)">₦25,000/year — best value</div>
+          </div>
+          <div class="plan-price">
+            <div class="plan-amount">₦2,083</div>
+            <div class="plan-period">per month</div>
+          </div>
+        </div>
+        <div class="plan-features">
+          <div class="plan-feature">Everything in Pro Monthly</div>
+          <div class="plan-feature">2 months free vs monthly billing</div>
+        </div>
+      </div>
+    </div>
+    <div class="upgrade-actions">
+      <button class="upgrade-pay-btn" id="payBtn" onclick="initiatePayment()">
+        <span id="payBtnText">Pay with Paystack →</span>
+      </button>
+      <div class="upgrade-secure">🔒 Secured by Paystack · Nigerian bank cards, USSD, mobile money accepted</div>
+    </div>
+  </div>
+</div>
 
 <!-- AUTH MODAL -->
 <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account" onclick="closeAuthIfOutside(event)">
@@ -585,13 +676,7 @@ tbody tr:hover td{background:var(--cream)}
 <nav class="top-nav" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
     <a href="#" class="nav-brand" onclick="showPage('home');return false" aria-label="Agrios home">
-      <div class="nav-logo" aria-hidden="true">
-        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 2C6.13 2 3 5.13 3 9c0 2.38 1.19 4.47 3 5.74V17h8v-2.26C15.81 13.47 17 11.38 17 9c0-3.87-3.13-7-7-7z" fill="#0a3d25" stroke="none"/>
-          <path d="M8 14v3h4v-3" stroke="#0a3d25" stroke-width="1.5" fill="none"/>
-          <circle cx="10" cy="9" r="3" fill="#0a3d25"/>
-        </svg>
-      </div>
+      <img src="/icon-192.png" alt="Agrios logo" style="width:36px;height:36px;border-radius:9px;object-fit:cover;flex-shrink:0"/>
       <div class="brand-text">
         <span class="brand-name">Agrios</span>
         <span class="brand-domain">useagrios.com</span>
@@ -1151,6 +1236,10 @@ tbody tr:hover td{background:var(--cream)}
 <div class="toast" id="toast" role="alert" aria-live="assertive"><div class="toast-dot" aria-hidden="true"></div><span id="toastMsg"></span></div>
 
 <script>
+/* ===================== FORWARD DECLARATIONS ===================== */
+// toast() forward declaration — real function defined below as showToast
+function toast(msg){ if(typeof showToast==='function') showToast(msg); else console.log('[toast]',msg); }
+
 /* ===================== API CONFIG ===================== */
 const API = 'https://agrios-api.onrender.com/api';
 let AUTH_TOKEN = localStorage.getItem('agrios_token') || null;
@@ -1421,7 +1510,13 @@ function buildOppCards(){
       <div class="opp-actions">
         ${o.actions.map(a=>`<button class="btn-sm btn-sm-green" onclick="showToast('${a} — opening...')">${a}</button>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`).join('') + (!isProUser && !currentUser ? `
+    <div class="opp-card" style="border:2px dashed var(--lime);background:linear-gradient(135deg,#f0faf4,#fff);cursor:pointer" onclick="upgradePrompt()">
+      <div class="opp-type" style="background:var(--limepale);color:var(--forest)">⚡ PRO FEATURE</div>
+      <div class="opp-title">Unlock 3 more market opportunities</div>
+      <div class="opp-desc">Export windows, arbitrage alerts, and AI-generated trade tips. Upgrade to Pro for ₦2,500/month.</div>
+      <div style="margin-top:10px"><button class="btn-primary" style="padding:8px 16px;font-size:12px;width:auto" onclick="upgradePrompt()">Upgrade to Pro →</button></div>
+    </div>` : '');
 }
 function refreshOpps(){showToast('Opportunities refreshed — latest AI data loaded');buildOppCards()}
 
@@ -1771,6 +1866,11 @@ function showPage(p){
   document.querySelectorAll('.page-wrap').forEach(x=>x.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
   if(pg)pg.classList.add('active');
+  // Update URL so browser back button works
+  const url = p === 'home' ? '/' : '/?page='+p;
+  if(window.location.search !== (p==='home'?'':'?page='+p)){
+    window.history.pushState({page:p}, '', url);
+  }
   // update nav active state by matching onclick text
   document.querySelectorAll('.nav-link').forEach(x=>{
     x.classList.toggle('active', x.getAttribute('onclick')?.includes(`'${p}'`));
@@ -1891,8 +1991,7 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
-// alias so new pages can call toast() directly
-const toast=showToast;
+// toast() forward declaration is at top of script — no alias needed here
 
 /* ============================================================
    AUTH — login, register, session, user state
@@ -2081,10 +2180,85 @@ document.addEventListener('click', e=>{
   if(menu && !menu.contains(e.target) && e.target!==avatar) closeUserMenu();
 });
 
-// ── Upgrade prompt ──
+// ── Upgrade modal ──
+let selectedPlan = 'pro';
+
 function upgradePrompt(){
   closeUserMenu();
-  showToast('Upgrade to Pro — ₦2,500/month · Paystack payment coming soon!');
+  if(!currentUser){
+    openAuth('login');
+    showToast('Sign in first, then upgrade to Pro');
+    return;
+  }
+  document.getElementById('upgradeModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeUpgrade(){
+  document.getElementById('upgradeModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeUpgradeIfOutside(e){
+  if(e.target === document.getElementById('upgradeModal')) closeUpgrade();
+}
+
+function selectPlan(plan){
+  selectedPlan = plan;
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('plan-'+plan)?.classList.add('selected');
+  const prices = { pro: '₦2,500/month', pro_year: '₦25,000/year', business: '₦15,000/month' };
+  document.getElementById('payBtnText').textContent = `Pay ${prices[plan] || ''} with Paystack →`;
+}
+
+async function initiatePayment(){
+  const btn = document.getElementById('payBtn');
+  const txt = document.getElementById('payBtnText');
+  btn.disabled = true;
+  txt.textContent = 'Connecting to Paystack…';
+  try {
+    const res = await apiFetch('/payments/initiate', {
+      method: 'POST',
+      body: JSON.stringify({ plan: selectedPlan })
+    });
+    if(res?.data?.authorization_url){
+      // Store reference for verification on return
+      localStorage.setItem('agrios_pay_ref', res.data.reference);
+      // Redirect to Paystack
+      window.location.href = res.data.authorization_url;
+    } else {
+      throw new Error(res?.error || 'Payment failed');
+    }
+  } catch(e){
+    showToast('Payment error: ' + (e.message || 'Try again'));
+    btn.disabled = false;
+    txt.textContent = 'Pay with Paystack →';
+  }
+}
+
+// Handle return from Paystack (?payment=success)
+async function checkPaymentReturn(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('payment') === 'success'){
+    const ref = localStorage.getItem('agrios_pay_ref');
+    if(ref && AUTH_TOKEN){
+      try {
+        const res = await apiFetch('/payments/verify/'+ref);
+        if(res?.data?.success){
+          localStorage.removeItem('agrios_pay_ref');
+          // Update stored user tier
+          if(currentUser){
+            currentUser.subscription_tier = res.data.tier;
+            localStorage.setItem('agrios_user', JSON.stringify(currentUser));
+            updateNavForUser(currentUser);
+          }
+          showToast('🎉 Welcome to Agrios Pro! All features unlocked.');
+          // Clean URL
+          window.history.replaceState({}, '', '/');
+        }
+      } catch(e){ console.warn('Payment verify error:', e.message); }
+    }
+  }
 }
 
 // ── Auth keyboard support ──
@@ -2160,6 +2334,12 @@ if('serviceWorker' in navigator){
   });
 }
 
+// Handle browser back/forward navigation
+window.addEventListener('popstate', (e)=>{
+  const page = e.state?.page || new URLSearchParams(window.location.search).get('page') || 'home';
+  showPage(page);
+});
+
 /* ===================== KEYBOARD NAVIGATION ===================== */
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape')closeDrawer();
@@ -2188,6 +2368,8 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   buildExportTable();
   setTimeout(buildPriceChart,100);
   document.getElementById('mobDrawer').style.display='none';
+  // Check if returning from Paystack payment
+  checkPaymentReturn();
   // Handle PWA shortcut deep links (?page=prices etc)
   const urlParams = new URLSearchParams(window.location.search);
   const deepPage = urlParams.get('page');
@@ -2197,6 +2379,8 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   loadLiveData();
   // refresh prices every 2 minutes to stay current
   setInterval(()=>{if(document.visibilityState!=='hidden')loadLiveData();}, 120000);
+  // Keep API warm — ping every 14 minutes to prevent free-tier sleep
+  setInterval(()=>fetch('https://agrios-api.onrender.com/health',{mode:'no-cors'}).catch(()=>{}), 840000);
 })();
 </script>
 </body>
