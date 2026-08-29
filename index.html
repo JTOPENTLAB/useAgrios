@@ -782,7 +782,7 @@ tbody tr:hover td{background:var(--cream)}
   <div class="sec-hd">
     <div class="sec-hd-left">
       <div class="sec-title">Live crop prices</div>
-      <div class="sec-sub">Updated 2 minutes ago · Scroll to explore all crops</div>
+      <div class="sec-sub" id="priceSubtitle">Loading live prices… · Scroll to explore all crops</div>
     </div>
     <button class="sec-link" onclick="showPage('prices')">Full price table →</button>
   </div>
@@ -1312,6 +1312,10 @@ async function loadLiveData() {
       buildPriceChips();
       filterPriceTable();
       showApiStatus('live');
+      // If user is on Prices page, also refresh the table immediately
+      if(document.getElementById('page-prices')?.classList.contains('active')){
+        buildPriceChips(); filterPriceTable();
+      }
       API_LOADED = true;
     }
 
@@ -1361,10 +1365,23 @@ async function loadLiveData() {
 
 function showApiStatus(state) {
   const el = document.getElementById('apiStatus');
+  const sub = document.getElementById('priceSubtitle');
   if (!el) return;
-  if (state === 'loading') { el.textContent = '⟳ Connecting to live data…'; el.style.color = 'rgba(255,255,255,.5)'; }
-  else if (state === 'live') { el.textContent = '● LIVE'; el.style.color = 'var(--lime)'; }
-  else { el.textContent = '○ Demo data'; el.style.color = 'rgba(255,255,255,.4)'; }
+  if (state === 'loading') {
+    el.textContent = '⟳ Connecting…';
+    el.style.color = 'rgba(255,255,255,.5)';
+    if(sub) sub.textContent = 'Connecting to live database…';
+  } else if (state === 'live') {
+    el.textContent = '● LIVE';
+    el.style.color = 'var(--lime)';
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-NG', {hour:'2-digit', minute:'2-digit'});
+    if(sub) sub.textContent = 'Live from database · Updated ' + timeStr + ' · Scroll to explore all crops';
+  } else {
+    el.textContent = '○ Demo data';
+    el.style.color = 'rgba(255,255,255,.4)';
+    if(sub) sub.textContent = 'Showing demo data — API connecting…';
+  }
 }
 
 /* helper — pick live prices or fall back to static */
@@ -1598,7 +1615,7 @@ function filterPriceTable(){
   const tbody=document.getElementById('priceTableBody');
   if(!tbody)return;
   const filtered=getPrices().filter(c=>{
-    const matchQ=!q||(c.n.toLowerCase().includes(q)||c.mkt.toLowerCase().includes(q)||c.state.toLowerCase().includes(q));
+    const matchQ=!q||((c.n||'').toLowerCase().includes(q)||(c.mkt||'').toLowerCase().includes(q)||(c.state||'').toLowerCase().includes(q));
     const matchChip=!activePriceChip||c.n===activePriceChip;
     const matchState=!state||c.state.toLowerCase().includes(state);
     const matchTrend=!trend||(trend==='up'&&c.ch24>0)||(trend==='dn'&&c.ch24<0)||(trend==='flat'&&c.ch24===0);
@@ -1884,6 +1901,7 @@ function showPage(p){
   window.scrollTo({top:0,behavior:'smooth'});
   if(p==='home'){setTimeout(buildPriceChart,80);}
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
+  if(p==='prices'){buildPriceChips();filterPriceTable();}
   if(p==='transport'){buildJobGrid();}
   if(p==='export'){buildExportTable();}
   // Update SEO meta tags dynamically per page
