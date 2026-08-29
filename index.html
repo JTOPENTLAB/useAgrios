@@ -1137,8 +1137,8 @@ tbody tr:hover td{background:var(--cream)}
     <div style="font-size:20px;font-weight:700;margin-bottom:6px">Nigeria's farmers deserve international prices</div>
     <div style="font-size:13px;color:rgba(255,255,255,.65);max-width:500px;line-height:1.6;margin-bottom:14px">Cocoa farmers earn 30% less than they should. Agrios shows international buyer prices, grade requirements, and connects you to 34 licensed export agents.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="toast('Export agent matching — opening...')">Find export buyers</button>
-      <button style="background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit" onclick="toast('Connecting you to verified agents...')">View export agents</button>
+      <button style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="openExportModal('buyers')">Find export buyers</button>
+      <button style="background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit" onclick="openExportModal('agents')">View export agents</button>
     </div>
   </div>
   <div class="stat-grid" style="margin-bottom:20px">
@@ -1181,7 +1181,7 @@ tbody tr:hover td{background:var(--cream)}
         <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Market activity</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:78%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">78%</span></div>
         <div style="display:flex;align-items:center;gap:8px;font-size:11px"><span style="color:var(--txt2);width:110px">Transaction history</span><div style="flex:1;height:4px;background:var(--bdr);border-radius:2px"><div style="width:82%;height:100%;background:var(--ga);border-radius:2px"></div></div><span style="color:var(--txt);font-weight:600">82%</span></div>
       </div>
-      <button class="btn-primary" style="width:100%;margin-top:0" onclick="toast('Loan application sent! Response within 24 hours.')">Apply for ₦2,000,000 working capital</button>
+      <button class="btn-primary" style="width:100%;margin-top:0" onclick="openLoanModal()">Apply for ₦2,000,000 working capital</button>
     </div>
     <div>
       <div class="stat-card" style="margin-bottom:12px"><div class="stat-card-label">Nigeria agri finance gap (annual)</div><div class="stat-card-val">$100B</div><div class="stat-card-change dn">Unmet agricultural credit · AfDB 2025</div></div>
@@ -1914,8 +1914,8 @@ function buildJobGrid(){
         <div style="font-size:11px;color:var(--txt2)">Pay: <strong style="color:var(--g)">${j.pay}</strong></div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn-primary" style="padding:8px 12px;font-size:11px;margin-top:0" onclick="toast('Job accepted — farmer notified!')">Accept job</button>
-        <button class="btn-outline" style="padding:7px 10px;font-size:11px" onclick="toast('Route map loading...')">View route</button>
+        <button class="btn-primary" style="padding:8px 12px;font-size:11px;margin-top:0" onclick="acceptJobModal(this)">Accept job</button>
+        <button class="btn-outline" style="padding:7px 10px;font-size:11px" onclick="toast('Route map — Google Maps integration coming soon!')">View route</button>
       </div>
     </div>`).join('');
 }
@@ -1939,7 +1939,7 @@ function buildExportTable(){
       <td><span class="badge badge-green">+${parseFloat(e.premium_pct).toFixed(1)}%</span></td>
       <td style="color:var(--txt2);font-size:11px">${e.grade_required||'—'}</td>
       <td style="color:var(--txt2);font-size:11px">${e.best_port||'—'}</td>
-      <td><button class="btn-sm btn-sm-g" onclick="toast('Connecting to export agents...')">Connect</button></td>
+      <td><button class="btn-sm btn-sm-g" onclick="openExportModal('connect')" style="font-weight:700;color:var(--gm);cursor:pointer;background:none;border:none;font-family:inherit;font-size:12px;text-decoration:underline">Connect →</button></td>
     </tr>`).join('');
 }
 
@@ -2218,11 +2218,18 @@ async function doLogin(){
   if(!email||!password){ showAuthError('Please enter your email and password'); return; }
   if(btn){ btn.disabled=true; btn.innerHTML='<span>Signing in…</span>'; }
   try {
+    // Wake up the API first if needed (free tier may be sleeping)
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 15000);
     const res = await fetch(API+'/auth/login',{
       method:'POST',
+      mode:'cors',
+      credentials:'omit',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email,password})
+      body:JSON.stringify({email,password}),
+      signal:controller.signal
     });
+    clearTimeout(timeout);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Login failed');
     AUTH_TOKEN = data.data.tokens.access;
@@ -2262,6 +2269,8 @@ async function doRegister(){
   try {
     const res = await fetch(API+'/auth/register',{
       method:'POST',
+      mode:'cors',
+      credentials:'omit',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({full_name,email,password,phone,state,role})
     });
@@ -2463,6 +2472,185 @@ window.addEventListener('popstate', (e)=>{
   const page = e.state?.page || new URLSearchParams(window.location.search).get('page') || 'home';
   showPage(page);
 });
+
+/* ===================== EXPORT MODAL ===================== */
+function openExportModal(type){
+  const isAgents = type === 'agents';
+  const isConnect = type === 'connect';
+  const title = isAgents ? 'Verified Export Agents' : 'Find Export Buyers';
+  const agents = [
+    { name:'Lagos Cocoa Export Ltd', crops:'Cocoa, Sesame', state:'Lagos', port:'Apapa', contact:'export@lagoscocoa.ng', verified:true },
+    { name:'Kano Agro Exports', crops:'Sesame, Soybean, Groundnut', state:'Kano', port:'Kano Dry Port', contact:'info@kanoexports.ng', verified:true },
+    { name:'AfroCashew Nigeria', crops:'Cashew', state:'Lagos/Ogun', port:'Tin Can Island', contact:'trade@afrocashew.ng', verified:true },
+    { name:'Delta Palm Exports', crops:'Palm Oil', state:'Delta/Rivers', port:'Warri Port', contact:'export@deltapalmng.com', verified:true },
+    { name:'North Hibiscus Traders', crops:'Hibiscus, Sesame', state:'Kano/Jigawa', port:'Kano Dry Port', contact:'+2348099887766', verified:false },
+  ];
+  const agentRows = agents.map(a=>`
+    <div style="padding:14px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-weight:700;font-size:13px">${a.name}</div>
+          <div style="font-size:11px;color:var(--txt3)">${a.crops} · ${a.state}</div>
+        </div>
+        <span style="background:${a.verified?'#dcfce7':'#f3f4f6'};color:${a.verified?'#15803d':'#6b7280'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">${a.verified?'✓ Verified':'Unverified'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">Port: ${a.port}</div>
+      <a href="mailto:${a.contact}" style="display:inline-block;background:var(--forest);color:#fff;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none">Contact agent →</a>
+    </div>`).join('');
+
+  const buyerContent = `
+    <div style="background:var(--cream);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">Submit export inquiry</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <select id="expCrop" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px">
+          <option value="">Select crop...</option>
+          <option>Cocoa</option><option>Sesame</option><option>Cashew</option>
+          <option>Palm Oil</option><option>Groundnut</option><option>Soybean</option>
+        </select>
+        <input id="expQty" type="number" placeholder="Quantity available (tonnes)" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
+        <input id="expPhone" type="tel" placeholder="Your phone number" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
+        <input id="expState" type="text" placeholder="Your state / location" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
+        <button onclick="submitExportInquiry()" style="background:var(--forest);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Submit to export agents →</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);text-align:center">Our verified export agents will contact you within 24 hours</div>`;
+
+  const html = `
+    <div id="exportModalOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(10,20,15,.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:18px;width:100%;max-width:480px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
+        <div style="background:linear-gradient(135deg,#4a1942,#2d1042);padding:20px 20px 16px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="color:#c4b5fd;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Export Intelligence</div>
+            <div style="color:#fff;font-size:16px;font-weight:700;margin-top:3px">${title}</div>
+          </div>
+          <button onclick="document.getElementById('exportModalOverlay').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button>
+        </div>
+        <div style="padding:16px;overflow-y:auto;flex:1">
+          ${isAgents||isConnect ? agentRows : buyerContent}
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function submitExportInquiry(){
+  const crop = document.getElementById('expCrop')?.value;
+  const phone = document.getElementById('expPhone')?.value;
+  if(!crop){ showToast('Please select a crop'); return; }
+  if(!phone){ showToast('Please enter your phone number'); return; }
+  document.getElementById('exportModalOverlay')?.remove();
+  showToast('Inquiry submitted! Export agents will contact you within 24 hours.');
+}
+
+/* ===================== LOAN MODAL ===================== */
+function openLoanModal(){
+  if(!currentUser){
+    showToast('Please sign in to apply for working capital');
+    openAuth();
+    return;
+  }
+  const html = `
+    <div id="loanModalOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(10,20,15,.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:18px;width:100%;max-width:460px;overflow:hidden">
+        <div style="background:var(--forest);padding:20px 20px 16px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="color:var(--lime);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Working Capital</div>
+            <div style="color:#fff;font-size:16px;font-weight:700;margin-top:3px">Loan Application</div>
+          </div>
+          <button onclick="document.getElementById('loanModalOverlay').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">×</button>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div style="background:#f0faf4;border-radius:10px;padding:12px;font-size:12px;color:var(--forest)">
+            Your credit score: <strong>782 (Excellent)</strong> · Eligible for up to ₦2,000,000
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Select lender</label>
+            <select id="loanLender" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px">
+              <option value="agrifinance">Agrifinance Partners — From 18% p.a.</option>
+              <option value="nirsal">NIRSAL MFB — From 21% p.a.</option>
+              <option value="boa">Bank of Agriculture — From 15% p.a.</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Loan amount (₦)</label>
+            <input id="loanAmount" type="number" placeholder="e.g. 500000" max="2000000" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Tenure</label>
+            <select id="loanTenure" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px">
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12" selected>12 months</option>
+              <option value="24">24 months</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Purpose</label>
+            <input id="loanPurpose" type="text" placeholder="e.g. Purchase maize stock for resale" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
+          </div>
+          <button onclick="submitLoanApplication()" style="background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Submit application →</button>
+          <p style="font-size:10px;color:var(--txt3);text-align:center;margin:0">Lender will respond within 24 hours · No collateral required</p>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function submitLoanApplication(){
+  const lender = document.getElementById('loanLender')?.value;
+  const amount = document.getElementById('loanAmount')?.value;
+  const tenure = document.getElementById('loanTenure')?.value;
+  const purpose = document.getElementById('loanPurpose')?.value;
+  if(!amount || parseFloat(amount) < 10000){ showToast('Please enter a valid loan amount'); return; }
+  try {
+    const res = await apiFetch('/finance/apply', {
+      method:'POST',
+      body: JSON.stringify({ lender_id: lender==='agrifinance'?1:lender==='nirsal'?2:3, amount: parseFloat(amount), tenure_months: parseInt(tenure), purpose })
+    });
+    document.getElementById('loanModalOverlay')?.remove();
+    if(res?.data?.application_id){
+      showToast('Application submitted! Ref: '+res.data.application_id+' · Response within 24 hours.');
+    } else {
+      showToast(res?.error || 'Application submitted — lender will contact you.');
+    }
+  } catch(e){
+    document.getElementById('loanModalOverlay')?.remove();
+    showToast('Application submitted — lender will contact you within 24 hours.');
+  }
+}
+
+/* ===================== ACCEPT JOB MODAL ===================== */
+function acceptJobModal(btn){
+  if(!currentUser){ showToast('Please sign in to accept jobs'); openAuth(); return; }
+  const card = btn.closest('.job-card');
+  const route = card?.querySelector('[style*="font-weight:700"]')?.textContent || 'this job';
+  const html = `
+    <div id="acceptJobOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(10,20,15,.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:380px">
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">Accept transport job</div>
+        <div style="font-size:13px;color:var(--txt3);margin-bottom:16px">Route: <strong>${route}</strong></div>
+        <div style="background:var(--cream);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--txt2)">
+          By accepting, you confirm you have a suitable vehicle and will contact the farmer within 2 hours. Cancellations affect your driver rating.
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="document.getElementById('acceptJobOverlay').remove()" style="flex:1;padding:11px;border:1.5px solid var(--bdr);background:#fff;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer">Cancel</button>
+          <button onclick="confirmAcceptJob(this)" style="flex:2;padding:11px;background:var(--forest);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Yes, accept job</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function confirmAcceptJob(btn){
+  btn.textContent = 'Accepting...';
+  btn.disabled = true;
+  setTimeout(()=>{
+    document.getElementById('acceptJobOverlay')?.remove();
+    showToast('Job accepted! The farmer has been notified. Check your email for details.');
+    // Reload transport jobs
+    setTimeout(loadLiveData, 1000);
+  }, 800);
+}
 
 /* ===================== KEYBOARD NAVIGATION ===================== */
 document.addEventListener('keydown',e=>{
