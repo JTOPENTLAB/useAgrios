@@ -585,6 +585,7 @@ tbody tr:hover td{background:var(--cream)}
           Create a free account →
         </button>
         <p style="font-size:11px;color:var(--sage);text-align:center">Demo: fatima@demo.com / Demo@123456!</p>
+        <p style="font-size:10px;color:var(--txt3);text-align:center">Or create your own free account →</p>
       </div>
 
       <!-- REGISTER -->
@@ -1113,8 +1114,8 @@ tbody tr:hover td{background:var(--cream)}
   <div class="sec-hd">
     <div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">🚛 Transport network</h1><div class="sec-sub">1,247 verified vehicle operators · Post a job in 60 seconds</div></div>
     <div style="display:flex;gap:8px">
-      <button class="btn-outline" onclick="showT('register')">Register vehicle</button>
-      <button class="btn-primary-sm" onclick="showT('post')">Post a job</button>
+      <button class="btn-outline" onclick="showTransportForm('register')">Register vehicle</button>
+      <button class="btn-primary-sm" onclick="showTransportForm('post')">Post a job</button>
     </div>
   </div>
   <div class="stat-grid" style="margin-bottom:20px">
@@ -1518,6 +1519,7 @@ function buildHomePriceCards(){
 function buildOppCards(){
   const el=document.getElementById('oppGrid');
   if(!el)return;
+  const isProUser = currentUser?.subscription_tier === 'pro' || currentUser?.subscription_tier === 'business';
   el.innerHTML=getOpps().map(o=>`
     <div class="opp-card" role="article">
       <div class="opp-type">${o.type}</div>
@@ -1793,6 +1795,104 @@ function filterDemand(){
 }
 
 /* ===================== TRANSPORT JOBS ===================== */
+function showTransportForm(type){
+  if(type === 'register'){
+    // Show register vehicle form
+    const html = `
+      <div style="position:fixed;inset:0;background:rgba(10,20,15,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px" id="transportFormOverlay" onclick="if(event.target===this)this.remove()">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+            <div style="font-size:16px;font-weight:700">Register your vehicle</div>
+            <button onclick="document.getElementById('transportFormOverlay').remove()" style="background:var(--cream);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px">×</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Driver name</label><input id="vDriverName" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="Full name" /></div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Phone number</label><input id="vPhone" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="+234 800 000 0000" type="tel" /></div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Vehicle type</label>
+              <select id="vType" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px">
+                <option>Heavy Truck (10+ tonnes)</option><option>Medium Truck (5-10 tonnes)</option><option>Pickup/Van (under 5 tonnes)</option><option>Motorcycle/Keke</option>
+              </select>
+            </div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Plate number</label><input id="vPlate" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. LSD 234 AA" /></div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Base state</label>
+              <select id="vState" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px">
+                <option>Lagos</option><option>Kano</option><option>FCT</option><option>Oyo</option><option>Rivers</option><option>Abia</option><option>Kano</option><option>Kaduna</option><option>Enugu</option><option>Anambra</option><option>Other</option>
+              </select>
+            </div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Rate per km (₦)</label><input id="vRate" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. 280" type="number" /></div>
+            <button onclick="submitVehicleReg()" style="background:var(--forest);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">Register vehicle →</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+  } else {
+    // Post a job form
+    const html = `
+      <div style="position:fixed;inset:0;background:rgba(10,20,15,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px" id="transportFormOverlay" onclick="if(event.target===this)this.remove()">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+            <div style="font-size:16px;font-weight:700">Post a transport job</div>
+            <button onclick="document.getElementById('transportFormOverlay').remove()" style="background:var(--cream);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px">×</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Crop / Cargo</label><input id="jCrop" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. Maize, Yam, Rice" /></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Pickup state</label><input id="jFrom" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. Kano" /></div>
+              <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Delivery state</label><input id="jTo" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. Lagos" /></div>
+            </div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Quantity (tonnes)</label><input id="jQty" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. 10" type="number" /></div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Budget (₦)</label><input id="jBudget" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" placeholder="e.g. 75000" type="number" /></div>
+            <div><label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Pickup date</label><input id="jDate" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px" type="date" /></div>
+            <button onclick="submitTransportJob()" style="background:var(--forest);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">Post job →</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+async function submitVehicleReg(){
+  const driverName = document.getElementById('vDriverName')?.value?.trim();
+  const phone = document.getElementById('vPhone')?.value?.trim();
+  const vType = document.getElementById('vType')?.value;
+  const plate = document.getElementById('vPlate')?.value?.trim();
+  const state = document.getElementById('vState')?.value;
+  const rate = document.getElementById('vRate')?.value;
+  if(!driverName || !plate){ toast('Please fill in driver name and plate number'); return; }
+  if(!currentUser){ toast('Please sign in to register a vehicle'); closeTransportForm(); openAuth(); return; }
+  try {
+    const res = await apiFetch('/transport/vehicles', {
+      method: 'POST',
+      body: JSON.stringify({ vehicle_type: vType, plate_number: plate, base_state: state,
+        rate_per_km: parseFloat(rate)||200, driver_name: driverName, driver_phone: phone, is_cross_state: true })
+    });
+    if(res?.data){ document.getElementById('transportFormOverlay')?.remove(); toast('Vehicle registered! You will receive job offers in your area.'); }
+    else toast(res?.error || 'Registration failed — try again');
+  } catch(e){ toast('Network error — check your connection'); }
+}
+
+async function submitTransportJob(){
+  const crop = document.getElementById('jCrop')?.value?.trim();
+  const from = document.getElementById('jFrom')?.value?.trim();
+  const to = document.getElementById('jTo')?.value?.trim();
+  const qty = document.getElementById('jQty')?.value;
+  const budget = document.getElementById('jBudget')?.value;
+  const date = document.getElementById('jDate')?.value;
+  if(!from || !to){ toast('Please enter pickup and delivery states'); return; }
+  if(!currentUser){ toast('Please sign in to post a job'); document.getElementById('transportFormOverlay')?.remove(); openAuth(); return; }
+  try {
+    const res = await apiFetch('/transport/jobs', {
+      method: 'POST',
+      body: JSON.stringify({ crop_name: crop, pickup_location: from, pickup_state: from,
+        delivery_location: to, delivery_state: to, quantity: parseFloat(qty)||1,
+        unit: 'tonnes', max_budget: parseFloat(budget)||0, pickup_date: date })
+    });
+    if(res?.data){ document.getElementById('transportFormOverlay')?.remove(); toast('Job posted! Drivers will contact you within the hour.'); buildJobGrid(); }
+    else toast(res?.error || 'Failed to post job — try again');
+  } catch(e){ toast('Network error — check your connection'); }
+}
+
+function closeTransportForm(){ document.getElementById('transportFormOverlay')?.remove(); }
 function buildJobGrid(){
   const el=document.getElementById('jobGrid');
   if(!el)return;
@@ -2134,7 +2234,12 @@ async function doLogin(){
     showToast('Welcome back, '+currentUser.full_name.split(' ')[0]+'! 🌿');
     loadLiveData(); // reload with authenticated context
   } catch(e){
-    showAuthError(e.message || 'Login failed. Check your email and password.');
+    const msg = e.message || '';
+    if(msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')){
+      showAuthError('Connection timeout — the server is waking up. Wait 10 seconds and try again.');
+    } else {
+      showAuthError(msg || 'Login failed. Check your email and password.');
+    }
   } finally {
     if(btn){ btn.disabled=false; btn.innerHTML='<span>Sign in</span>'; }
   }
