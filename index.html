@@ -1999,7 +1999,8 @@ function showToast(msg){
 let currentUser = null;
 
 // ── Restore session on load ──
-(function restoreSession(){
+// restoreSession runs after DOM is ready to avoid null element errors
+function restoreSession(){
   const token = localStorage.getItem('agrios_token');
   const user  = localStorage.getItem('agrios_user');
   if(token && user){
@@ -2009,7 +2010,7 @@ let currentUser = null;
       updateNavForUser(currentUser);
     } catch(e){ localStorage.removeItem('agrios_user'); }
   }
-})();
+}
 
 function updateNavForUser(user){
   const signIn = document.getElementById('navSigninBtn');
@@ -2350,6 +2351,7 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
 
 /* ===================== INIT ===================== */
 (function init(){
+  restoreSession(); // restore after DOM ready
   const today=new Date().toISOString().split('T')[0];
   const dateEl=document.getElementById('rDate');
   if(dateEl)dateEl.value=today;
