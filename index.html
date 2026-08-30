@@ -1607,6 +1607,16 @@ function refreshOpps(){showToast('Opportunities refreshed — latest AI data loa
 function buildPredList(){
   const el=document.getElementById('predList');
   if(!el)return;
+  // Use live AI predictions if available, fall back to static
+  const predictions = LIVE_OPPS.filter(o=>o.type&&o.type.toLowerCase().includes('trend')).slice(0,4);
+  if(predictions.length > 0){
+    el.innerHTML = predictions.map(p=>`
+      <div class="pred-row">
+        <div><div class="pred-crop">${p.title||''}</div><div class="pred-action">${p.desc||''}</div></div>
+        <div class="pred-right"><div class="pred-pct up">${p.margin||''}</div></div>
+      </div>`).join('');
+    return;
+  }
   el.innerHTML=PREDS.map(p=>`
     <div class="pred-row">
       <div><div class="pred-crop">${p.crop}</div><div class="pred-action">${p.action}</div></div>
@@ -1625,6 +1635,10 @@ const chartData={
   '90d':{labels:['M1','M2','M3'],maize:[72,80,87],rice:[155,150,145],tomato:[14,20,28]}
 };
 function buildPriceChart(){
+  if(typeof Chart === 'undefined'){
+    setTimeout(buildPriceChart, 500);
+    return;
+  }
   const ctx=document.getElementById('priceChart');
   if(!ctx)return;
   if(priceChartObj)priceChartObj.destroy();
@@ -2091,7 +2105,7 @@ function showPage(p){
   const mbn=document.getElementById(PAGE_NAV[p]||'');
   if(mbn)mbn.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
-  if(p==='home'){setTimeout(buildPriceChart,80);}
+  if(p==='home'){setTimeout(buildPriceChart,300);}
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
   if(p==='prices'){buildPriceChips();filterPriceTable();}
   if(p==='finance'){loadFinanceData();}
@@ -2958,7 +2972,7 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   buildHeatmap('maize');
   buildAdmin();
   buildExportTable();
-  setTimeout(buildPriceChart,100);
+  setTimeout(buildPriceChart,500);
   document.getElementById('mobDrawer').style.display='none';
   // Check if returning from Paystack payment
   checkPaymentReturn();
