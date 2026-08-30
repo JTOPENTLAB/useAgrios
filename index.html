@@ -1571,7 +1571,7 @@ function buildHomePriceCards(){
 function buildOppCards(){
   const el=document.getElementById('oppGrid');
   if(!el)return;
-  const isProUser = currentUser?.subscription_tier === 'pro' || currentUser?.subscription_tier === 'business';
+  const isProUser = (currentUser && (currentUser.subscription_tier === 'pro' || currentUser.subscription_tier === 'business'));
   el.innerHTML=getOpps().map(o=>`
     <div class="opp-card" role="article">
       <div class="opp-type">${o.type}</div>
@@ -1581,13 +1581,16 @@ function buildOppCards(){
       <div class="opp-actions">
         ${o.actions.map(a=>`<button class="btn-sm btn-sm-green" onclick="showToast('${a} — opening...')">${a}</button>`).join('')}
       </div>
-    </div>`).join('') + (!isProUser && !currentUser ? `
-    <div class="opp-card" style="border:2px dashed var(--lime);background:linear-gradient(135deg,#f0faf4,#fff);cursor:pointer" onclick="upgradePrompt()">
+    </div>`).join('');
+  // Add upgrade card for free/logged-out users
+  if(!isProUser && !currentUser){
+    el.innerHTML += `<div class="opp-card" style="border:2px dashed var(--lime);background:linear-gradient(135deg,#f0faf4,#fff);cursor:pointer" onclick="upgradePrompt()">
       <div class="opp-type" style="background:var(--limepale);color:var(--forest)">⚡ PRO FEATURE</div>
       <div class="opp-title">Unlock 3 more market opportunities</div>
-      <div class="opp-desc">Export windows, arbitrage alerts, and AI-generated trade tips. Upgrade to Pro for ₦2,500/month.</div>
-      <div style="margin-top:10px"><button class="btn-primary" style="padding:8px 16px;font-size:12px;width:auto" onclick="upgradePrompt()">Upgrade to Pro →</button></div>
-    </div>` : '');
+      <div class="opp-desc">Export windows, arbitrage alerts, and AI-generated trade tips. Upgrade to Pro for only 2,500 per month.</div>
+      <div style="margin-top:10px"><button class="btn-primary" style="padding:8px 16px;font-size:12px;width:auto" onclick="upgradePrompt()">Upgrade to Pro</button></div>
+    </div>`;
+  }
 }
 function refreshOpps(){showToast('Opportunities refreshed — latest AI data loaded');buildOppCards()}
 
@@ -2297,11 +2300,15 @@ async function doLogin(){
   const btn      = document.getElementById('loginBtn');
   clearAuthMessages();
   if(!email||!password){ showAuthError('Please enter your email and password'); return; }
-  if(btn){ btn.disabled=true; btn.innerHTML='<span>Signing in…</span>'; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span>Waking up server…</span>'; }
   try {
-    // Wake up the API first if needed (free tier may be sleeping)
+    // Ping health endpoint first to wake up free-tier server
+    try { await fetch('https://agrios-api.onrender.com/health',{mode:'no-cors',cache:'no-store'}); } catch(e){}
+    await new Promise(r=>setTimeout(r,2000)); // wait 2s for server to wake
+    if(btn) btn.innerHTML='<span>Signing in…</span>';
+
     const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 15000);
+    const timeout = setTimeout(()=>controller.abort(), 20000);
     const res = await fetch(API+'/auth/login',{
       method:'POST',
       mode:'cors',
@@ -2644,7 +2651,7 @@ function openLoanModal(maxAmount, creditScore){
         </div>
         <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
           <div style="background:#f0faf4;border-radius:10px;padding:12px;font-size:12px;color:var(--forest)">
-            ${creditScore?'Your credit score: '+creditScore+' ('+(['','','','','Poor','Fair','Good','Very Good','Excellent'][Math.min(8,Math.floor(creditScore/125))]+')'+'  · Eligible for up to ₦'+(maxAmount||500000).toLocaleString():'Checking your eligibility...'}
+            ${creditScore ? 'Score: ' + creditScore + ' · Max loan: ₦' + (maxAmount||500000).toLocaleString() : 'Checking eligibility...'}
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Select lender</label>
@@ -2656,7 +2663,7 @@ function openLoanModal(maxAmount, creditScore){
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Loan amount (₦)</label>
-            <input id="loanAmount" type="number" placeholder="e.g. 500000" max="${maxAmount||2000000}" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
+            <input id="loanAmount" type="number" placeholder="e.g. 500000" id="loanMaxInput" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
           </div>
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Tenure</label>
