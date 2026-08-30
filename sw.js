@@ -1,14 +1,15 @@
 // Agrios Service Worker v1.0
 // Caches the app shell for offline use, fetches fresh data when online
 
-const CACHE = 'agrios-v1';
+const CACHE = 'agrios-v3';
 const API_BASE = 'https://agrios-api.onrender.com';
 
-// App shell — files cached immediately on install
+// App shell — cache STATIC assets only, NOT index.html
+// index.html must always be fresh so updates deploy instantly
 const SHELL = [
-  '/',
-  '/index.html',
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js',
 ];
@@ -63,7 +64,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell — cache first, fallback to network, fallback to cached index.html
+  // HTML pages — always network first, never cache
+  // This ensures updates deploy instantly to all browsers
+  if (event.request.headers.get('accept')?.includes('text/html') ||
+      url.pathname === '/' ||
+      url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Static assets — cache first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
@@ -73,7 +85,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE).then(c => c.put(event.request, clone));
         }
         return res;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => new Response('Offline', { status: 503 }));
     })
   );
 });
