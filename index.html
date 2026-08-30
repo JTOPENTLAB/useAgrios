@@ -584,7 +584,7 @@ tbody tr:hover td{background:var(--cream)}
         <button class="auth-btn" style="background:var(--cream);color:var(--forest);border:1.5px solid var(--border)" onclick="switchAuthTab('register')">
           Create a free account →
         </button>
-        <p style="font-size:11px;color:var(--sage);text-align:center">Demo: fatima@demo.com / Demo@123456!</p>
+        <p style="font-size:11px;color:var(--sage);text-align:center">Demo: fatima@demo.com · password: Demo@123456!</p>
         <p style="font-size:10px;color:var(--txt3);text-align:center">Or create your own free account →</p>
       </div>
 
@@ -1569,28 +1569,37 @@ function buildHomePriceCards(){
 
 /* ===================== OPPORTUNITY CARDS ===================== */
 function buildOppCards(){
-  const el=document.getElementById('oppGrid');
-  if(!el)return;
-  const isProUser = (currentUser && (currentUser.subscription_tier === 'pro' || currentUser.subscription_tier === 'business'));
-  el.innerHTML=getOpps().map(o=>`
-    <div class="opp-card" role="article">
-      <div class="opp-type">${o.type}</div>
-      <div class="opp-title">${o.icon} ${o.title}</div>
-      <div class="opp-desc">${o.desc}</div>
-      <div class="opp-margin">${o.margin}</div>
-      <div class="opp-actions">
-        ${o.actions.map(a=>`<button class="btn-sm btn-sm-green" onclick="showToast('${a} — opening...')">${a}</button>`).join('')}
-      </div>
-    </div>`).join('');
-  // Add upgrade card for free/logged-out users
-  if(!isProUser && !currentUser){
-    el.innerHTML += `<div class="opp-card" style="border:2px dashed var(--lime);background:linear-gradient(135deg,#f0faf4,#fff);cursor:pointer" onclick="upgradePrompt()">
-      <div class="opp-type" style="background:var(--limepale);color:var(--forest)">⚡ PRO FEATURE</div>
-      <div class="opp-title">Unlock 3 more market opportunities</div>
-      <div class="opp-desc">Export windows, arbitrage alerts, and AI-generated trade tips. Upgrade to Pro for only 2,500 per month.</div>
-      <div style="margin-top:10px"><button class="btn-primary" style="padding:8px 16px;font-size:12px;width:auto" onclick="upgradePrompt()">Upgrade to Pro</button></div>
-    </div>`;
+  var el = document.getElementById('oppGrid');
+  if(!el) return;
+  var tier = currentUser ? currentUser.subscription_tier : 'guest';
+  var isPro = (tier === 'pro' || tier === 'business');
+  var opps = getOpps();
+  var html = '';
+  for(var i=0; i<opps.length; i++){
+    var o = opps[i];
+    var actions = '';
+    if(o.actions){
+      for(var j=0; j<o.actions.length; j++){
+        actions += '<button class="btn-sm btn-sm-green" onclick="showToast('' + o.actions[j] + ' — opening...')">' + o.actions[j] + '</button>';
+      }
+    }
+    html += '<div class="opp-card" role="article">' +
+      '<div class="opp-type">' + (o.type||'') + '</div>' +
+      '<div class="opp-title">' + (o.icon||'') + ' ' + (o.title||'') + '</div>' +
+      '<div class="opp-desc">' + (o.desc||'') + '</div>' +
+      '<div class="opp-margin">' + (o.margin||'') + '</div>' +
+      '<div class="opp-actions">' + actions + '</div>' +
+    '</div>';
   }
+  if(!isPro && !currentUser){
+    html += '<div class="opp-card" style="border:2px dashed var(--lime);background:linear-gradient(135deg,#f0faf4,#fff);cursor:pointer" onclick="upgradePrompt()">' +
+      '<div class="opp-type" style="background:var(--limepale);color:var(--forest)">PRO FEATURE</div>' +
+      '<div class="opp-title">Unlock more market opportunities</div>' +
+      '<div class="opp-desc">Export windows, arbitrage alerts and AI trade tips. Upgrade for 2,500 per month.</div>' +
+      '<div style="margin-top:10px"><button class="btn-primary" style="padding:8px 16px;font-size:12px;width:auto" onclick="upgradePrompt()">Upgrade to Pro</button></div>' +
+    '</div>';
+  }
+  el.innerHTML = html;
 }
 function refreshOpps(){showToast('Opportunities refreshed — latest AI data loaded');buildOppCards()}
 
@@ -2331,11 +2340,15 @@ async function doLogin(){
     // Refresh finance page if it was open
     if(document.getElementById('page-finance')?.classList.contains('active')) loadFinanceData();
   } catch(e){
-    const msg = e.message || '';
-    if(msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')){
-      showAuthError('Connection timeout — the server is waking up. Wait 10 seconds and try again.');
+    var msg = e.message || '';
+    if(e.name === 'AbortError' || msg.includes('abort')){
+      showAuthError('Server timeout — it may be starting up. Please wait 15 seconds and try again.');
+    } else if(msg.includes('401') || msg.includes('Invalid') || msg.includes('credentials')){
+      showAuthError('Incorrect email or password. Demo login: fatima@demo.com / Demo@123456!');
+    } else if(msg.includes('fetch') || msg.includes('Failed') || msg.includes('network')){
+      showAuthError('Cannot connect to server. Please check your internet and try again.');
     } else {
-      showAuthError(msg || 'Login failed. Check your email and password.');
+      showAuthError(msg || 'Login failed. Please try again.');
     }
   } finally {
     if(btn){ btn.disabled=false; btn.innerHTML='<span>Sign in</span>'; }
