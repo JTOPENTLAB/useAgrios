@@ -1585,7 +1585,7 @@ function buildOppCards(){
     var actions = '';
     if(o.actions){
       for(var j=0; j<o.actions.length; j++){
-        actions += '<button class="btn-sm btn-sm-green" onclick="showToast('' + o.actions[j] + ' — opening...')">' + o.actions[j] + '</button>';
+        actions += '<button class="btn-sm btn-sm-green" onclick="showToast(\'' + o.actions[j] + ' — opening...\')">' + o.actions[j] + '</button>';
       }
     }
     html += '<div class="opp-card" role="article">' +
