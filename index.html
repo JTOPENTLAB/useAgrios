@@ -750,12 +750,17 @@ tbody tr:hover td{background:var(--cream)}
       <span>●</span> Nigeria Agricultural Intelligence
     </div>
     <h1 class="hero-title">The <em>pulse</em> of every<br>market in Nigeria</h1>
-    <p class="hero-desc">Real-time crop prices, AI predictions, and market opportunities for farmers, buyers, aggregators and investors. Powered by community reporting across 48 markets.</p>
+    <p class="hero-desc">Crop prices, AI predictions, and market opportunities for farmers, buyers, aggregators and investors — blending live external price feeds with a seasonal pricing model, plus community-submitted reports as the network grows.</p>
+    <!-- These four numbers used to be hardcoded text that never changed no
+         matter how much (or little) real activity existed. They're now
+         populated from GET /prices/stats on load — see loadHeroStats().
+         If that fetch fails, we show "—" rather than falling back to a
+         made-up number. -->
     <div class="hero-stats" role="group" aria-label="Platform statistics">
-      <div class="h-stat"><div class="h-stat-v" aria-label="2847 reports today">2,847</div><div class="h-stat-l">Reports today</div></div>
-      <div class="h-stat"><div class="h-stat-v" aria-label="48 active markets">48</div><div class="h-stat-l">Active markets</div></div>
-      <div class="h-stat"><div class="h-stat-v" aria-label="12.4 billion naira volume">₦12.4B</div><div class="h-stat-l">Market volume</div></div>
-      <div class="h-stat"><div class="h-stat-v" aria-label="91 percent data quality">91%</div><div class="h-stat-l">Data quality</div></div>
+      <div class="h-stat"><div class="h-stat-v" id="heroStatReports" aria-label="reports today">—</div><div class="h-stat-l">Reports today</div></div>
+      <div class="h-stat"><div class="h-stat-v" id="heroStatMarkets" aria-label="active markets">—</div><div class="h-stat-l">Active markets</div></div>
+      <div class="h-stat"><div class="h-stat-v" id="heroStatLive" aria-label="live-priced listings">—</div><div class="h-stat-l">Live-priced listings</div></div>
+      <div class="h-stat"><div class="h-stat-v" id="heroStatQuality" aria-label="data quality">—</div><div class="h-stat-l">Data quality</div></div>
     </div>
     <div class="hero-actions">
       <button class="btn-lime" onclick="showPage('report')">Report a price</button>
@@ -839,7 +844,7 @@ tbody tr:hover td{background:var(--cream)}
   <div class="sec-hd">
     <div class="sec-hd-left">
       <h1 class="sec-title" style="font-size:20px">Crop price index</h1>
-      <div class="sec-sub">Community-verified market prices across Nigeria · Last updated 2 min ago</div>
+      <div class="sec-sub">Market prices across Nigeria — a mix of live external feeds, a seasonal pricing model, and community-submitted reports</div>
     </div>
     <span class="badge badge-live">● LIVE</span>
   </div>
@@ -1118,17 +1123,22 @@ tbody tr:hover td{background:var(--cream)}
 <!-- ═══ TRANSPORT PAGE ═══ -->
 <div class="page-wrap" id="page-transport" role="main">
   <div class="sec-hd">
-    <div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">🚛 Transport network</h1><div class="sec-sub">1,247 verified vehicle operators · Post a job in 60 seconds</div></div>
+    <div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">🚛 Transport network</h1><div class="sec-sub" id="transportSub">Loading vehicle & job counts… · Post a job in 60 seconds</div></div>
     <div style="display:flex;gap:8px">
       <button class="btn-outline" onclick="showTransportForm('register')">Register vehicle</button>
       <button class="btn-primary-sm" onclick="showTransportForm('post')">Post a job</button>
     </div>
   </div>
+  <!-- These used to be hardcoded ("1,247 vehicle operators", "384 open
+       jobs", "8,921 jobs this month") regardless of real activity. Vehicle
+       and open-job counts are now real (GET /transport/stats); we don't
+       yet track completed-job payouts or monthly history, so rather than
+       invent numbers for those, we show an honest "Not tracked yet". -->
   <div class="stat-grid" style="margin-bottom:20px">
-    <div class="stat-card"><div class="stat-card-label">Active vehicles</div><div class="stat-card-val">1,247</div><div class="stat-card-change up">↑ 34 joined today</div></div>
-    <div class="stat-card"><div class="stat-card-label">Open jobs</div><div class="stat-card-val">384</div><div class="stat-card-change" style="color:var(--amber)">Across 18 states</div></div>
-    <div class="stat-card"><div class="stat-card-label">Avg payout</div><div class="stat-card-val">₦47k</div><div class="stat-card-change up">Per completed job</div></div>
-    <div class="stat-card"><div class="stat-card-label">Jobs this month</div><div class="stat-card-val">8,921</div><div class="stat-card-change up">↑ 22%</div></div>
+    <div class="stat-card"><div class="stat-card-label">Active vehicles</div><div class="stat-card-val" id="transStatVehicles">—</div><div class="stat-card-change up">Registered on Agrios</div></div>
+    <div class="stat-card"><div class="stat-card-label">Open jobs</div><div class="stat-card-val" id="transStatJobs">—</div><div class="stat-card-change" style="color:var(--amber)">Live right now</div></div>
+    <div class="stat-card"><div class="stat-card-label">Avg payout</div><div class="stat-card-val">—</div><div class="stat-card-change">Not tracked yet</div></div>
+    <div class="stat-card"><div class="stat-card-label">Jobs this month</div><div class="stat-card-val">—</div><div class="stat-card-change">Not tracked yet</div></div>
   </div>
   <div id="t-jobs-view">
     <div class="sec-hd"><div class="sec-hd-left"><div class="sec-title">Open transport jobs</div><div class="sec-sub">Sorted by urgency · Loading live jobs…</div></div></div>
@@ -1141,7 +1151,7 @@ tbody tr:hover td{background:var(--cream)}
   <div style="background:linear-gradient(135deg,#4a1942,#2d1042);border-radius:var(--radius);padding:24px;margin-bottom:20px;color:#fff">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#e9d5ff;font-weight:700;margin-bottom:5px">Export Intelligence</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:6px">Nigeria's farmers deserve international prices</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.65);max-width:500px;line-height:1.6;margin-bottom:14px">Cocoa farmers earn 30% less than they should. Agrios shows international buyer prices, grade requirements, and connects you to 34 licensed export agents.</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.65);max-width:500px;line-height:1.6;margin-bottom:14px">Cocoa farmers earn 30% less than they should. Agrios shows international buyer prices, grade requirements, and an illustrative directory of export agents while we finalize verified partnerships.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="openExportModal('buyers')">Find export buyers</button>
       <button style="background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit" onclick="openExportModal('agents')">View export agents</button>
@@ -1151,7 +1161,7 @@ tbody tr:hover td{background:var(--cream)}
     <div class="stat-card"><div class="stat-card-label">Nigeria non-oil exports H1 2025</div><div class="stat-card-val">$3.2B</div><div class="stat-card-change up">↑ from $2.7B</div></div>
     <div class="stat-card"><div class="stat-card-label">Export price premium (avg)</div><div class="stat-card-val">28%</div><div class="stat-card-change up">Above local market</div></div>
     <div class="stat-card"><div class="stat-card-label">Exportable crops tracked</div><div class="stat-card-val">8</div><div class="stat-card-change flat">Cocoa, sesame, cashew…</div></div>
-    <div class="stat-card"><div class="stat-card-label">Verified export agents</div><div class="stat-card-val">34</div><div class="stat-card-change flat">Licensed & verified</div></div>
+    <div class="stat-card"><div class="stat-card-label">Export agents in directory</div><div class="stat-card-val">5</div><div class="stat-card-change flat">Illustrative — verification in progress</div></div>
   </div>
   <div class="sec-hd"><div class="sec-title">Local vs international price comparison</div><span class="badge badge-green">Live data</span></div>
   <div class="table-wrap">
@@ -1177,21 +1187,21 @@ tbody tr:hover td{background:var(--cream)}
     <div style="background:var(--forest);border-radius:16px;padding:32px;text-align:center;color:#fff;margin-bottom:20px">
       <div style="font-size:40px;margin-bottom:12px">🌾</div>
       <div style="font-size:18px;font-weight:700;margin-bottom:8px">Your Agrios Crop Credit Score</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Sign in to see your personal credit score, track your progress, and apply for working capital from partner lenders.</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Sign in to see your personal credit score and track your progress. We're still finalizing real lending partnerships.</div>
       <button onclick="openAuth()" style="background:var(--lime);color:var(--forest);border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Sign in to see your score →</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
       <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
         <div style="font-size:28px;font-weight:700;color:var(--forest)">₦10M</div>
-        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Max loan available</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Illustrative max loan</div>
       </div>
       <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
         <div style="font-size:28px;font-weight:700;color:var(--forest)">15%</div>
-        <div style="font-size:11px;color:var(--txt3);margin-top:3px">From p.a. interest</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Illustrative p.a. rate</div>
       </div>
       <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:700;color:var(--forest)">3</div>
-        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Approved lenders</div>
+        <div style="font-size:28px;font-weight:700;color:var(--forest)">0</div>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">Confirmed lending partners</div>
       </div>
     </div>
   </div>
@@ -1240,7 +1250,8 @@ tbody tr:hover td{background:var(--cream)}
       <div style="display:flex;flex-direction:column;gap:12px">
         <!-- LENDERS -->
         <div class="card" style="padding:16px">
-          <div style="font-size:12px;font-weight:700;margin-bottom:12px">Partner lenders</div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">Lender directory</div>
+          <div style="font-size:10px;color:var(--txt3);margin-bottom:10px">Not yet confirmed partners — rates and terms shown are illustrative until a real lending partnership is in place.</div>
           <div id="lenderList" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
         <!-- MARKET GAP -->
@@ -1335,12 +1346,13 @@ let API_LOADED = false;
 async function loadLiveData() {
   showApiStatus('loading');
   try {
-    const [summary, opps, demands, jobs, exportP] = await Promise.allSettled([
+    const [summary, opps, demands, jobs, exportP, stats] = await Promise.allSettled([
       apiFetch('/prices/summary'),
       apiFetch('/prices/opportunities'),
       apiFetch('/demand'),
       apiFetch('/transport/jobs?limit=6'),
       apiFetch('/export/prices'),
+      apiFetch('/prices/stats'),
     ]);
 
     // Debug: log first API record to console so we can see field names
@@ -1415,9 +1427,54 @@ async function loadLiveData() {
       buildExportTable();
     }
 
+    renderHeroStats(stats.status === 'fulfilled' ? stats.value?.data : null);
+
   } catch (e) {
     console.warn('Live data load error:', e);
     showApiStatus('offline');
+    renderHeroStats(null);
+  }
+}
+
+// Populates the hero banner numbers from GET /prices/stats. These used to
+// be static hardcoded text ("2,847 reports today", "₦12.4B market volume",
+// etc.) that never reflected real usage. If the fetch fails or the API
+// hasn't computed a number yet, we show "—" rather than making one up.
+function renderHeroStats(data) {
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  if (!data) {
+    set('heroStatReports', '—');
+    set('heroStatMarkets', '—');
+    set('heroStatLive', '—');
+    set('heroStatQuality', '—');
+    return;
+  }
+  set('heroStatReports', Number(data.reports_today || 0).toLocaleString('en-NG'));
+  set('heroStatMarkets', Number(data.active_markets || 0).toLocaleString('en-NG'));
+  set('heroStatLive', Number(data.live_priced_listings || 0).toLocaleString('en-NG'));
+  set('heroStatQuality', data.data_quality_pct == null ? '—' : `${data.data_quality_pct}%`);
+}
+
+// Populates the Transport page's vehicle/job counts from a real API call
+// (GET /transport/stats) instead of the old hardcoded "1,247 vehicle
+// operators" copy. Runs independently of loadLiveData's main
+// Promise.allSettled batch since the Transport page isn't always visible.
+async function loadTransportStats() {
+  const subEl = document.getElementById('transportSub');
+  try {
+    const res = await apiFetch('/transport/stats');
+    const vehicles = Number(res?.data?.active_vehicles || 0);
+    const jobs = Number(res?.data?.open_jobs || 0);
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    set('transStatVehicles', vehicles.toLocaleString('en-NG'));
+    set('transStatJobs', jobs.toLocaleString('en-NG'));
+    if (subEl) subEl.textContent = `${vehicles.toLocaleString('en-NG')} registered vehicle operators · Post a job in 60 seconds`;
+  } catch (e) {
+    if (subEl) subEl.textContent = 'Post a job in 60 seconds';
+    console.warn('Transport stats load error:', e);
   }
 }
 
@@ -2114,7 +2171,7 @@ function showPage(p){
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
   if(p==='prices'){buildPriceChips();filterPriceTable();}
   if(p==='finance'){loadFinanceData();}
-  if(p==='transport'){buildJobGrid();}
+  if(p==='transport'){buildJobGrid();loadTransportStats();}
   if(p==='export'){buildExportTable();}
   // Update SEO meta tags dynamically per page
   updateSEOMeta(p);
@@ -2125,7 +2182,7 @@ function updateSEOMeta(page, cropName, cropPrice, cropUnit){
   const descriptions = {
     home: 'Real-time crop prices, AI predictions, transport matching and export intelligence for Nigerian farmers, buyers and investors. useagrios.com',
     prices: 'Live crop prices across 48 Nigerian markets — Maize, Rice, Tomato, Yam, Beans, Cocoa and more. Updated every 2 minutes.',
-    transport: 'Agricultural transport jobs across Nigeria. Connect farmers with 1,247 verified vehicle operators. Post or find transport in 60 seconds.',
+    transport: 'Agricultural transport jobs across Nigeria. Connect farmers with registered vehicle operators. Post or find transport in 60 seconds.',
     export: 'Nigeria export price intelligence — Cocoa, Sesame, Cashew, Hibiscus, Soybean. Compare local vs international prices and connect to export agents.',
     finance: 'Agrios Crop Credit Score — get working capital loans for Nigerian farmers based on your market activity. No collateral needed.',
     demand: 'Verified buyer demand board — find buyers for your produce across Nigeria. Live demand listings updated daily.',
@@ -2599,22 +2656,27 @@ window.addEventListener('popstate', (e)=>{
 function openExportModal(type){
   const isAgents = type === 'agents';
   const isConnect = type === 'connect';
-  const title = isAgents ? 'Verified Export Agents' : 'Find Export Buyers';
+  const title = isAgents ? 'Export Agent Directory' : 'Find Export Buyers';
+  // None of these are confirmed Agrios partnerships yet — presenting them
+  // as "Verified" implied a relationship that doesn't exist. Contact info
+  // is unconfirmed too, so this is framed as a directory to research, not
+  // a guarantee.
   const agents = [
-    { name:'Lagos Cocoa Export Ltd', crops:'Cocoa, Sesame', state:'Lagos', port:'Apapa', contact:'export@lagoscocoa.ng', verified:true },
-    { name:'Kano Agro Exports', crops:'Sesame, Soybean, Groundnut', state:'Kano', port:'Kano Dry Port', contact:'info@kanoexports.ng', verified:true },
-    { name:'AfroCashew Nigeria', crops:'Cashew', state:'Lagos/Ogun', port:'Tin Can Island', contact:'trade@afrocashew.ng', verified:true },
-    { name:'Delta Palm Exports', crops:'Palm Oil', state:'Delta/Rivers', port:'Warri Port', contact:'export@deltapalmng.com', verified:true },
-    { name:'North Hibiscus Traders', crops:'Hibiscus, Sesame', state:'Kano/Jigawa', port:'Kano Dry Port', contact:'+2348099887766', verified:false },
+    { name:'Lagos Cocoa Export Ltd', crops:'Cocoa, Sesame', state:'Lagos', port:'Apapa', contact:'export@lagoscocoa.ng' },
+    { name:'Kano Agro Exports', crops:'Sesame, Soybean, Groundnut', state:'Kano', port:'Kano Dry Port', contact:'info@kanoexports.ng' },
+    { name:'AfroCashew Nigeria', crops:'Cashew', state:'Lagos/Ogun', port:'Tin Can Island', contact:'trade@afrocashew.ng' },
+    { name:'Delta Palm Exports', crops:'Palm Oil', state:'Delta/Rivers', port:'Warri Port', contact:'export@deltapalmng.com' },
+    { name:'North Hibiscus Traders', crops:'Hibiscus, Sesame', state:'Kano/Jigawa', port:'Kano Dry Port', contact:'+2348099887766' },
   ];
-  const agentRows = agents.map(a=>`
+  const agentRows = `<div style="font-size:11px;color:#b45309;background:#fef3c7;border-radius:8px;padding:8px 10px;margin-bottom:10px">Not yet confirmed Agrios partners — an illustrative directory while we finalize real relationships. Verify details independently before relying on a listing.</div>` +
+    agents.map(a=>`
     <div style="padding:14px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
           <div style="font-weight:700;font-size:13px">${a.name}</div>
           <div style="font-size:11px;color:var(--txt3)">${a.crops} · ${a.state}</div>
         </div>
-        <span style="background:${a.verified?'#dcfce7':'#f3f4f6'};color:${a.verified?'#15803d':'#6b7280'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">${a.verified?'✓ Verified':'Unverified'}</span>
+        <span style="background:#f3f4f6;color:#6b7280;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">Unconfirmed</span>
       </div>
       <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">Port: ${a.port}</div>
       <a href="mailto:${a.contact}" style="display:inline-block;background:var(--forest);color:#fff;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none">Contact agent →</a>
@@ -2632,10 +2694,10 @@ function openExportModal(type){
         <input id="expQty" type="number" placeholder="Quantity available (tonnes)" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
         <input id="expPhone" type="tel" placeholder="Your phone number" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
         <input id="expState" type="text" placeholder="Your state / location" style="padding:9px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px"/>
-        <button onclick="submitExportInquiry()" style="background:var(--forest);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Submit to export agents →</button>
+        <button onclick="submitExportInquiry()" style="background:var(--forest);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Record export interest →</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--txt3);text-align:center">Our verified export agents will contact you within 24 hours</div>`;
+    <div style="font-size:11px;color:var(--txt3);text-align:center">We don't have an automated export-agent network yet — our team reviews inquiries and follows up directly.</div>`;
 
   const html = `
     <div id="exportModalOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(10,20,15,.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px">
@@ -2655,13 +2717,27 @@ function openExportModal(type){
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function submitExportInquiry(){
+async function submitExportInquiry(){
   const crop = document.getElementById('expCrop')?.value;
+  const qty = document.getElementById('expQty')?.value;
   const phone = document.getElementById('expPhone')?.value;
+  const state = document.getElementById('expState')?.value;
   if(!crop){ showToast('Please select a crop'); return; }
   if(!phone){ showToast('Please enter your phone number'); return; }
-  document.getElementById('exportModalOverlay')?.remove();
-  showToast('Inquiry submitted! Export agents will contact you within 24 hours.');
+  if(!state){ showToast('Please enter your state / location'); return; }
+  // Previously this button showed a success message and threw the form
+  // data away — nothing was ever stored or sent anywhere. It now actually
+  // calls POST /export/inquiries.
+  try {
+    const res = await apiFetch('/export/inquiries', {
+      method:'POST',
+      body: JSON.stringify({ crop, quantity_tonnes: qty ? parseFloat(qty) : undefined, phone, state })
+    });
+    document.getElementById('exportModalOverlay')?.remove();
+    showToast(res?.data?.message || 'Inquiry recorded — our team will follow up directly.');
+  } catch(e){
+    showToast('Could not record your inquiry right now — please try again in a moment.');
+  }
 }
 
 /* ===================== LOAN MODAL ===================== */
@@ -2710,8 +2786,8 @@ function openLoanModal(maxAmount, creditScore){
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Purpose</label>
             <input id="loanPurpose" type="text" placeholder="e.g. Purchase maize stock for resale" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px"/>
           </div>
-          <button onclick="submitLoanApplication()" style="background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Submit application →</button>
-          <p style="font-size:10px;color:var(--txt3);text-align:center;margin:0">Lender will respond within 24 hours · No collateral required</p>
+          <button onclick="submitLoanApplication()" style="background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Record my interest →</button>
+          <p style="font-size:10px;color:var(--txt3);text-align:center;margin:0">We'll record this and reach out once real lending partnerships are live — no confirmed lender yet.</p>
         </div>
       </div>
     </div>`;
@@ -2731,13 +2807,14 @@ async function submitLoanApplication(){
     });
     document.getElementById('loanModalOverlay')?.remove();
     if(res?.data?.application_id){
-      showToast('Application submitted! Ref: '+res.data.application_id+' · Response within 24 hours.');
+      showToast('Interest recorded! Ref: '+res.data.application_id+' · We\'ll follow up once real lending partnerships are live.');
     } else {
-      showToast(res?.error || 'Application submitted — lender will contact you.');
+      showToast(res?.error || 'Something went wrong — please try again.');
     }
   } catch(e){
-    document.getElementById('loanModalOverlay')?.remove();
-    showToast('Application submitted — lender will contact you within 24 hours.');
+    // Previously this showed a success toast even when the request failed.
+    // Don't claim it worked when it didn't.
+    showToast('Could not record your interest right now — please try again in a moment.');
   }
 }
 
@@ -2896,17 +2973,21 @@ function renderScoreCard(s){
 function renderLenders(lenders, score){
   const el = document.getElementById('lenderList');
   if(!el) return;
+  // These are not confirmed lending partnerships yet — see the
+  // partnership_status field returned by GET /finance/lenders. Show an
+  // "Illustrative" tag rather than implying a real, signed partnership.
   const defaultLenders = [
-    {name:'Agrifinance Partners',min_score:600,max_amount_ngn:5000000,rate_pa_pct:18,contact:'loans@agrifinance.ng'},
-    {name:'NIRSAL MFB',min_score:500,max_amount_ngn:2000000,rate_pa_pct:21,contact:'agri@nirsal.com'},
-    {name:'Bank of Agriculture',min_score:550,max_amount_ngn:10000000,rate_pa_pct:15,contact:'loans@boanigeria.com'},
+    {name:'Agrifinance Partners',min_score:600,max_amount_ngn:5000000,rate_pa_pct:18,contact:'loans@agrifinance.ng',partnership_status:'illustrative'},
+    {name:'NIRSAL MFB',min_score:500,max_amount_ngn:2000000,rate_pa_pct:21,contact:'agri@nirsal.com',partnership_status:'illustrative'},
+    {name:'Bank of Agriculture',min_score:550,max_amount_ngn:10000000,rate_pa_pct:15,contact:'loans@boanigeria.com',partnership_status:'illustrative'},
   ];
   const list = lenders.length ? lenders : defaultLenders;
   el.innerHTML = list.map(l=>{
     const eligible = score >= l.min_score;
+    const isReal = l.partnership_status === 'active';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:${eligible?'var(--cream)':'#f8fafc'};border-radius:8px;border:1px solid ${eligible?'#c0d8c8':'var(--bdr)'}">
       <div>
-        <div style="font-size:12px;font-weight:600;color:${eligible?'var(--forest)':'var(--txt3)'}">${l.name}</div>
+        <div style="font-size:12px;font-weight:600;color:${eligible?'var(--forest)':'var(--txt3)'}">${l.name}${isReal?'':' <span style="font-weight:500;color:#b45309;background:#fef3c7;border-radius:100px;padding:1px 6px;font-size:9px">Illustrative</span>'}</div>
         <div style="font-size:10px;color:var(--txt3)">Min score: ${l.min_score} · Max: ₦${Number(l.max_amount_ngn).toLocaleString('en-NG')}</div>
       </div>
       <div style="text-align:right">
