@@ -5,7 +5,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
 
-const { syncPrices } = require('./services/priceFetcher');
+const { syncPrices, resetPricesToBase } = require('./services/priceFetcher');
 const { checkAlerts } = require('./services/alertChecker');
 const { rescoreAllContributors } = require('./services/creditScorer');
 
@@ -68,6 +68,7 @@ app.use('/api/demand',    require('./routes/demand'));
 app.use('/api/finance',   require('./routes/finance'));
 app.use('/api/export',    require('./routes/export'));
 app.use('/api/admin',     require('./routes/admin'));
+app.use('/api/payments',  require('./routes/payments'));
 
 // ── HEALTH CHECK ──────────────────────────────────────────────
 app.get('/health', async (req, res) => {
@@ -102,6 +103,16 @@ app.use((err, req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
+
+// ── MIGRATE + RESET PRICES ON STARTUP ──────────────────────────
+// migrate() only does CREATE TABLE IF NOT EXISTS, so it's safe to run on
+// every boot. Running it here means schema changes (like the new `lenders`
+// and `export_agents` tables) take effect automatically on the next deploy
+// or restart — no need for Render's Shell tab, which requires a paid plan.
+const migrate = require('./models/migrate');
+migrate()
+  .then(() => resetPricesToBase())
+  .catch(e => console.error('Startup migration/price-reset failed:', e.message));
 
 // ── CRON JOBS ─────────────────────────────────────────────────
 // Price sync every 2 minutes
