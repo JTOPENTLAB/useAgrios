@@ -362,8 +362,9 @@ async function migrate() {
       duration_ms INTEGER,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+  `);
 
-    console.log('✅ All migrations complete — 17 tables created');
+  console.log('✅ All migrations complete — 17 tables created');
 }
 
 module.exports = migrate;
