@@ -844,9 +844,9 @@ tbody tr:hover td{background:var(--cream)}
   <div class="sec-hd">
     <div class="sec-hd-left">
       <h1 class="sec-title" style="font-size:20px">Crop price index</h1>
-      <div class="sec-sub">Market prices across Nigeria — a mix of live external feeds, a seasonal pricing model, and community-submitted reports</div>
+      <div class="sec-sub">Market prices across Nigeria — a mix of live external feeds, a seasonal pricing model, and community-submitted reports. Each row below shows which.</div>
     </div>
-    <span class="badge badge-live">● LIVE</span>
+    <span class="badge badge-live" id="pricesLiveBadge">● LIVE</span>
   </div>
   <div class="search-filter-bar" role="search">
     <div class="search-input-wrap">
@@ -871,7 +871,7 @@ tbody tr:hover td{background:var(--cream)}
         <tr>
           <th>Crop</th><th>Market</th><th>State</th><th>Unit</th>
           <th>Low</th><th>Average</th><th>High</th>
-          <th>24h</th><th>7d</th><th>Confidence</th><th>Updated</th>
+          <th>24h</th><th>7d</th><th>Confidence</th><th>Source</th><th>Updated</th>
         </tr>
       </thead>
       <tbody id="priceTableBody"></tbody>
@@ -1051,6 +1051,7 @@ tbody tr:hover td{background:var(--cream)}
     <div class="sec-hd-left">
       <h1 class="sec-title" style="font-size:20px">Market heatmap</h1>
       <div class="sec-sub">Best buying and selling locations across Nigeria today</div>
+      <div style="margin-top:6px" id="heatSourceBadge"></div>
     </div>
     <select class="filter-select" id="heatCrop" onchange="buildHeatmap(this.value)" aria-label="Select crop for heatmap">
       <option value="maize">Maize</option>
@@ -1209,7 +1210,7 @@ tbody tr:hover td{background:var(--cream)}
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">Illustrative p.a. rate</div>
       </div>
       <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:28px;font-weight:700;color:var(--forest)">0</div>
+        <div style="font-size:28px;font-weight:700;color:var(--forest)" id="confirmedLendersCount">0</div>
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">Confirmed lending partners</div>
       </div>
     </div>
@@ -1277,7 +1278,7 @@ tbody tr:hover td{background:var(--cream)}
             <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span><strong>No collateral needed</strong> — your market behaviour is the collateral</span></div>
             <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Traditional banks need farm visits — Agrios scores automatically from your data</span></div>
             <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Score improves every time you submit an accurate price report</span></div>
-            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Recognised by NIRSAL MFB and Bank of Agriculture Nigeria</span></div>
+            <div style="display:flex;gap:7px"><span style="color:var(--gm);font-weight:700">✓</span><span>Built to match the criteria real agricultural lenders look for — no confirmed lending partnership yet</span></div>
           </div>
         </div>
       </div>
@@ -1349,20 +1350,67 @@ let LIVE_OPPS = [];
 let LIVE_DEMANDS = [];
 let LIVE_JOBS = [];
 let LIVE_EXPORT = [];
+let LIVE_LENDERS = [];
+let LIVE_EXPORT_AGENTS = [];
 let API_LOADED = false;
+
+/* ===================== PRICE SOURCE LABELING ===================== */
+// Every price on the site is one of: a live external feed (WFP), a
+// seasonal pricing model (synthetic — base price × regional/seasonal
+// multipliers), a community-submitted report, or — only when the API is
+// completely unreachable — static offline example data. These used to all
+// look identical on screen. This maps the backend's `source` field (or its
+// absence, for the offline fallback) to an honest, visible badge.
+function priceSourceInfo(src){
+  switch(src){
+    case 'wfp': return {label:'Live · WFP', cls:'badge-green', dot:'●'};
+    case 'community': return {label:'Live · Community report', cls:'badge-green', dot:'●'};
+    case 'model':
+    case 'admin':
+      return {label:'Modeled estimate', cls:'badge-amber', dot:'◐'};
+    default:
+      return {label:'Offline example', cls:'badge-gray', dot:'○'};
+  }
+}
+function priceSourceBadge(src){
+  const i = priceSourceInfo(src);
+  return `<span class="badge ${i.cls}" style="font-size:9px;padding:2px 7px" title="${i.label}">${i.dot} ${i.label}</span>`;
+}
+// The "● LIVE" badge at the top of the Prices page used to be static markup
+// — shown even when the API was unreachable and the table was actually
+// showing the hardcoded CROPS fallback array. Now it reflects reality.
+function updatePricesLiveBadge(){
+  const el = document.getElementById('pricesLiveBadge');
+  if(!el) return;
+  if(LIVE_PRICES.length){
+    el.textContent = '● LIVE';
+    el.className = 'badge badge-live';
+  } else {
+    el.textContent = '○ OFFLINE EXAMPLE DATA';
+    el.className = 'badge badge-gray';
+  }
+}
 
 /* ── API BOOTSTRAP ── runs once on load, populates live state */
 async function loadLiveData() {
   showApiStatus('loading');
   try {
-    const [summary, opps, demands, jobs, exportP, stats] = await Promise.allSettled([
+    const [summary, opps, demands, jobs, exportP, stats, exportAgents] = await Promise.allSettled([
       apiFetch('/prices/summary'),
       apiFetch('/prices/opportunities'),
       apiFetch('/demand'),
       apiFetch('/transport/jobs?limit=6'),
       apiFetch('/export/prices'),
       apiFetch('/prices/stats'),
+      apiFetch('/export/agents'),
     ]);
+
+    // openExportModal() used to render a hardcoded local array that could
+    // never reflect a real signed partner even after one existed in the
+    // database — this keeps it live.
+    if (exportAgents.value?.data?.length) {
+      LIVE_EXPORT_AGENTS = exportAgents.value.data;
+    }
 
     // Debug: log first API record to console so we can see field names
     if (summary.value?.data?.length) {
@@ -1383,6 +1431,7 @@ async function loadLiveData() {
           state: p.state || '',
           conf: parseInt(p.confidence_score) || 80,
           updated: p.updated_at,
+          src: p.source || 'model',
         };
       }).filter(p => p.n && p.avg > 0 && p.avg < 10000000);
       // rebuild UI with live data
@@ -1390,12 +1439,18 @@ async function loadLiveData() {
       buildHomePriceCards();
       buildPriceChips();
       filterPriceTable();
+      updatePricesLiveBadge();
       showApiStatus('live');
       // If user is on Prices page, also refresh the table immediately
       if(document.getElementById('page-prices')?.classList.contains('active')){
         buildPriceChips(); filterPriceTable();
       }
       API_LOADED = true;
+    } else {
+      // API reachable but returned nothing usable, or unreachable — the
+      // table is showing static offline example data (see getPrices()),
+      // so the top badge needs to say that instead of lying "● LIVE".
+      updatePricesLiveBadge();
     }
 
     if (opps.value?.data?.length) {
@@ -1684,6 +1739,7 @@ function buildHomePriceCards(){
         <div class="cc-conf-bar"><div class="cc-conf-fill" style="width:${c.conf}%"></div></div>
         <span>${c.conf}%</span>
       </div>
+      <div style="margin-top:6px">${priceSourceBadge(c.src)}</div>
     </div>`).join('');
 }
 
@@ -1867,7 +1923,7 @@ function filterPriceTable(){
     const matchTrend=!trend||(trend==='up'&&c.ch24>0)||(trend==='dn'&&c.ch24<0)||(trend==='flat'&&c.ch24===0);
     return matchQ&&matchChip&&matchState&&matchTrend;
   });
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty"><div class="empty-icon">🌾</div><p>No crops match your filters.<br>Try adjusting the search or clear filters.</p></div></td></tr>`;return}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="12"><div class="empty"><div class="empty-icon">🌾</div><p>No crops match your filters.<br>Try adjusting the search or clear filters.</p></div></td></tr>`;return}
   tbody.innerHTML=filtered.map(c=>`
     <tr>
       <td><div class="td-crop-cell"><span class="td-icon">${c.e}</span>${c.n}</div></td>
@@ -1885,7 +1941,8 @@ function filterPriceTable(){
           <span style="font-size:11px;color:#5a7a67">${c.conf}%</span>
         </div>
       </td>
-      <td style="font-size:11px;color:#8fa89a">2 min ago</td>
+      <td>${priceSourceBadge(c.src)}</td>
+      <td style="font-size:11px;color:#8fa89a">${c.updated?timeAgo(c.updated):'—'}</td>
     </tr>`).join('');
 }
 
@@ -2075,14 +2132,25 @@ async function buildHeatmap(crop){
   if(!data||!data.all||!data.all.length){
     if(sg)sg.innerHTML='<div class="empty" style="grid-column:1/-1"><p>No price data yet for '+cropName+'.</p></div>';
     if(bg)bg.innerHTML='';
+    const badgeElEmpty=document.getElementById('heatSourceBadge');
+    if(badgeElEmpty)badgeElEmpty.innerHTML='';
     if(heatChartObj){heatChartObj.destroy();heatChartObj=null;}
     return;
   }
   const sell=data.sell||[],buy=data.buy||[];
-  if(sg)sg.innerHTML=sell.map((x,i)=>`<div class="heat-cell" style="background:${gShade(sell.length-1-i,sell.length)}"><div class="heat-mkt">${x.market_name}</div><div class="heat-price">${fmt(x.price_avg)}</div><div class="heat-state">${x.state}</div></div>`).join('');
-  if(bg)bg.innerHTML=buy.map((x,i)=>`<div class="heat-cell" style="background:${bShade(buy.length-1-i,buy.length)}"><div class="heat-mkt">${x.market_name}</div><div class="heat-price">${fmt(x.price_avg)}</div><div class="heat-state">${x.state}</div></div>`).join('');
+  if(sg)sg.innerHTML=sell.map((x,i)=>`<div class="heat-cell" style="background:${gShade(sell.length-1-i,sell.length)}"><div class="heat-mkt">${x.market_name}</div><div class="heat-price">${fmt(x.price_avg)}</div><div class="heat-state">${x.state}</div><div style="margin-top:3px">${priceSourceBadge(x.source)}</div></div>`).join('');
+  if(bg)bg.innerHTML=buy.map((x,i)=>`<div class="heat-cell" style="background:${bShade(buy.length-1-i,buy.length)}"><div class="heat-mkt">${x.market_name}</div><div class="heat-price">${fmt(x.price_avg)}</div><div class="heat-state">${x.state}</div><div style="margin-top:3px">${priceSourceBadge(x.source)}</div></div>`).join('');
   const sorted=[...data.all].sort((a,b)=>a.price_avg-b.price_avg);
   buildHeatChart({bars:sorted.map(x=>Math.round(x.price_avg)),labels:sorted.map(x=>x.market_name),unit:sorted[0]?.unit||'unit'},cropName);
+  // Summary badge: if every market for this crop shares one source (the
+  // common case — priceFetcher fetches WFP once per crop per sync cycle),
+  // show it once; otherwise be explicit that it's mixed rather than
+  // picking one and misrepresenting the rest.
+  const badgeEl=document.getElementById('heatSourceBadge');
+  if(badgeEl){
+    const sources=new Set(data.all.map(x=>x.source||'model'));
+    badgeEl.innerHTML = sources.size===1 ? priceSourceBadge([...sources][0]) : '<span class="badge badge-amber" style="font-size:9px;padding:2px 7px">◐ Mixed sources — see badges below</span>';
+  }
 }
 function buildHeatChart(d,label){
   const ctx=document.getElementById('heatChart');
@@ -2277,9 +2345,20 @@ function buildJobGrid(){
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn-primary" style="padding:8px 12px;font-size:11px;margin-top:0" onclick="acceptJobModal(${i})">Accept job</button>
-        <button class="btn-outline" style="padding:7px 10px;font-size:11px" onclick="toast('Route map — Google Maps integration coming soon!')">View route</button>
+        <button class="btn-outline" style="padding:7px 10px;font-size:11px" onclick="viewRoute(${i})">View route</button>
       </div>
     </div>`).join('');
+}
+// Used to just show a "Google Maps integration coming soon!" toast and do
+// nothing. Google's directions URL scheme needs no API key, so this opens
+// real driving directions between the job's pickup and drop-off — genuine
+// functionality, not a placeholder.
+function viewRoute(i){
+  const j = JOB_LIST[i];
+  if(!j || !j.from || !j.to){ toast('Route unavailable for this job'); return; }
+  const origin = encodeURIComponent(j.from + ', Nigeria');
+  const destination = encodeURIComponent(j.to + ', Nigeria');
+  window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`, '_blank', 'noopener');
 }
 
 /* ===================== EXPORT TABLE ===================== */
@@ -2887,34 +2966,54 @@ window.addEventListener('popstate', (e)=>{
 });
 
 /* ===================== EXPORT MODAL ===================== */
+// "Contact agent" used to be a plain <a href="mailto:...">/<a href="tel:...">
+// link. On a machine with no default mail/phone app configured (common on
+// desktop browsers), that can leave the tab on a blank page or focus an
+// already-open empty tab instead of doing anything useful — exactly what
+// was reported. This still attempts the real mailto:/tel: handoff in the
+// SAME tab (no target="_blank", which is what causes a stray blank window
+// for a protocol link that has no page to render), but also copies the
+// contact to the clipboard and shows it in a toast, so there's always a
+// visible, actionable result even if the OS-level handoff does nothing.
+function contactAgent(contact){
+  const isEmail = contact.includes('@');
+  try{ navigator.clipboard?.writeText(contact); }catch(e){}
+  toast((isEmail?'Email':'Phone')+' copied: '+contact+' — opening your '+(isEmail?'mail app':'phone/dialer')+'…');
+  window.location.href = (isEmail?'mailto:':'tel:') + contact;
+}
 function openExportModal(type){
   const isAgents = type === 'agents';
   const isConnect = type === 'connect';
   const title = isAgents ? 'Export Agent Directory' : 'Find Export Buyers';
-  // None of these are confirmed Agrios partnerships yet — presenting them
-  // as "Verified" implied a relationship that doesn't exist. Contact info
-  // is unconfirmed too, so this is framed as a directory to research, not
-  // a guarantee.
-  const agents = [
-    { name:'Lagos Cocoa Export Ltd', crops:'Cocoa, Sesame', state:'Lagos', port:'Apapa', contact:'export@lagoscocoa.ng' },
-    { name:'Kano Agro Exports', crops:'Sesame, Soybean, Groundnut', state:'Kano', port:'Kano Dry Port', contact:'info@kanoexports.ng' },
-    { name:'AfroCashew Nigeria', crops:'Cashew', state:'Lagos/Ogun', port:'Tin Can Island', contact:'trade@afrocashew.ng' },
-    { name:'Delta Palm Exports', crops:'Palm Oil', state:'Delta/Rivers', port:'Warri Port', contact:'export@deltapalmng.com' },
-    { name:'North Hibiscus Traders', crops:'Hibiscus, Sesame', state:'Kano/Jigawa', port:'Kano Dry Port', contact:'+2348099887766' },
+  // Used to be a hardcoded local array that could never reflect a real
+  // signed partner even after one existed in the database (LIVE_EXPORT_AGENTS
+  // is fetched from GET /export/agents in loadLiveData()). Falls back to
+  // the same illustrative data, normalized to the same shape, if the API
+  // hasn't returned anything yet.
+  const FALLBACK_AGENTS_LOCAL = [
+    { name:'Lagos Cocoa Export Ltd', crops:['Cocoa','Sesame'], states:['Lagos'], port:'Apapa', contact:'export@lagoscocoa.ng', partner:false },
+    { name:'Kano Agro Exports', crops:['Sesame','Soybean','Groundnut'], states:['Kano'], port:'Kano Dry Port', contact:'info@kanoexports.ng', partner:false },
+    { name:'AfroCashew Nigeria', crops:['Cashew'], states:['Lagos','Ogun'], port:'Tin Can Island', contact:'trade@afrocashew.ng', partner:false },
+    { name:'Delta Palm Exports', crops:['Palm Oil'], states:['Delta','Rivers'], port:'Warri Port', contact:'export@deltapalmng.com', partner:false },
+    { name:'North Hibiscus Traders', crops:['Hibiscus','Sesame'], states:['Kano','Jigawa'], port:'Kano Dry Port', contact:'+2348099887766', partner:false },
   ];
-  const agentRows = `<div style="font-size:11px;color:#b45309;background:#fef3c7;border-radius:8px;padding:8px 10px;margin-bottom:10px">Not yet confirmed Agrios partners — an illustrative directory while we finalize real relationships. Verify details independently before relying on a listing.</div>` +
-    agents.map(a=>`
+  const agents = LIVE_EXPORT_AGENTS.length ? LIVE_EXPORT_AGENTS : FALLBACK_AGENTS_LOCAL;
+  const agentRows = `<div style="font-size:11px;color:#b45309;background:#fef3c7;border-radius:8px;padding:8px 10px;margin-bottom:10px">An illustrative directory until a listing is a confirmed Agrios partner (marked below). Verify details independently before relying on a listing.</div>` +
+    agents.map(a=>{
+      const crops=(a.crops||[]).join(', '), state=(a.states||[]).join('/');
+      return `
     <div style="padding:14px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
           <div style="font-weight:700;font-size:13px">${a.name}</div>
-          <div style="font-size:11px;color:var(--txt3)">${a.crops} · ${a.state}</div>
+          <div style="font-size:11px;color:var(--txt3)">${crops} · ${state}</div>
         </div>
-        <span style="background:#f3f4f6;color:#6b7280;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">Unconfirmed</span>
+        ${a.partner?'<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">✓ Confirmed partner</span>':'<span style="background:#f3f4f6;color:#6b7280;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">Unconfirmed</span>'}
       </div>
-      <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">Port: ${a.port}</div>
-      <a href="${a.contact.includes('@')?'mailto:':'tel:'}${a.contact}" style="display:inline-block;background:var(--forest);color:#fff;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none">Contact agent →</a>
-    </div>`).join('');
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Port: ${a.port}</div>
+      <div style="font-size:11px;color:var(--txt2);margin-bottom:8px;font-family:monospace">${a.contact}</div>
+      <button onclick="contactAgent('${a.contact.replace(/'/g,"\\'")}')" style="display:inline-block;background:var(--forest);color:#fff;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit">Contact agent →</button>
+    </div>`;}).join('');
 
   const buyerContent = `
     <div style="background:var(--cream);border-radius:10px;padding:16px;margin-bottom:16px">
@@ -2998,9 +3097,8 @@ function openLoanModal(maxAmount, creditScore){
           <div>
             <label style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Select lender</label>
             <select id="loanLender" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;margin-top:4px;font-family:inherit;font-size:13px">
-              <option value="agrifinance">Agrifinance Partners — From 18% p.a.</option>
-              <option value="nirsal">NIRSAL MFB — From 21% p.a.</option>
-              <option value="boa">Bank of Agriculture — From 15% p.a.</option>
+              ${(LIVE_LENDERS.length?LIVE_LENDERS:[{id:'local-fallback-1',name:'Agrifinance Partners',rate_pa_pct:18},{id:'local-fallback-2',name:'NIRSAL MFB',rate_pa_pct:21},{id:'local-fallback-3',name:'Bank of Agriculture',rate_pa_pct:15}])
+                .map(l=>`<option value="${l.id}">${l.name} — From ${l.rate_pa_pct}% p.a.</option>`).join('')}
             </select>
           </div>
           <div>
@@ -3037,7 +3135,11 @@ async function submitLoanApplication(){
   try {
     const res = await apiFetch('/finance/apply', {
       method:'POST',
-      body: JSON.stringify({ lender_id: lender==='agrifinance'?1:lender==='nirsal'?2:3, amount: parseFloat(amount), tenure_months: parseInt(tenure), purpose })
+      // lender is now the real lender id (UUID from the DB, or a
+      // 'local-fallback-N' / 'fallback-N' id when the lenders API/table
+      // wasn't reachable) — no more hardcoded agrifinance/nirsal/boa
+      // string-to-number guesswork that didn't match any real record.
+      body: JSON.stringify({ lender_id: lender, amount: parseFloat(amount), tenure_months: parseInt(tenure), purpose })
     });
     document.getElementById('loanModalOverlay')?.remove();
     if(res?.data?.application_id){
@@ -3064,6 +3166,14 @@ async function loadFinanceData(){
     if(guest) guest.style.display='block';
     if(main) main.style.display='none';
     if(badge){ badge.textContent='Sign in'; badge.className='badge badge-green'; }
+    // /finance/lenders is public now — keep the "Confirmed lending
+    // partners" count honest here too instead of the static "0" it used
+    // to be, which would've silently gone stale the day a real partner
+    // was actually signed.
+    apiFetch('/finance/lenders').then(res=>{
+      const el=document.getElementById('confirmedLendersCount');
+      if(el && res?.data) el.textContent = res.data.filter(l=>l.partnership_status==='active').length;
+    }).catch(()=>{});
     return;
   }
 
@@ -3206,16 +3316,21 @@ function renderScoreCard(s){
 
 function renderLenders(lenders, score){
   const el = document.getElementById('lenderList');
-  if(!el) return;
   // These are not confirmed lending partnerships yet — see the
   // partnership_status field returned by GET /finance/lenders. Show an
   // "Illustrative" tag rather than implying a real, signed partnership.
   const defaultLenders = [
-    {name:'Agrifinance Partners',min_score:600,max_amount_ngn:5000000,rate_pa_pct:18,contact:'loans@agrifinance.ng',partnership_status:'illustrative'},
-    {name:'NIRSAL MFB',min_score:500,max_amount_ngn:2000000,rate_pa_pct:21,contact:'agri@nirsal.com',partnership_status:'illustrative'},
-    {name:'Bank of Agriculture',min_score:550,max_amount_ngn:10000000,rate_pa_pct:15,contact:'loans@boanigeria.com',partnership_status:'illustrative'},
+    {id:'local-fallback-1',name:'Agrifinance Partners',min_score:600,max_amount_ngn:5000000,rate_pa_pct:18,contact:'loans@agrifinance.ng',partnership_status:'illustrative'},
+    {id:'local-fallback-2',name:'NIRSAL MFB',min_score:500,max_amount_ngn:2000000,rate_pa_pct:21,contact:'agri@nirsal.com',partnership_status:'illustrative'},
+    {id:'local-fallback-3',name:'Bank of Agriculture',min_score:550,max_amount_ngn:10000000,rate_pa_pct:15,contact:'loans@boanigeria.com',partnership_status:'illustrative'},
   ];
-  const list = lenders.length ? lenders : defaultLenders;
+  const list = lenders && lenders.length ? lenders : defaultLenders;
+  // openLoanModal() builds its lender dropdown from whatever's actually
+  // displayed here — real API data with real ids when available, the
+  // same illustrative fallback otherwise — so the loan application
+  // always references a lender that's really on screen.
+  LIVE_LENDERS = list;
+  if(!el) return;
   el.innerHTML = list.map(l=>{
     const eligible = score >= l.min_score;
     const isReal = l.partnership_status === 'active';
@@ -3298,6 +3413,7 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   buildPredList();
   buildPriceChips();
   filterPriceTable();
+  updatePricesLiveBadge();
   buildAlerts(); // shows "sign in" / empty state synchronously; loadAlerts() runs when the Alerts page is actually visited
   buildDemand(getDemands());
   buildJobGrid();
