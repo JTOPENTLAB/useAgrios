@@ -1,0 +1,8 @@
+# Pre-deploy gate for the frontend. Netlify runs `command` before publishing;
+# if it exits non-zero, the deploy is rejected and the site keeps serving the
+# last good version instead of a broken paste going live immediately. This is
+# the same check (scripts/check-inline-js.js) that's been run by hand before
+# every paste this session — now it runs automatically on every push.
+[build]
+  publish = "."
+  command = "node scripts/check-inline-js.js index.html manage.html"
