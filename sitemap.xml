@@ -44,5 +44,6 @@
   <url><loc>https://useagrios.com/?page=heatmap</loc><changefreq>always</changefreq><priority>0.6</priority></url>
   <url><loc>https://useagrios.com/?page=alerts</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://useagrios.com/?page=report</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://useagrios.com/?page=insights</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 
 </urlset>
