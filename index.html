@@ -98,9 +98,9 @@ a{color:inherit;text-decoration:none}
 .hamburger span{display:block;width:22px;height:2px;background:rgba(255,255,255,.7);border-radius:2px;transition:var(--transition)}
 
 /* ============ MOBILE NAV ============ */
-.mobile-nav{display:none;background:var(--white);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:200;height:60px}
-.mobile-nav-inner{display:flex;align-items:stretch;height:100%;padding:0 4px}
-.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;padding:4px 2px 2px;transition:var(--transition);color:var(--sage-lt);font-family:var(--font-body);min-width:0;overflow:hidden}
+.mobile-nav{display:none;background:var(--white);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:200;height:64px}
+.mobile-nav-inner{display:flex;align-items:stretch;height:100%;padding:0 10px;gap:6px}
+.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:none;background:none;cursor:pointer;padding:6px 2px 4px;transition:var(--transition);color:var(--sage-lt);font-family:var(--font-body);min-width:0;overflow:hidden}
 .mob-nav-item.active{color:var(--forest)}
 .mob-nav-item svg{width:20px;height:20px;stroke-width:1.8;flex-shrink:0}
 .mob-nav-label{font-size:9px;font-weight:600;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center;line-height:1.2}
@@ -694,6 +694,7 @@ tbody tr:hover td{background:var(--cream)}
       <button class="nav-link" onclick="showPage('prices')" role="listitem">Prices</button>
       <button class="nav-link" onclick="showPage('report')" role="listitem">Report</button>
       <button class="nav-link" onclick="showPage('alerts')" role="listitem">Alerts</button>
+      <button class="nav-link" onclick="showPage('insights')" role="listitem">Insights</button>
       <button class="nav-link" onclick="showPage('heatmap')" role="listitem">Heatmap</button>
       <button class="nav-link" onclick="showPage('transport')" role="listitem">🚛 Transport</button>
       <button class="nav-link" onclick="showPage('export')" role="listitem">Export</button>
@@ -721,6 +722,7 @@ tbody tr:hover td{background:var(--cream)}
     <button class="mob-drawer-link" onclick="showPage('prices');closeDrawer()">Prices</button>
     <button class="mob-drawer-link" onclick="showPage('report');closeDrawer()">Report Price</button>
     <button class="mob-drawer-link" onclick="showPage('alerts');closeDrawer()">Alerts</button>
+    <button class="mob-drawer-link" onclick="showPage('insights');closeDrawer()">Market Insights</button>
     <button class="mob-drawer-link" onclick="showPage('heatmap');closeDrawer()">Heatmap</button>
     <button class="mob-drawer-link" onclick="showPage('transport');closeDrawer()">🚛 Transport</button>
     <button class="mob-drawer-link" onclick="showPage('export');closeDrawer()">Export</button>
@@ -843,7 +845,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-prices" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Crop price index</h1>
+      <h2 class="sec-title" style="font-size:20px">Crop price index</h2>
       <div class="sec-sub">Market prices across Nigeria — a mix of live external feeds, a seasonal pricing model, and community-submitted reports. Each row below shows which.</div>
     </div>
     <span class="badge badge-live" id="pricesLiveBadge">● LIVE</span>
@@ -883,7 +885,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-report" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Report a market price</h1>
+      <h2 class="sec-title" style="font-size:20px">Report a market price</h2>
       <div class="sec-sub">Help build Nigeria's most accurate agricultural price database</div>
     </div>
   </div>
@@ -993,7 +995,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-alerts" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Price alerts</h1>
+      <h2 class="sec-title" style="font-size:20px">Price alerts</h2>
       <div class="sec-sub">Get notified when crop prices hit your target</div>
     </div>
     <button class="btn-outline" onclick="scrollToAlertForm()">+ New alert</button>
@@ -1045,11 +1047,37 @@ tbody tr:hover td{background:var(--cream)}
   </div>
 </div>
 
+<!-- ===================== MARKET INSIGHTS =====================
+     SEO content flywheel: a permanent, always-fresh page auto-generated
+     from real price_history data (see marketInsights.js on the backend).
+     No manual writing — the weekly cron regenerates it from actual price
+     movement, so it stays genuinely new content for search engines
+     instead of a static marketing page. -->
+<div class="page-wrap" id="page-insights" role="main">
+  <div class="sec-hd">
+    <div class="sec-hd-left">
+      <h2 class="sec-title" style="font-size:20px">Market insights</h2>
+      <div class="sec-sub" id="insightsWeekLabel">Auto-generated weekly from real Agrios price data</div>
+    </div>
+  </div>
+  <div id="insightsSummary" style="background:var(--cream);border-radius:12px;padding:16px 18px;margin-bottom:20px;font-size:14px;line-height:1.6;color:var(--obsidian)">Loading this week's market summary…</div>
+  <div class="grid-2">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Biggest gainers this week</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="insightsGainers" aria-label="Top gaining crop/market prices this week"></div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Biggest fallers this week</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="insightsFallers" aria-label="Top falling crop/market prices this week"></div>
+    </div>
+  </div>
+</div>
+
 <!-- HEATMAP -->
 <div class="page-wrap" id="page-heatmap" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Market heatmap</h1>
+      <h2 class="sec-title" style="font-size:20px">Market heatmap</h2>
       <div class="sec-sub">Best buying and selling locations across Nigeria today</div>
       <div style="margin-top:6px" id="heatSourceBadge"></div>
     </div>
@@ -1081,7 +1109,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-demand" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Buyer demand board</h1>
+      <h2 class="sec-title" style="font-size:20px">Buyer demand board</h2>
       <div class="sec-sub">Active purchase requests from verified buyers across Nigeria</div>
     </div>
     <button class="btn-outline" onclick="showToast('Post demand form — coming soon!')">+ Post demand</button>
@@ -1107,7 +1135,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-admin" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Admin control centre</h1>
+      <h2 class="sec-title" style="font-size:20px">Admin control centre</h2>
       <div class="sec-sub">Agri Intel moderation, contributor management, and data quality</div>
     </div>
     <span class="badge badge-amber">Admin only</span>
@@ -1133,7 +1161,7 @@ tbody tr:hover td{background:var(--cream)}
 <!-- ═══ TRANSPORT PAGE ═══ -->
 <div class="page-wrap" id="page-transport" role="main">
   <div class="sec-hd">
-    <div class="sec-hd-left"><h1 class="sec-title" style="font-size:20px">🚛 Transport network</h1><div class="sec-sub" id="transportSub">Loading vehicle & job counts… · Post a job in 60 seconds</div></div>
+    <div class="sec-hd-left"><h2 class="sec-title" style="font-size:20px">🚛 Transport network</h2><div class="sec-sub" id="transportSub">Loading vehicle & job counts… · Post a job in 60 seconds</div></div>
     <div style="display:flex;gap:8px">
       <button class="btn-outline" onclick="showTransportForm('register')">Register vehicle</button>
       <button class="btn-primary-sm" onclick="showTransportForm('post')">Post a job</button>
@@ -1186,7 +1214,7 @@ tbody tr:hover td{background:var(--cream)}
 <div class="page-wrap" id="page-finance" role="main">
   <div class="sec-hd">
     <div class="sec-hd-left">
-      <h1 class="sec-title" style="font-size:20px">Finance intelligence</h1>
+      <h2 class="sec-title" style="font-size:20px">Finance intelligence</h2>
       <div class="sec-sub">Crop credit scores and working capital — powered by your market activity</div>
     </div>
     <span class="badge badge-lime" id="finBadge">Loading...</span>
@@ -1897,6 +1925,29 @@ function switchPeriod(btn,period){
 
 /* ===================== PRICE TABLE ===================== */
 let activePriceChip='';
+let pendingCropFilter='', pendingStateFilter='';
+// Applies ?crop= / ?state= deep-link params once the prices page has
+// rendered its chips — these power the crop/state-specific URLs in
+// sitemap.xml, which previously all rendered identical content because
+// the params were parsed nowhere in the app.
+function applyPendingPriceFilters(){
+  if(pendingStateFilter){
+    const sel=document.getElementById('stateFilter');
+    if(sel){
+      const opt=[...sel.options].find(o=>o.value.toLowerCase()===pendingStateFilter.toLowerCase()||o.textContent.toLowerCase()===pendingStateFilter.toLowerCase());
+      if(opt) sel.value=opt.value;
+    }
+  }
+  if(pendingCropFilter){
+    const match=getPrices().find(c=>c.n.toLowerCase()===pendingCropFilter.toLowerCase());
+    const cropName=match?match.n:pendingCropFilter;
+    const chips=[...document.querySelectorAll('#priceChips .chip')];
+    const chip=chips.find(c=>c.textContent.trim().toLowerCase().endsWith(cropName.toLowerCase()));
+    if(chip) setPriceChip(chip, cropName);
+    if(match) updateSEOMeta('prices', match.n, fmt(match.avg), match.unit);
+  }
+  pendingCropFilter=''; pendingStateFilter='';
+}
 function buildPriceChips(){
   const el=document.getElementById('priceChips');
   if(!el)return;
@@ -2114,6 +2165,42 @@ async function createAlert(){
   }
 }
 function scrollToAlertForm(){document.getElementById('alertForm')?.scrollIntoView({behavior:'smooth',block:'center'})}
+
+/* ===================== MARKET INSIGHTS ===================== */
+// SEO content flywheel — see marketInsights.js on the backend. Renders the
+// latest auto-generated weekly summary; carries its own SEO meta so this
+// page is genuinely different content each week, not a static page.
+function insightRow(m, direction){
+  const pct = Math.abs(m.pct_change).toFixed(1);
+  const arrow = direction==='up' ? '↑' : '↓';
+  const badgeClass = direction==='up' ? 'badge-green' : 'badge-red';
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--white);border:1px solid var(--border);border-radius:10px">
+      <div>
+        <div style="font-weight:600;font-size:13px">${m.crop}</div>
+        <div style="font-size:11px;color:var(--sage-lt)">${m.market}, ${m.state}</div>
+      </div>
+      <span class="badge ${badgeClass}">${arrow} ${pct}%</span>
+    </div>`;
+}
+async function loadInsights(){
+  const summaryEl = document.getElementById('insightsSummary');
+  const weekEl = document.getElementById('insightsWeekLabel');
+  const gainersEl = document.getElementById('insightsGainers');
+  const fallersEl = document.getElementById('insightsFallers');
+  const res = await apiFetch('/insights/latest');
+  const data = res?.data;
+  if(!data){
+    summaryEl.textContent = 'Market insights aren\'t available right now — check back soon.';
+    return;
+  }
+  weekEl.textContent = `Week of ${data.week_start} — auto-generated from real Agrios price data`;
+  summaryEl.textContent = data.summary || 'Not enough price history yet to report a weekly summary.';
+  const gainers = data.gainers || [];
+  const fallers = data.fallers || [];
+  gainersEl.innerHTML = gainers.length ? gainers.map(m=>insightRow(m,'up')).join('') : `<div style="font-size:12px;color:var(--sage-lt)">No notable gainers this week</div>`;
+  fallersEl.innerHTML = fallers.length ? fallers.map(m=>insightRow(m,'down')).join('') : `<div style="font-size:12px;color:var(--sage-lt)">No notable fallers this week</div>`;
+}
 
 /* ===================== HEATMAP ===================== */
 // Pulls from the real GET /prices/heatmap?crop_name= endpoint instead of
@@ -2456,7 +2543,7 @@ async function adminAction(id,action){
 }
 
 /* ===================== PAGE ROUTING ===================== */
-const PAGE_NAV={home:'mbn-home',prices:'mbn-prices',report:'mbn-report',alerts:'mbn-alerts',demand:'mbn-demand',transport:'mbn-transport',export:'mbn-demand',finance:'mbn-demand',heatmap:'mbn-prices',admin:'mbn-demand'};
+const PAGE_NAV={home:'mbn-home',prices:'mbn-prices',report:'mbn-report',alerts:'mbn-alerts',demand:'mbn-demand',transport:'mbn-transport',export:'mbn-demand',finance:'mbn-demand',heatmap:'mbn-prices',admin:'mbn-demand',insights:'mbn-alerts'};
 function showPage(p){
   document.querySelectorAll('.page-wrap').forEach(x=>x.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
@@ -2479,13 +2566,14 @@ function showPage(p){
   window.scrollTo({top:0,behavior:'smooth'});
   if(p==='home'){setTimeout(buildPriceChart,300);}
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
-  if(p==='prices'){buildPriceChips();filterPriceTable();}
+  if(p==='prices'){buildPriceChips();applyPendingPriceFilters();filterPriceTable();}
   if(p==='finance'){loadFinanceData();}
   if(p==='transport'){buildJobGrid();loadTransportStats();}
   if(p==='export'){buildExportTable();}
   if(p==='report'){loadContributorProfile();}
   if(p==='admin'){buildAdmin();}
   if(p==='alerts'){loadAlerts();}
+  if(p==='insights'){loadInsights();}
   // Update SEO meta tags dynamically per page
   updateSEOMeta(p);
 }
@@ -2502,6 +2590,7 @@ function updateSEOMeta(page, cropName, cropPrice, cropUnit){
     heatmap: 'Nigeria crop price heatmap — see where prices are highest and lowest across all states today.',
     report: 'Report agricultural market prices from your local market. Help build Nigeria most accurate crop price database.',
     alerts: 'Set price alerts for Nigerian crop markets. Get notified when maize, rice, tomato and other crops hit your target price.',
+    insights: 'Weekly Nigeria crop price movement — biggest gainers and fallers across markets, auto-generated from real Agrios price data.',
   };
   const titles = {
     home: `Agrios — Real-Time Crop Prices Nigeria | useagrios.com`,
@@ -2513,6 +2602,7 @@ function updateSEOMeta(page, cropName, cropPrice, cropUnit){
     heatmap: `Nigeria Crop Price Heatmap — Best Buy & Sell Locations | Agrios`,
     report: `Report Crop Prices Nigeria — Community Price Intelligence | Agrios`,
     alerts: `Crop Price Alerts Nigeria — Get Notified on Price Changes | Agrios`,
+    insights: `Nigeria Crop Price Movement This Week — Gainers & Fallers | Agrios`,
   };
   // Update document title
   if(cropName && cropPrice){
@@ -3426,9 +3516,15 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   document.getElementById('mobDrawer').style.display='none';
   // Check if returning from Paystack payment
   checkPaymentReturn();
-  // Handle PWA shortcut deep links (?page=prices etc)
+  // Handle PWA shortcut deep links (?page=prices etc) and SEO landing
+  // params (?page=prices&crop=Maize / &state=Lagos) — see
+  // applyPendingPriceFilters() for how these get applied.
   const urlParams = new URLSearchParams(window.location.search);
   const deepPage = urlParams.get('page');
+  const deepCrop = urlParams.get('crop');
+  const deepState = urlParams.get('state');
+  if(deepCrop) pendingCropFilter = deepCrop;
+  if(deepState) pendingStateFilter = deepState;
   if(deepPage) showPage(deepPage);
 
   // then fetch live data from API and re-render (replaces static data)
