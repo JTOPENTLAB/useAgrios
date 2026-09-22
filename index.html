@@ -590,7 +590,6 @@ tbody tr:hover td{background:var(--cream)}
         <button class="auth-btn" style="background:var(--cream);color:var(--forest);border:1.5px solid var(--border)" onclick="switchAuthTab('register')">
           Create a free account →
         </button>
-        <p style="font-size:11px;color:var(--sage);text-align:center">Demo: fatima@demo.com · password: Demo@123456!</p>
         <p style="font-size:10px;color:var(--txt3);text-align:center">Or create your own free account →</p>
       </div>
 
@@ -645,8 +644,8 @@ tbody tr:hover td{background:var(--cream)}
 <!-- USER MENU -->
 <div class="user-menu" id="userMenu">
   <div class="user-menu-header">
-    <div class="user-menu-name" id="umName">Fatima Kalu</div>
-    <div class="user-menu-email" id="umEmail">fatima@demo.com</div>
+    <div class="user-menu-name" id="umName">—</div>
+    <div class="user-menu-email" id="umEmail">—</div>
     <span class="badge badge-green" id="umTier">Free</span>
   </div>
   <button class="user-menu-item" onclick="showPage('report');closeUserMenu()">
@@ -1523,9 +1522,9 @@ function showApiStatus(state) {
     const timeStr = now.toLocaleTimeString('en-NG', {hour:'2-digit', minute:'2-digit'});
     if(sub) sub.textContent = 'Live from database · Updated ' + timeStr + ' · Scroll to explore all crops';
   } else {
-    el.textContent = '○ Demo data';
+    el.textContent = '○ Estimates';
     el.style.color = 'rgba(255,255,255,.4)';
-    if(sub) sub.textContent = 'Showing demo data — API connecting…';
+    if(sub) sub.textContent = 'Showing reference estimates — live prices loading…';
   }
 }
 
@@ -1794,15 +1793,16 @@ function filterPriceTable(){
     return matchQ&&matchChip&&matchState&&matchTrend;
   });
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty"><div class="empty-icon">🌾</div><p>No crops match your filters.<br>Try adjusting the search or clear filters.</p></div></td></tr>`;return}
+  const isLive = LIVE_PRICES.length > 0;
   tbody.innerHTML=filtered.map(c=>`
     <tr>
       <td><div class="td-crop-cell"><span class="td-icon">${c.e}</span>${c.n}</div></td>
       <td style="color:#5a7a67">${c.mkt}</td>
       <td style="color:#5a7a67">${c.state}</td>
       <td style="color:#5a7a67">${c.unit}</td>
-      <td class="td-mono" style="color:#8fa89a">${fmt(c.low)}</td>
-      <td class="td-mono" style="font-weight:600;color:#0a3d25">${fmt(c.avg)}</td>
-      <td class="td-mono" style="color:#8fa89a">${fmt(c.high)}</td>
+      <td class="td-mono" style="color:#8fa89a">${fmt(c.low)}${!isLive?'*':''}</td>
+      <td class="td-mono" style="font-weight:600;color:#0a3d25">${fmt(c.avg)}${!isLive?'*':''}</td>
+      <td class="td-mono" style="color:#8fa89a">${fmt(c.high)}${!isLive?'*':''}</td>
       <td><span class="badge ${c.ch24>0?'badge-green':c.ch24<0?'badge-red':'badge-gray'}">${chgLabel(c.ch24)}</span></td>
       <td><span class="badge ${c.ch7>0?'badge-green':c.ch7<0?'badge-red':'badge-gray'}">${chgLabel(c.ch7)}</span></td>
       <td>
@@ -1811,7 +1811,7 @@ function filterPriceTable(){
           <span style="font-size:11px;color:#5a7a67">${c.conf}%</span>
         </div>
       </td>
-      <td style="font-size:11px;color:#8fa89a">2 min ago</td>
+      <td style="font-size:11px;color:#8fa89a">${isLive ? (c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'}) : 'Just now') : '<span style="color:#d97706;font-style:italic">est.</span>'}</td>
     </tr>`).join('');
 }
 
@@ -2047,7 +2047,7 @@ function runLandingCalc(){
   const rows = [];
   const sources = Object.keys(LC_DISTANCES).filter(s => s !== dest);
 
-  // Try to pull from live price data, fall back to BASE_PRICES estimate
+  // Pull from live price data only — no estimates
   const cropPrices = {};
   document.querySelectorAll('#priceTable tbody tr').forEach(tr => {
     const cells = tr.querySelectorAll('td');
@@ -2061,24 +2061,13 @@ function runLandingCalc(){
     }
   });
 
-  // BASE_PRICES fallback (per 100kg bag → convert to per kg)
-  const BASE = {
-    Maize:870, Rice:1450, Beans:1180, Yam:950, Cassava:420,
-    Tomato:280, Pepper:195, Onion:320, Sorghum:780, Groundnut:1250, Soybean:1350
-  };
-
   for(const src of sources){
     const distKm = (LC_DISTANCES[src]||{})[dest];
     if(distKm === undefined) continue;
 
-    // Per-kg purchase price
-    let pricePerKg = cropPrices[crop+'|'+src];
-    if(!pricePerKg && BASE[crop]){
-      // Regional variation approx
-      const regionFactor = {Kano:0.95,Kaduna:0.94,Borno:0.93,Oyo:0.98,Abia:1.02,Enugu:0.99,Rivers:1.05,FCT:1.06,Lagos:1.08,Anambra:1.01}[src]||1;
-      pricePerKg = BASE[crop] * regionFactor;
-    }
-    if(!pricePerKg) continue;
+    // Per-kg purchase price — live data only, no estimates
+    const pricePerKg = cropPrices[crop+'|'+src];
+    if(!pricePerKg) continue; // skip markets with no live price data
 
     const purchaseTotal = Math.round(pricePerKg * qty);
     const tonnes = qty / 1000;
@@ -2090,7 +2079,18 @@ function runLandingCalc(){
     rows.push({ src, pricePerKg: Math.round(pricePerKg), purchaseTotal, transportTotal, landingTotal, landingPerKg, distKm });
   }
 
-  if(!rows.length){ alert('No price data available for '+crop); return; }
+  if(!rows.length){
+    const res = document.getElementById('lc-results');
+    document.getElementById('lc-tbody').innerHTML = `<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--txt3)">
+      <div style="font-size:22px;margin-bottom:8px">📡</div>
+      <div style="font-weight:700;margin-bottom:4px">No live price data for ${crop}</div>
+      <div style="font-size:12px">Prices for this crop haven't been reported in the selected markets yet.<br>Check back once traders have submitted prices, or try a different crop.</div>
+    </td></tr>`;
+    document.getElementById('lc-insight').innerHTML = '';
+    document.getElementById('lc-winner-badge').textContent = '';
+    res.style.display = '';
+    return;
+  }
   rows.sort((a,b) => a.landingTotal - b.landingTotal);
 
   const fmt = n => '₦' + n.toLocaleString();
@@ -2618,7 +2618,7 @@ async function doLogin(){
     if(e.name === 'AbortError' || msg.includes('abort')){
       showAuthError('Server timeout — it may be starting up. Please wait 15 seconds and try again.');
     } else if(msg.includes('401') || msg.includes('Invalid') || msg.includes('credentials')){
-      showAuthError('Incorrect email or password. Demo login: fatima@demo.com / Demo@123456!');
+      showAuthError('Incorrect email or password. Please check your credentials and try again.');
     } else if(msg.includes('fetch') || msg.includes('Failed') || msg.includes('network')){
       showAuthError('Cannot connect to server. Please check your internet and try again.');
     } else {
