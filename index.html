@@ -2861,7 +2861,7 @@ function openExportModal(type){
     { name:'AfroCashew Nigeria', crops:'Cashew', state:'Lagos/Ogun', port:'Tin Can Island', contact:'trade@afrocashew.ng', verified:true },
     { name:'Delta Palm Exports', crops:'Palm Oil', state:'Delta/Rivers', port:'Warri Port', contact:'export@deltapalmng.com', verified:true },
     { name:'North Hibiscus Traders', crops:'Hibiscus, Sesame', state:'Kano/Jigawa', port:'Kano Dry Port', contact:'+2348099887766', verified:false },
-    { name:'Margafrique', crops:'Cocoa, Sesame, Groundnut, Palm Oil', state:'International · Morocco', port:'Casablanca', contact:'l.ly@margafrique.ma', phone:'+212 660 17 70 10', brands:'Al Boustane, La Prairie, Acadir, Atlas, La Hollandaise, Kidy, Finesse, Punch', connections:'ATC · AIH · IFAD', contactName:'Mr Ly Ibrahima (Export Manager)', verified:true },
+    { name:'Margafrique', crops:'Cocoa, Sesame, Groundnut, Palm Oil', state:'International · Morocco', port:'Casablanca', contact:'l.ly@margafrique.ma', phone:'+212 660 17 70 10', brands:'Al Boustane (preserved vegetables) · La Prairie (dairy & processed foods) · Acadir (sardines & seafood) · Atlas (olive oil & condiments) · La Hollandaise (mayonnaise & sauces) · Kidy (children\'s food & juice) · Finesse (biscuits & snacks) · Punch (beverages & juice drinks)', connections:'ATC · AIH · IFAD', contactName:'Mr Ly Ibrahima (Export Manager)', verified:true },
   ];
   const agentRows = agents.map(a=>`
     <div style="padding:14px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px">
@@ -2873,7 +2873,7 @@ function openExportModal(type){
         <span style="background:${a.verified?'#dcfce7':'#f3f4f6'};color:${a.verified?'#15803d':'#6b7280'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px">${a.verified?'✓ Verified':'Unverified'}</span>
       </div>
       <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Port: ${a.port}${a.contactName ? ' · ' + a.contactName : ''}</div>
-      ${a.brands ? `<div style="font-size:10px;color:var(--txt3);margin-bottom:4px"><strong>Brands:</strong> ${a.brands}</div>` : ''}
+      ${a.brands ? `<div style="font-size:10px;color:var(--txt3);margin-bottom:6px"><strong>Products managed:</strong><div style="margin-top:4px;line-height:1.8">${a.brands.split(' · ').map(b=>`<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;margin:2px 3px 2px 0;font-size:10px">${b}</span>`).join('')}</div></div>` : ''}
       ${a.connections ? `<div style="font-size:10px;color:var(--txt3);margin-bottom:8px"><strong>Partners:</strong> ${a.connections}</div>` : ''}
       ${!a.brands && !a.connections ? '<div style="margin-bottom:8px"></div>' : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
