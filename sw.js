@@ -1,114 +1,105 @@
-// Agrios Service Worker v1.0
-// Caches the app shell for offline use, fetches fresh data when online
+/* Agrios Service Worker v1 */
+const CACHE = 'agrios-v1';
+const OFFLINE_URL = '/';
 
-const CACHE = 'agrios-v3';
-const API_BASE = 'https://agrios-api.onrender.com';
-
-// App shell — cache STATIC assets only, NOT index.html
-// index.html must always be fresh so updates deploy instantly
-const SHELL = [
+// Assets to pre-cache on install
+const PRECACHE = [
+  '/',
+  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js',
 ];
 
-// ── INSTALL — cache app shell ──
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => {
-      return Promise.allSettled(
-        SHELL.map(url => cache.add(url).catch(() => {})) // don't fail on single miss
-      );
-    })
+// ── INSTALL ───────────────────────────────────────────────────
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// ── ACTIVATE — clean old caches ──
-self.addEventListener('activate', event => {
-  event.waitUntil(
+// ── ACTIVATE ──────────────────────────────────────────────────
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// ── FETCH strategy ──
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+// ── FETCH ─────────────────────────────────────────────────────
+self.addEventListener('fetch', e => {
+  const { request } = e;
+  const url = new URL(request.url);
 
-  // API requests — network first, no cache (always need fresh prices)
-  if (url.origin === new URL(API_BASE).origin || url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() =>
-        new Response(JSON.stringify({ error: 'offline', data: [] }), {
-          headers: { 'Content-Type': 'application/json' }
+  // Skip non-GET and API calls — always go to network
+  if (request.method !== 'GET') return;
+  if (url.pathname.startsWith('/api/')) return;
+  if (url.hostname !== self.location.hostname) return;
+
+  // Network-first for HTML (always fresh app shell)
+  if (request.headers.get('accept')?.includes('text/html')) {
+    e.respondWith(
+      fetch(request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(request, clone));
+          return res;
         })
-      )
+        .catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Google Fonts — cache first
-  if (url.origin === 'https://fonts.gstatic.com' || url.origin === 'https://fonts.googleapis.com') {
-    event.respondWith(
-      caches.match(event.request).then(cached => cached || fetch(event.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(event.request, clone));
-        return res;
-      }))
-    );
-    return;
-  }
-
-  // HTML pages — always network first, never cache
-  // This ensures updates deploy instantly to all browsers
-  if (event.request.headers.get('accept')?.includes('text/html') ||
-      url.pathname === '/' ||
-      url.pathname.endsWith('.html')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // Static assets — cache first
-  event.respondWith(
-    caches.match(event.request).then(cached => {
+  // Cache-first for everything else (fonts, icons, JS)
+  e.respondWith(
+    caches.match(request).then(cached => {
       if (cached) return cached;
-      return fetch(event.request).then(res => {
+      return fetch(request).then(res => {
         if (res.status === 200) {
           const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(event.request, clone));
+          caches.open(CACHE).then(c => c.put(request, clone));
         }
         return res;
-      }).catch(() => new Response('Offline', { status: 503 }));
+      });
     })
   );
 });
 
-// ── PUSH NOTIFICATIONS (future — price alerts) ──
-self.addEventListener('push', event => {
-  if (!event.data) return;
-  const data = event.data.json();
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Agrios Price Alert', {
-      body: data.body || 'A price alert has been triggered.',
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  let data = {};
+  try { data = e.data.json(); } catch { data = { title: 'Agrios', body: e.data.text() }; }
+
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Agrios', {
+      body: data.body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: 'agrios-alert',
-      renotify: true,
-      data: { url: data.url || '/' }
+      tag: data.tag || 'agrios-alert',
+      data: { url: data.url || '/' },
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
     })
   );
 });
 
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data?.url || '/')
+// ── NOTIFICATION CLICK ────────────────────────────────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = e.notification.data?.url || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(target);
+    })
   );
 });
