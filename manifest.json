@@ -1,15 +1,15 @@
 {
-  "name": "Agrios — Nigeria Market Intelligence",
+  "name": "Agrios – Nigeria Market Intelligence",
   "short_name": "Agrios",
-  "description": "Real-time crop prices, transport matching, and market intelligence for Nigerian agriculture.",
+  "description": "Real-time crop prices, transport matching, and export intelligence for Nigerian agriculture.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7faf8",
+  "background_color": "#0a3d25",
   "theme_color": "#0a3d25",
   "orientation": "portrait-primary",
-  "lang": "en-NG",
+  "scope": "/",
+  "lang": "en",
   "categories": ["business", "finance", "productivity"],
-  "screenshots": [],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -26,24 +26,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Live Prices",
+      "name": "Prices",
       "short_name": "Prices",
-      "description": "View latest crop prices",
-      "url": "/?page=prices",
+      "description": "View live crop prices",
+      "url": "/?tab=prices",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Report a Price",
-      "short_name": "Report",
-      "description": "Submit a market price report",
-      "url": "/?page=report",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Transport Jobs",
+      "name": "Transport",
       "short_name": "Transport",
-      "description": "Find or post transport jobs",
-      "url": "/?page=transport",
+      "description": "Find transport jobs",
+      "url": "/?tab=transport",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Alerts",
+      "short_name": "Alerts",
+      "description": "Manage price alerts",
+      "url": "/?tab=alerts",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
