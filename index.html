@@ -2839,7 +2839,7 @@ window.addEventListener('beforeinstallprompt', e=>{
   deferredInstallPrompt = e;
   // Show banner after 30s on first visit, or if user hasn't dismissed
   if(!localStorage.getItem('agrios_install_dismissed')){
-    setTimeout(showInstallBanner, 30000);
+    setTimeout(showInstallBanner, 3000);
   }
 });
 
