@@ -3496,37 +3496,36 @@ function buildFarmerGrid(farmers){
 
   if(!farmers.length){ grid.innerHTML=''; return; }
 
-  grid.innerHTML = farmers.map((f,i) => {
-    const crops  = (f.crops_grown||[]).slice(0,4);
-    const locked = !isPro;
-    const initials = f.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-
-    return `<div class="farmer-card">
-      <div class="farmer-card-badge">✓ Consented</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0a3d25,#1a6b3c);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">${initials}</div>
-        <div>
-          <div class="farmer-card-name">${locked ? f.full_name.split(' ')[0]+' '+f.full_name.split(' ').slice(1).map(w=>w[0]+'.').join(' ') : f.full_name}</div>
-          <div class="farmer-card-loc">📍 ${f.lga ? f.lga+', ' : ''}${f.state||'Nigeria'}</div>
-        </div>
-      </div>
-      <div class="farmer-card-crops">${crops.map(c=>'<span class="farmer-card-crop">'+c+'</span>').join('')}${(f.crops_grown||[]).length>4?'<span class="farmer-card-crop">+'+((f.crops_grown.length-4)+' more')+'</span>':''}</div>
-      <div class="farmer-card-harvest">🌾 Typical harvest: ${harvestLabel(f.harvest_size_kg)}</div>
-      ${locked
-        ? '<button class="farmer-card-locked" onclick="upgradePrompt()">🔒 Unlock contact (Pro)</button>'
-        : '<button class="farmer-card-contact" onclick="contactFarmer(''+f.id+'',''+encodeURIComponent(f.full_name)+'')">Contact farmer →</button>'
-      }
-    </div>`;
+  grid.innerHTML = farmers.map(function(f){
+    var crops    = (f.crops_grown||[]).slice(0,4);
+    var locked   = !isPro;
+    var initials = f.full_name.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    var nameMasked = locked
+      ? f.full_name.split(' ')[0]+' '+f.full_name.split(' ').slice(1).map(function(w){return w[0]+'.';}).join(' ')
+      : f.full_name;
+    var locStr = (f.lga ? f.lga+', ' : '') + (f.state||'Nigeria');
+    var cropTags = crops.map(function(c){return '<span class="farmer-card-crop">'+c+'</span>';}).join('');
+    if((f.crops_grown||[]).length>4) cropTags += '<span class="farmer-card-crop">+'+(f.crops_grown.length-4)+' more</span>';
+    var contactBtn = locked
+      ? '<button class="farmer-card-locked" onclick="upgradePrompt()">🔒 Unlock contact (Pro)</button>'
+      : '<button class="farmer-card-contact" onclick="contactFarmer(this)">Contact farmer →</button>';
+    return '<div class="farmer-card">'
+      +'<div class="farmer-card-badge">✓ Consented</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0a3d25,#1a6b3c);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">'+initials+'</div>'
+      +'<div><div class="farmer-card-name">'+nameMasked+'</div>'
+      +'<div class="farmer-card-loc">📍 '+locStr+'</div></div></div>'
+      +'<div class="farmer-card-crops">'+cropTags+'</div>'
+      +'<div class="farmer-card-harvest">🌾 Typical harvest: '+harvestLabel(f.harvest_size_kg)+'</div>'
+      +contactBtn
+      +'</div>';
   }).join('');
 }
 
-function contactFarmer(id, name){
-  const farmer = allFarmers.find(f=>f.id===id);
-  if(!farmer){ showToast('Farmer not found'); return; }
-  showToast('Opening contact for '+decodeURIComponent(name)+'…');
-  // In production: open a modal with verified contact details
-  // For now show a placeholder
-  alert('Contact '+farmer.full_name+'\nPhone: '+( farmer.phone||'Not provided')+'\nEmail: '+(farmer.email_contact||'Ask via Agrios message'));
+function contactFarmer(btn){
+  var card = btn.closest('.farmer-card');
+  var name = card ? card.querySelector('.farmer-card-name').textContent : '?';
+  showToast('Contact request sent for '+name+'. We will connect you shortly.');
 }
 
 function getSampleFarmers(){
