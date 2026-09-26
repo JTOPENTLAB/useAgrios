@@ -1682,7 +1682,7 @@ function getOpps(){
     var dynOpps=[];
     // Rising trend cards
     uniq.filter(function(p){return(p.ch7||0)>8;}).slice(0,2).forEach(function(p){
-      dynOpps.push({type:'RISING TREND',title:p.n+' prices rising fast',desc:'Up '+p.ch7+'% in 7 days at '+p.mkt+'. Seller's market — good time to move stock.',margin:'+'+p.ch7+'% 7d',icon:p.e||'\ud83d\udcc8',actions:['List Produce','View Buyers','\ud83d\ude9b Find Transport']});
+      dynOpps.push({type:'RISING TREND',title:p.n+' prices rising fast',desc:'Up '+p.ch7+'% in 7 days at '+p.mkt+'. Seller’s market — good time to move stock.',margin:'+'+p.ch7+'% 7d',icon:p.e||'\ud83d\udcc8',actions:['List Produce','View Buyers','\ud83d\ude9b Find Transport']});
     });
     // Falling — buying opportunity
     uniq.filter(function(p){return(p.ch7||0)<-6;}).slice(0,1).forEach(function(p){
