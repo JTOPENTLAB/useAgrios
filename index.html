@@ -2581,10 +2581,16 @@ function fetchAdminStats(){
   fetch(API+'/admin/stats',{headers:{'Authorization':'Bearer '+tok}})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(!d.success)return; // silently ignore — user may not be admin yet
+      if(!d.success){
+        /* Not admin or API error — show zeros rather than hanging */
+        renderAdminStats({stats:{users:{total:0,farmers:0,buyers:0,agents:0,pro_users:0,joined_today:0,joined_week:0},reports:{pending:0,flagged:0,today:0,reports_delta:null,quality_pct:null},farmers:{total:0,consenting:0}},contributors:[],pending_reports:[]});
+        return;
+      }
       renderAdminStats(d);
     })
-    .catch(function(){/* network errors are silent on admin panel */});
+    .catch(function(){
+      renderAdminStats({stats:{users:{total:0,farmers:0,buyers:0,agents:0,pro_users:0,joined_today:0,joined_week:0},reports:{pending:0,flagged:0,today:0,reports_delta:null,quality_pct:null},farmers:{total:0,consenting:0}},contributors:[],pending_reports:[]});
+    });
 }
 
 function renderAdminStats(d){
