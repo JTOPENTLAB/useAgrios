@@ -1235,6 +1235,67 @@ tbody tr:hover td{background:var(--cream)}
       <div class="admin-card" id="contributorList" aria-label="Top contributors"></div>
     </div>
   </div>
+
+  <!-- Lenders management -->
+  <div style="margin-top:28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="sec-title">Partner lenders</div>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openLenderModal()">+ Add lender</button>
+    </div>
+    <div class="admin-card" id="lenderAdminList" aria-label="Partner lenders"></div>
+  </div>
+</div>
+
+<!-- Lender modal -->
+<div id="lenderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:24px;width:min(480px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-weight:700;font-size:15px" id="lenderModalTitle">Add lender</div>
+      <button onclick="closeLenderModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;line-height:1">×</button>
+    </div>
+    <input type="hidden" id="lenderEditId">
+    <div style="display:grid;gap:12px">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Lender name *</label>
+        <input id="lenderName" class="search-box" style="width:100%;box-sizing:border-box" placeholder="e.g. Bank of Agriculture Nigeria">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Min credit score *</label>
+          <input id="lenderMinScore" class="search-box" type="number" min="300" max="1000" style="width:100%;box-sizing:border-box" placeholder="e.g. 550">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Rate (% p.a.) *</label>
+          <input id="lenderRate" class="search-box" type="number" step="0.01" style="width:100%;box-sizing:border-box" placeholder="e.g. 15.00">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Max loan amount (₦) *</label>
+        <input id="lenderMax" class="search-box" type="number" style="width:100%;box-sizing:border-box" placeholder="e.g. 10000000">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Contact email</label>
+        <input id="lenderEmail" class="search-box" type="email" style="width:100%;box-sizing:border-box" placeholder="loans@example.com">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Website URL</label>
+        <input id="lenderUrl" class="search-box" style="width:100%;box-sizing:border-box" placeholder="https://...">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#5a7a67;display:block;margin-bottom:4px">Description</label>
+        <textarea id="lenderDesc" class="search-box" rows="2" style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;font-size:13px" placeholder="Brief description for farmers..."></textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="lenderActive" checked style="width:15px;height:15px">
+        Active (visible to users)
+      </label>
+    </div>
+    <div id="lenderModalErr" style="color:#dc2626;font-size:12px;margin-top:8px;display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button onclick="closeLenderModal()" style="background:#f3f4f6;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px">Cancel</button>
+      <button onclick="saveLender()" class="btn btn-primary" style="font-size:13px;padding:8px 20px" id="lenderSaveBtn">Save lender</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ TRANSPORT PAGE ═══ -->
@@ -2699,6 +2760,7 @@ function buildAdmin(){
   if(_adminLoaded)return;
   _adminLoaded=true;
   fetchAdminStats();
+  loadLenderAdmin();
 }
 
 function fetchAdminStats(){
@@ -2810,6 +2872,146 @@ function renderAdminStats(d){
       }).join('');
     }
   }
+}
+
+
+/* ===================== LENDER ADMIN ===================== */
+var _lenders=[];
+
+function loadLenderAdmin(){
+  var tok=localStorage.getItem('agrios_token');
+  if(!tok)return;
+  var el=document.getElementById('lenderAdminList');
+  if(!el)return;
+  el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0">Loading…</div></div></div>';
+  fetch(API+'/admin/lenders',{headers:{'Authorization':'Bearer '+tok}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.success){_lenders=d.data||[];renderLenderAdmin();}
+      else{el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="color:#dc2626;padding:8px 0">Failed to load lenders</div></div></div>';}
+    })
+    .catch(function(){
+      el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="color:#dc2626;padding:8px 0">Could not reach API</div></div></div>';
+    });
+}
+
+function renderLenderAdmin(){
+  var el=document.getElementById('lenderAdminList');
+  if(!el)return;
+  if(!_lenders.length){
+    el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0;color:var(--sage)">No lenders yet — add one above.</div></div></div>';
+    return;
+  }
+  el.innerHTML=_lenders.map(function(l){
+    var activeHtml=l.is_active
+      ?'<span style="font-size:11px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:20px">Active</span>'
+      :'<span style="font-size:11px;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px">Inactive</span>';
+    return '<div class="admin-row">'
+      +'<div class="admin-info">'
+      +'<div class="admin-main" style="display:flex;align-items:center;gap:8px">'+l.name+' '+activeHtml+'</div>'
+      +'<div class="admin-sub">Min score: '+l.min_score+' · Rate: '+l.rate_pa_pct+'% p.a. · Max: ₦'+Number(l.max_amount_ngn).toLocaleString('en-NG')+'</div>'
+      +'</div>'
+      +'<div class="admin-actions">'
+      +'<button class="btn-approve" style="background:#f0f9ff;color:#1558a8;border:1px solid #bfdbfe" onclick="editLender('+l.id+')">Edit</button>'
+      +'<button class="btn-reject" style="background:'+(l.is_active?'#fff7ed':'#f0fdf4')+';color:'+(l.is_active?'#b45309':'#166534')+';border:1px solid '+(l.is_active?'#fed7aa':'#bbf7d0')+"' onclick="toggleLender("+l.id+','+(l.is_active?'false':'true')+")">"+(l.is_active?'Deactivate':'Activate')+'</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function openLenderModal(prefill){
+  var m=document.getElementById('lenderModal');
+  if(!m)return;
+  document.getElementById('lenderModalTitle').textContent=prefill?'Edit lender':'Add lender';
+  document.getElementById('lenderEditId').value=prefill?prefill.id:'';
+  document.getElementById('lenderName').value=prefill?prefill.name:'';
+  document.getElementById('lenderMinScore').value=prefill?prefill.min_score:'';
+  document.getElementById('lenderRate').value=prefill?prefill.rate_pa_pct:'';
+  document.getElementById('lenderMax').value=prefill?prefill.max_amount_ngn:'';
+  document.getElementById('lenderEmail').value=prefill?(prefill.contact_email||''):'';
+  document.getElementById('lenderUrl').value=prefill?(prefill.contact_url||''):'';
+  document.getElementById('lenderDesc').value=prefill?(prefill.description||''):'';
+  document.getElementById('lenderActive').checked=prefill?!!prefill.is_active:true;
+  document.getElementById('lenderModalErr').style.display='none';
+  document.getElementById('lenderSaveBtn').disabled=false;
+  document.getElementById('lenderSaveBtn').textContent='Save lender';
+  m.style.display='flex';
+}
+
+function closeLenderModal(){
+  var m=document.getElementById('lenderModal');
+  if(m)m.style.display='none';
+}
+
+function editLender(id){
+  var l=_lenders.find(function(x){return x.id===id;});
+  if(l)openLenderModal(l);
+}
+
+function toggleLender(id,active){
+  var tok=localStorage.getItem('agrios_token');
+  if(!tok)return;
+  fetch(API+'/admin/lenders/'+id,{
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({is_active:active})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.success){
+      var l=_lenders.find(function(x){return x.id===id;});
+      if(l)l.is_active=active;
+      renderLenderAdmin();
+    }
+  });
+}
+
+function saveLender(){
+  var tok=localStorage.getItem('agrios_token');
+  if(!tok)return;
+  var errEl=document.getElementById('lenderModalErr');
+  errEl.style.display='none';
+  var name=document.getElementById('lenderName').value.trim();
+  var minScore=parseInt(document.getElementById('lenderMinScore').value);
+  var rate=parseFloat(document.getElementById('lenderRate').value);
+  var maxAmt=parseInt(document.getElementById('lenderMax').value);
+  if(!name||isNaN(minScore)||isNaN(rate)||isNaN(maxAmt)){
+    errEl.textContent='Please fill in all required fields.';
+    errEl.style.display='block';
+    return;
+  }
+  var payload={
+    name:name,
+    min_score:minScore,
+    rate_pa_pct:rate,
+    max_amount_ngn:maxAmt,
+    contact_email:document.getElementById('lenderEmail').value.trim()||null,
+    contact_url:document.getElementById('lenderUrl').value.trim()||null,
+    description:document.getElementById('lenderDesc').value.trim()||null,
+    is_active:document.getElementById('lenderActive').checked,
+    slug:name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')
+  };
+  var editId=document.getElementById('lenderEditId').value;
+  var method=editId?'PUT':'POST';
+  var url=API+'/admin/lenders'+(editId?'/'+editId:'');
+  var btn=document.getElementById('lenderSaveBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  fetch(url,{
+    method:method,
+    headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.success){
+      closeLenderModal();
+      loadLenderAdmin();
+    } else {
+      errEl.textContent=d.error||'Save failed';
+      errEl.style.display='block';
+      btn.disabled=false;btn.textContent='Save lender';
+    }
+  }).catch(function(){
+    errEl.textContent='Network error — try again';
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Save lender';
+  });
 }
 
 function timeAgo(d){
