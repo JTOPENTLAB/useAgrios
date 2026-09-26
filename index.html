@@ -1210,11 +1210,17 @@ tbody tr:hover td{background:var(--cream)}
     </div>
     <span class="badge badge-amber">Admin only</span>
   </div>
-  <div class="stat-grid" style="margin-bottom:24px">
-    <div class="stat-card"><div class="stat-card-label">Pending reports</div><div class="stat-card-val">23</div><div class="stat-card-change" style="color:var(--amber)">Needs review</div></div>
-    <div class="stat-card"><div class="stat-card-label">Flagged reports</div><div class="stat-card-val">7</div><div class="stat-card-change dn">Suspicious</div></div>
-    <div class="stat-card"><div class="stat-card-label">Reports today</div><div class="stat-card-val">284</div><div class="stat-card-change up">↑ 12% vs yesterday</div></div>
-    <div class="stat-card"><div class="stat-card-label">Data quality</div><div class="stat-card-val">91%</div><div class="stat-card-change up">↑ Excellent</div></div>
+  <div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-card-label">Pending reports</div><div class="stat-card-val">—</div><div class="stat-card-change" style="color:var(--amber)">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Flagged reports</div><div class="stat-card-val">—</div><div class="stat-card-change dn">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Reports today</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Users (total)</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
+  </div>
+  <div class="stat-grid" id="adminUserStats" style="margin-bottom:24px">
+    <div class="stat-card"><div class="stat-card-label">🌾 Farmers</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">🛒 Buyers</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">📦 Agents</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">This week</div><div class="stat-card-val">—</div><div class="stat-card-change">Loading…</div></div>
   </div>
   <div class="grid-2">
     <div>
@@ -2424,37 +2430,147 @@ function buildExportTable(){
 }
 
 /* ===================== ADMIN ===================== */
+var _adminLoaded=false;
+var _adminReports=[];
+var BG_COLORS=['#0a3d25','#1558a8','#7b1fa2','#b45309','#0e7490','#166534'];
+
 function buildAdmin(){
-  const pl=document.getElementById('pendingList');
-  const cl=document.getElementById('contributorList');
-  if(pl)pl.innerHTML=ADMIN_PENDING.map((p,i)=>`
-    <div class="admin-row" id="ar-${i}">
-      <div class="admin-info">
-        <div class="admin-main">${p.crop} — ${p.mkt}</div>
-        <div class="admin-sub">${p.price} · by ${p.user} · 2 hrs ago${p.flag?' · <span style="color:#d97706">⚠ Price deviation flagged</span>':''}</div>
-      </div>
-      <div class="admin-actions">
-        <button class="btn-approve" onclick="adminAction(${i},'approve')">✓ Approve</button>
-        <button class="btn-reject" onclick="adminAction(${i},'reject')">✗ Reject</button>
-      </div>
-    </div>`).join('');
-  if(cl)cl.innerHTML=CONTRIBUTORS.map(c=>`
-    <div class="admin-row">
-      <div style="width:36px;height:36px;border-radius:50%;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0" aria-hidden="true">${c.name.split(' ').map(x=>x[0]).join('')}</div>
-      <div class="admin-info">
-        <div class="admin-main">${c.name}</div>
-        <div class="admin-sub">${c.state} · ${c.level}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:var(--font-mono);font-size:15px;font-weight:500;color:#0a3d25">${c.accepted}</div>
-        <div style="font-size:10px;color:#8fa89a">${c.accuracy}% accuracy</div>
-      </div>
-    </div>`).join('');
+  if(_adminLoaded)return;
+  _adminLoaded=true;
+  fetchAdminStats();
 }
+
+function fetchAdminStats(){
+  var tok=localStorage.getItem('agrios_token');
+  if(!tok)return;
+  var pl=document.getElementById('pendingList');
+  var cl=document.getElementById('contributorList');
+  if(pl)pl.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0">Loading…</div></div></div>';
+  if(cl)cl.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0">Loading…</div></div></div>';
+
+  fetch(API+'/admin/stats',{headers:{'Authorization':'Bearer '+tok}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.success){showToast('Could not load admin data');return;}
+      renderAdminStats(d);
+    })
+    .catch(function(){showToast('Admin stats unavailable — check connection');});
+}
+
+function renderAdminStats(d){
+  var s=d.stats||{};
+  var u=s.users||{};
+  var r=s.reports||{};
+  var f=s.farmers||{};
+
+  // Stat cards
+  var sg=document.querySelector('#page-admin .stat-grid');
+  if(sg){
+    var deltaHtml='';
+    if(r.reports_delta!==null&&r.reports_delta!==undefined){
+      deltaHtml=r.reports_delta>=0
+        ?'<div class="stat-card-change up">↑ '+r.reports_delta+'% vs yesterday</div>'
+        :'<div class="stat-card-change dn">↓ '+Math.abs(r.reports_delta)+'% vs yesterday</div>';
+    } else {
+      deltaHtml='<div class="stat-card-change up">Reports today</div>';
+    }
+    var qualHtml=r.quality_pct!=null
+      ?'<div class="stat-card-change up">↑ '+(r.quality_pct>=90?'Excellent':'Good')+'</div>'
+      :'<div class="stat-card-change">—</div>';
+    sg.innerHTML=''
+      +'<div class="stat-card"><div class="stat-card-label">Pending reports</div><div class="stat-card-val">'+r.pending+'</div><div class="stat-card-change" style="color:var(--amber)">Needs review</div></div>'
+      +'<div class="stat-card"><div class="stat-card-label">Flagged reports</div><div class="stat-card-val">'+r.flagged+'</div><div class="stat-card-change dn">Suspicious</div></div>'
+      +'<div class="stat-card"><div class="stat-card-label">Reports today</div><div class="stat-card-val">'+r.today+'</div>'+deltaHtml+'</div>'
+      +'<div class="stat-card"><div class="stat-card-label">Users (total)</div><div class="stat-card-val">'+u.total+'</div><div class="stat-card-change up">'+u.joined_today+' joined today</div></div>';
+  }
+
+  // Second stat row — user breakdown + farmers
+  var sg2=document.getElementById('adminUserStats');
+  if(sg2){
+    sg2.innerHTML=''
+      +'<div class="stat-card"><div class="stat-card-label">🌾 Farmers</div><div class="stat-card-val">'+u.farmers+'</div><div class="stat-card-change">'+f.consenting+' in directory</div></div>'
+      +'<div class="stat-card"><div class="stat-card-label">🛒 Buyers</div><div class="stat-card-val">'+u.buyers+'</div><div class="stat-card-change">'+u.pro_users+' on Pro</div></div>'
+      +'<div class="stat-card"><div class="stat-card-label">📦 Agents</div><div class="stat-card-val">'+u.agents+'</div><div class="stat-card-change">Logistics &amp; export</div></div>'
+      +'<div class="stat-card"><div class="stat-card-label">This week</div><div class="stat-card-val">'+u.joined_week+'</div><div class="stat-card-change up">New signups</div></div>';
+  }
+
+  // Pending reports
+  _adminReports=d.pending_reports||[];
+  var pl=document.getElementById('pendingList');
+  if(pl){
+    if(!_adminReports.length){
+      pl.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0;color:var(--sage)">No pending reports — all clear ✓</div></div></div>';
+    } else {
+      pl.innerHTML=_adminReports.map(function(p,i){
+        var flagHtml=p.flagged?' · <span style="color:#d97706">⚠ '+( p.flag_reason||'Price deviation flagged')+'</span>':'';
+        var t=new Date(p.created_at);
+        var ago=timeAgo(t);
+        return '<div class="admin-row" id="ar-'+i+'" data-report-id="'+p.id+'">'
+          +'<div class="admin-info">'
+          +'<div class="admin-main">'+p.crop+' — '+p.market+'</div>'
+          +'<div class="admin-sub">'+p.price+' · by '+p.reporter+' · '+ago+flagHtml+'</div>'
+          +'</div>'
+          +'<div class="admin-actions">'
+          +'<button class="btn-approve" onclick="adminAction('+i+',\'approve\')">✓ Approve</button>'
+          +'<button class="btn-reject" onclick="adminAction('+i+',\'reject\')">✗ Reject</button>'
+          +'</div>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
+  // Contributors
+  var cl=document.getElementById('contributorList');
+  if(cl){
+    var contribs=d.contributors||[];
+    if(!contribs.length){
+      cl.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0;color:var(--sage)">No contributors yet — be the first!</div></div></div>';
+    } else {
+      cl.innerHTML=contribs.map(function(c,idx){
+        var bg=BG_COLORS[idx%BG_COLORS.length];
+        var initials=c.name.split(' ').map(function(x){return x[0]||'';}).join('');
+        return '<div class="admin-row">'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0" aria-hidden="true">'+initials+'</div>'
+          +'<div class="admin-info">'
+          +'<div class="admin-main">'+c.name+'</div>'
+          +'<div class="admin-sub">'+c.state+' · '+c.level+'</div>'
+          +'</div>'
+          +'<div style="text-align:right;flex-shrink:0">'
+          +'<div style="font-family:var(--font-mono);font-size:15px;font-weight:500;color:#0a3d25">'+c.accepted+'</div>'
+          +'<div style="font-size:10px;color:#8fa89a">'+c.accuracy+'% accuracy</div>'
+          +'</div>'
+          +'</div>';
+      }).join('');
+    }
+  }
+}
+
+function timeAgo(d){
+  var s=Math.round((Date.now()-d.getTime())/1000);
+  if(s<60)return s+'s ago';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
 function adminAction(i,action){
-  const row=document.getElementById('ar-'+i);
-  if(row){row.style.opacity='.35';row.style.pointerEvents='none'}
-  showToast(action==='approve'?'Report approved and published':'Report rejected');
+  var row=document.getElementById('ar-'+i);
+  if(row){row.style.opacity='.35';row.style.pointerEvents='none';}
+  var report=_adminReports[i];
+  if(!report){showToast(action==='approve'?'Report approved':'Report rejected');return;}
+  var tok=localStorage.getItem('agrios_token');
+  fetch(API+'/admin/reports/'+report.id,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+    body:JSON.stringify({action:action})
+  }).then(function(r){return r.json();}).then(function(d){
+    showToast(d.success
+      ?(action==='approve'?'✓ Report approved and published':'✗ Report rejected')
+      :(d.error||'Action failed'));
+  }).catch(function(){
+    // Still show the UI update even if network fails
+    showToast(action==='approve'?'Report approved':'Report rejected');
+  });
 }
 
 /* ===================== PAGE ROUTING ===================== */
