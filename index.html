@@ -591,9 +591,12 @@ tbody tr:hover td{background:var(--cream)}
 
       <!-- LOGIN -->
       <div class="auth-form-section active" id="section-login">
+        <!-- Hidden trap fields — prevent browser password-autofill popup on page load -->
+        <input type="text" style="display:none" tabindex="-1" aria-hidden="true"/>
+        <input type="password" style="display:none" tabindex="-1" aria-hidden="true" autocomplete="new-password"/>
         <div class="form-group">
           <label class="form-label" for="loginEmail">Email address</label>
-          <input class="form-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email"/>
+          <input class="form-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="username" inputmode="email"/>
         </div>
         <div class="form-group">
           <label class="form-label" for="loginPassword">Password</label>
@@ -1243,11 +1246,11 @@ tbody tr:hover td{background:var(--cream)}
       <button class="btn-primary-sm" onclick="showTransportForm('post')">Post a job</button>
     </div>
   </div>
-  <div class="stat-grid" style="margin-bottom:20px">
-    <div class="stat-card"><div class="stat-card-label">Active vehicles</div><div class="stat-card-val">1,247</div><div class="stat-card-change up">↑ 34 joined today</div></div>
-    <div class="stat-card"><div class="stat-card-label">Open jobs</div><div class="stat-card-val">384</div><div class="stat-card-change" style="color:var(--amber)">Across 18 states</div></div>
-    <div class="stat-card"><div class="stat-card-label">Avg payout</div><div class="stat-card-val">₦47k</div><div class="stat-card-change up">Per completed job</div></div>
-    <div class="stat-card"><div class="stat-card-label">Jobs this month</div><div class="stat-card-val">8,921</div><div class="stat-card-change up">↑ 22%</div></div>
+  <div class="stat-grid" style="margin-bottom:20px" id="transportStatGrid">
+    <div class="stat-card"><div class="stat-card-label">Active vehicles</div><div class="stat-card-val" id="ts-vehicles">—</div><div class="stat-card-change up" id="ts-vehicles-sub">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Open jobs</div><div class="stat-card-val" id="ts-jobs">—</div><div class="stat-card-change" id="ts-jobs-sub" style="color:var(--amber)">Loading…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Avg payout</div><div class="stat-card-val" id="ts-payout">—</div><div class="stat-card-change up">Per completed job</div></div>
+    <div class="stat-card"><div class="stat-card-label">Jobs this month</div><div class="stat-card-val" id="ts-monthly">—</div><div class="stat-card-change up" id="ts-monthly-sub">Loading…</div></div>
   </div>
   <!-- Transport sub-tabs -->
   <div style="display:flex;gap:8px;margin-bottom:18px;border-bottom:2px solid var(--bdr);padding-bottom:0">
@@ -1292,10 +1295,10 @@ tbody tr:hover td{background:var(--cream)}
           <label style="font-size:11px;font-weight:600;color:var(--txt3);display:block;margin-bottom:5px">DESTINATION MARKET</label>
           <select id="lc-dest" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:13px;background:#fff">
             <option value="Lagos">Lagos</option>
-            <option value="FCT">FCT (Abuja)</option>
+            <option value="FCT">FCT / Abuja</option>
             <option value="Rivers">Rivers (Port Harcourt)</option>
             <option value="Enugu">Enugu</option>
-            <option value="Oyo">Oyo (Ibadan)</option>
+            <option value="Kano">Kano</option>
           </select>
         </div>
       </div>
@@ -2131,18 +2134,53 @@ function switchTransportTab(tab){
 }
 
 // ── LANDING COST CALCULATOR ───────────────────────────────────
+// State name aliases — normalise API state names → LC_DISTANCES keys
+const LC_STATE_ALIAS = {
+  'Abuja':'FCT','Federal Capital Territory':'FCT','Abuja FCT':'FCT',
+  'Cross River':'Cross_River','Akwa Ibom':'Akwa_Ibom',
+};
+function lcState(s){ return LC_STATE_ALIAS[s]||s; }
+
 const LC_DISTANCES = {
-  // [source_state]: { dest: km }
-  Kano:    { Lagos:1100, FCT:750,  Rivers:1350, Enugu:950,  Oyo:1050 },
-  Kaduna:  { Lagos:990,  FCT:620,  Rivers:1200, Enugu:830,  Oyo:920  },
-  Borno:   { Lagos:1450, FCT:900,  Rivers:1300, Enugu:1050, Oyo:1350 },
-  Oyo:     { Lagos:135,  FCT:500,  Rivers:680,  Enugu:480,  Oyo:0    },
-  Abia:    { Lagos:600,  FCT:680,  Rivers:200,  Enugu:150,  Oyo:550  },
-  Enugu:   { Lagos:650,  FCT:600,  Rivers:250,  Enugu:0,    Oyo:600  },
-  Rivers:  { Lagos:700,  FCT:750,  Rivers:0,    Enugu:250,  Oyo:650  },
-  FCT:     { Lagos:550,  FCT:0,    Rivers:750,  Enugu:300,  Oyo:500  },
-  Lagos:   { Lagos:0,    FCT:550,  Rivers:700,  Enugu:650,  Oyo:135  },
-  Anambra: { Lagos:620,  FCT:620,  Rivers:220,  Enugu:100,  Oyo:580  },
+  // [source_state]: approximate road km to major destination hubs
+  // Destinations: Lagos | FCT | Rivers | Enugu | Kano
+  Lagos:        { Lagos:0,    FCT:550,  Rivers:700,  Enugu:650,  Kano:1100 },
+  Ogun:         { Lagos:80,   FCT:510,  Rivers:750,  Enugu:700,  Kano:1150 },
+  Oyo:          { Lagos:135,  FCT:500,  Rivers:680,  Enugu:480,  Kano:900  },
+  Osun:         { Lagos:200,  FCT:460,  Rivers:650,  Enugu:450,  Kano:870  },
+  Ondo:         { Lagos:280,  FCT:540,  Rivers:480,  Enugu:380,  Kano:1050 },
+  Ekiti:        { Lagos:300,  FCT:420,  Rivers:500,  Enugu:350,  Kano:920  },
+  Kwara:        { Lagos:320,  FCT:310,  Rivers:750,  Enugu:550,  Kano:680  },
+  Kogi:         { Lagos:430,  FCT:180,  Rivers:550,  Enugu:280,  Kano:580  },
+  FCT:          { Lagos:550,  FCT:0,    Rivers:750,  Enugu:300,  Kano:750  },
+  Niger:        { Lagos:520,  FCT:150,  Rivers:900,  Enugu:480,  Kano:620  },
+  Kebbi:        { Lagos:900,  FCT:480,  Rivers:1280, Enugu:900,  Kano:380  },
+  Sokoto:       { Lagos:1100, FCT:680,  Rivers:1450, Enugu:1100, Kano:400  },
+  Zamfara:      { Lagos:1050, FCT:650,  Rivers:1380, Enugu:1050, Kano:300  },
+  Kano:         { Lagos:1100, FCT:750,  Rivers:1350, Enugu:950,  Kano:0    },
+  Katsina:      { Lagos:1180, FCT:830,  Rivers:1400, Enugu:1020, Kano:120  },
+  Jigawa:       { Lagos:1200, FCT:850,  Rivers:1420, Enugu:1050, Kano:180  },
+  Kaduna:       { Lagos:990,  FCT:620,  Rivers:1200, Enugu:830,  Kano:220  },
+  Plateau:      { Lagos:780,  FCT:380,  Rivers:850,  Enugu:480,  Kano:480  },
+  Nasarawa:     { Lagos:650,  FCT:120,  Rivers:820,  Enugu:380,  Kano:650  },
+  Benue:        { Lagos:700,  FCT:320,  Rivers:620,  Enugu:300,  Kano:700  },
+  Taraba:       { Lagos:1000, FCT:570,  Rivers:850,  Enugu:600,  Kano:650  },
+  Adamawa:      { Lagos:1200, FCT:770,  Rivers:1050, Enugu:800,  Kano:720  },
+  Borno:        { Lagos:1450, FCT:900,  Rivers:1300, Enugu:1050, Kano:550  },
+  Yobe:         { Lagos:1350, FCT:820,  Rivers:1250, Enugu:980,  Kano:430  },
+  Gombe:        { Lagos:1150, FCT:720,  Rivers:1000, Enugu:750,  Kano:500  },
+  Bauchi:       { Lagos:1050, FCT:650,  Rivers:1100, Enugu:800,  Kano:420  },
+  Enugu:        { Lagos:650,  FCT:300,  Rivers:250,  Enugu:0,    Kano:950  },
+  Anambra:      { Lagos:620,  FCT:320,  Rivers:220,  Enugu:100,  Kano:1000 },
+  Imo:          { Lagos:560,  FCT:400,  Rivers:150,  Enugu:130,  Kano:1050 },
+  Abia:         { Lagos:600,  FCT:380,  Rivers:200,  Enugu:150,  Kano:1000 },
+  Ebonyi:       { Lagos:680,  FCT:360,  Rivers:280,  Enugu:120,  Kano:1020 },
+  Rivers:       { Lagos:700,  FCT:750,  Rivers:0,    Enugu:250,  Kano:1350 },
+  Bayelsa:      { Lagos:750,  FCT:800,  Rivers:80,   Enugu:320,  Kano:1400 },
+  Delta:        { Lagos:500,  FCT:550,  Rivers:180,  Enugu:280,  Kano:1250 },
+  Edo:          { Lagos:380,  FCT:480,  Rivers:220,  Enugu:280,  Kano:1150 },
+  Cross_River:  { Lagos:780,  FCT:600,  Rivers:300,  Enugu:280,  Kano:1200 },
+  Akwa_Ibom:    { Lagos:830,  FCT:700,  Rivers:150,  Enugu:350,  Kano:1280 },
 };
 // Rate per tonne per km (₦)
 const LC_RATE_PER_TONNE_KM = 85;
@@ -2163,26 +2201,20 @@ function runLandingCalc(){
   const bulkPct = parseFloat(document.getElementById('lc-bulk').value)||0;
   if(!crop){ alert('Please select a crop'); return; }
 
-  // Get live prices from already-loaded market data
+  const destNorm = lcState(dest);
   const rows = [];
-  const sources = Object.keys(LC_DISTANCES).filter(s => s !== dest);
+  const sources = Object.keys(LC_DISTANCES).filter(s => s !== destNorm);
 
-  // Pull from live price data only — no estimates
+  // Build price lookup: crop|normalisedState → avg price per kg
   const cropPrices = {};
-  document.querySelectorAll('#priceTable tbody tr').forEach(tr => {
-    const cells = tr.querySelectorAll('td');
-    if(cells.length < 4) return;
-    const cName = cells[0]?.textContent?.trim();
-    const mState = cells[1]?.textContent?.trim();
-    const avgTxt = cells[3]?.textContent?.trim().replace(/[₦,]/g,'');
-    if(cName && mState && avgTxt){
-      const key = cName+'|'+mState;
-      if(!cropPrices[key]) cropPrices[key] = parseFloat(avgTxt);
-    }
+  getPrices().forEach(function(c){
+    if(!c.state||!c.n||!c.avg) return;
+    var key = c.n+'|'+lcState(c.state);
+    if(!cropPrices[key]) cropPrices[key] = c.avg;
   });
 
   for(const src of sources){
-    const distKm = (LC_DISTANCES[src]||{})[dest];
+    const distKm = (LC_DISTANCES[src]||{})[destNorm];
     if(distKm === undefined) continue;
 
     // Per-kg purchase price — live data only, no estimates
@@ -2379,6 +2411,36 @@ async function submitTransportJob(){
 }
 
 function closeTransportForm(){ document.getElementById('transportFormOverlay')?.remove(); }
+function loadTransportStats(){
+  var tok=localStorage.getItem('agrios_token');
+  var headers=tok?{'Authorization':'Bearer '+tok}:{};
+  fetch(API+'/transport/stats',{headers:headers})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.success||!d.data)return;
+      var s=d.data;
+      var vEl=document.getElementById('ts-vehicles');
+      var vSub=document.getElementById('ts-vehicles-sub');
+      var jEl=document.getElementById('ts-jobs');
+      var jSub=document.getElementById('ts-jobs-sub');
+      var pEl=document.getElementById('ts-payout');
+      var mEl=document.getElementById('ts-monthly');
+      var mSub=document.getElementById('ts-monthly-sub');
+      if(vEl) vEl.textContent=(s.active_vehicles||0).toLocaleString();
+      if(vSub&&s.joined_today!=null) vSub.textContent='↑ '+s.joined_today+' joined today';
+      if(jEl) jEl.textContent=(s.open_jobs||0).toLocaleString();
+      if(jSub&&s.job_states!=null) jSub.textContent='Across '+s.job_states+' states';
+      if(pEl) pEl.textContent=s.avg_payout_ngn?'₦'+Math.round(s.avg_payout_ngn/1000)+'k':'—';
+      if(mEl) mEl.textContent=(s.jobs_this_month||0).toLocaleString();
+      if(mSub&&s.monthly_change_pct!=null){
+        var c=s.monthly_change_pct;
+        mSub.textContent=(c>=0?'↑ ':'↓ ')+Math.abs(c)+'% vs last month';
+        mSub.className='stat-card-change '+(c>=0?'up':'dn');
+      }
+    })
+    .catch(function(){/* stats unavailable — keep dashes */});
+}
+
 function buildJobGrid(){
   const el=document.getElementById('jobGrid');
   if(!el)return;
@@ -2451,10 +2513,10 @@ function fetchAdminStats(){
   fetch(API+'/admin/stats',{headers:{'Authorization':'Bearer '+tok}})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(!d.success){showToast('Could not load admin data');return;}
+      if(!d.success)return; // silently ignore — user may not be admin yet
       renderAdminStats(d);
     })
-    .catch(function(){showToast('Admin stats unavailable — check connection');});
+    .catch(function(){/* network errors are silent on admin panel */});
 }
 
 function renderAdminStats(d){
@@ -2599,8 +2661,9 @@ function showPage(p){
   if(p==='heatmap'){const sel=document.getElementById('heatCrop');buildHeatmap(sel?.value||'maize');}
   if(p==='prices'){buildPriceChips();filterPriceTable();}
   if(p==='finance'){loadFinanceData();}
-  if(p==='transport'){buildJobGrid();}
+  if(p==='transport'){buildJobGrid();loadTransportStats();}
   if(p==='export'){buildExportTable();}
+  if(p==='admin'&&currentUser&&currentUser.role==='admin'){buildAdmin();}
   // Update SEO meta tags dynamically per page
   updateSEOMeta(p);
 }
@@ -3515,8 +3578,9 @@ document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el=>{
   buildAlerts();
   buildDemand(getDemands());
   buildJobGrid();
+  loadTransportStats();
   buildHeatmap('maize');
-  buildAdmin();
+  if(currentUser&&currentUser.role==='admin')buildAdmin();
   buildExportTable();
   setTimeout(buildPriceChart,500);
   document.getElementById('mobDrawer').style.display='none';
