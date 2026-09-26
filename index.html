@@ -1668,7 +1668,42 @@ function showApiStatus(state) {
 
 /* helper — pick live prices or fall back to static */
 function getPrices() { return LIVE_PRICES.length ? LIVE_PRICES : CROPS; }
-function getOpps()   { return LIVE_OPPS.length   ? LIVE_OPPS   : OPPS;  }
+function getOpps(){
+  if(LIVE_OPPS.length) return LIVE_OPPS;
+  // Generate dynamic opportunities from LIVE_PRICES when API empty
+  if(LIVE_PRICES.length>=4){
+    var seen=new Set();
+    var uniq=LIVE_PRICES.filter(function(p){return p.n&&p.n!=='Unknown'&&p.avg>0&&!seen.has(p.n)&&!!seen.add(p.n);});
+    var dynOpps=[];
+    // Rising trend cards
+    uniq.filter(function(p){return(p.ch7||0)>8;}).slice(0,2).forEach(function(p){
+      dynOpps.push({type:'RISING TREND',title:p.n+' prices rising fast',desc:'Up '+p.ch7+'% in 7 days at '+p.mkt+'. Seller's market — good time to move stock.',margin:'+'+p.ch7+'% 7d',icon:p.e||'\ud83d\udcc8',actions:['List Produce','View Buyers','\ud83d\ude9b Find Transport']});
+    });
+    // Falling — buying opportunity
+    uniq.filter(function(p){return(p.ch7||0)<-6;}).slice(0,1).forEach(function(p){
+      dynOpps.push({type:'BUY OPPORTUNITY',title:p.n+' prices dipping — good time to buy',desc:'Down '+Math.abs(p.ch7)+'% in 7 days. Prices may recover — consider stocking up now.',margin:p.ch7+'% 7d',icon:p.e||'\ud83d\udcc9',actions:['Find Supplier','Apply Finance','Set Alert']});
+    });
+    // Arbitrage — highest vs lowest priced same crop
+    var cropGroups={};
+    LIVE_PRICES.forEach(function(p){if(p.n&&p.avg>0){if(!cropGroups[p.n])cropGroups[p.n]=[];cropGroups[p.n].push(p);}});
+    Object.keys(cropGroups).forEach(function(name){
+      var g=cropGroups[name];
+      if(g.length<2)return;
+      var hi=g.reduce(function(a,b){return b.avg>a.avg?b:a;});
+      var lo=g.reduce(function(a,b){return b.avg<a.avg?b:a;});
+      var gap=Math.round(((hi.avg-lo.avg)/lo.avg)*100);
+      if(gap>=10){
+        dynOpps.push({type:'ARBITRAGE',title:name+': Buy in '+(lo.state||lo.mkt)+', sell in '+(hi.state||hi.mkt),desc:'Price gap of '+gap+'%. Source cheap, sell in the higher-price market for a net margin after transport.',margin:'+'+gap+'% gap',icon:hi.e||'\ud83d\udce6',actions:['List Produce','Contact Buyer','\ud83d\ude9b Logistics','\ud83d\udcb0 Finance']});
+      }
+    });
+    // Stable — forward contract signal
+    uniq.filter(function(p){return Math.abs(p.ch7||0)<2;}).slice(0,1).forEach(function(p){
+      dynOpps.push({type:'HOLD SIGNAL',title:p.n+' — stable price window',desc:'Price change under 2% over 7 days at '+p.mkt+'. Good time for forward contracts and bulk buying agreements.',margin:'Stable',icon:p.e||'\u23f3',actions:['Set Alert','View Trend','Apply Finance']});
+    });
+    if(dynOpps.length>=2) return dynOpps.slice(0,6);
+  }
+  return OPPS;
+}
 function getDemands(){ return LIVE_DEMANDS.length ? LIVE_DEMANDS : DEMANDS; }
 function getJobs()   { return LIVE_JOBS.length    ? LIVE_JOBS   : JOBS_STATIC; }
 
@@ -1834,26 +1869,34 @@ function refreshOpps(){showToast('Opportunities refreshed — latest AI data loa
 
 /* ===================== PREDICTIONS ===================== */
 function buildPredList(){
-  const el=document.getElementById('predList');
+  var el=document.getElementById('predList');
   if(!el)return;
-  // Use live AI predictions if available, fall back to static
-  const predictions = LIVE_OPPS.filter(o=>o.type&&o.type.toLowerCase().includes('trend')).slice(0,4);
-  if(predictions.length > 0){
-    el.innerHTML = predictions.map(p=>`
-      <div class="pred-row">
-        <div><div class="pred-crop">${p.title||''}</div><div class="pred-action">${p.desc||''}</div></div>
-        <div class="pred-right"><div class="pred-pct up">${p.margin||''}</div></div>
-      </div>`).join('');
+  // 1. Live API trend predictions
+  var apiPreds=LIVE_OPPS.filter(function(o){return o.type&&o.type.toLowerCase().includes('trend');}).slice(0,4);
+  if(apiPreds.length>0){
+    el.innerHTML=apiPreds.map(function(p){return'<div class="pred-row"><div><div class="pred-crop">'+(p.title||'')+'</div><div class="pred-action">'+(p.desc||'')+'</div></div><div class="pred-right"><div class="pred-pct up">'+(p.margin||'')+'</div></div></div>';}).join('');
     return;
   }
-  el.innerHTML=PREDS.map(p=>`
-    <div class="pred-row">
-      <div><div class="pred-crop">${p.crop}</div><div class="pred-action">${p.action}</div></div>
-      <div class="pred-right">
-        <div class="pred-dir" style="color:${p.color}">${p.dir}</div>
-        <div class="pred-conf">${p.conf}% confidence</div>
-      </div>
-    </div>`).join('');
+  // 2. Derive from LIVE_PRICES 7-day change data
+  if(LIVE_PRICES.length>=3){
+    var seen=new Set();
+    var dynPreds=LIVE_PRICES
+      .filter(function(p){return p.n&&p.n!=='Unknown'&&p.avg>0&&!seen.has(p.n)&&!!seen.add(p.n);})
+      .sort(function(a,b){return Math.abs(b.ch7||0)-Math.abs(a.ch7||0);})
+      .slice(0,5)
+      .map(function(p){
+        var ch7=parseFloat(p.ch7)||0;
+        var dir=ch7>2?'\u2191 Rising':ch7<-2?'\u2193 Falling':'\u2192 Stable';
+        var col=ch7>2?'#0a7a3a':ch7<-2?'#d92b2b':'#d97706';
+        var conf=Math.min(95,70+Math.round(Math.abs(ch7)*1.5));
+        var action=ch7>5?'Strong uptrend — consider holding stock':ch7>2?'Moderate rise — monitor closely':ch7<-5?'Price falling — consider selling now':ch7<-2?'Slight dip — watch for buying opportunity':'Stable — good for forward contracts';
+        return'<div class="pred-row"><div><div class="pred-crop">'+(p.e||'\ud83c\udf3e')+' '+p.n+'</div><div class="pred-action">'+action+'</div></div><div class="pred-right"><div class="pred-dir" style="color:'+col+'">'+dir+'</div><div class="pred-conf">'+conf+'% confidence</div></div></div>';
+      });
+    el.innerHTML=dynPreds.join('');
+    return;
+  }
+  // 3. Static fallback
+  el.innerHTML=PREDS.map(function(p){return'<div class="pred-row"><div><div class="pred-crop">'+p.crop+'</div><div class="pred-action">'+p.action+'</div></div><div class="pred-right"><div class="pred-dir" style="color:'+p.color+'">'+p.dir+'</div><div class="pred-conf">'+p.conf+'% confidence</div></div></div>';}).join('');
 }
 
 /* ===================== CHART ===================== */
@@ -2061,14 +2104,29 @@ function scrollToAlertForm(){document.getElementById('alertForm')?.scrollIntoVie
 let heatChartObj=null;
 function buildHeatmap(crop){
   crop=crop||'maize';
-  const d=HEAT[crop]||HEAT.maize;
-  const cropName=crop.charAt(0).toUpperCase()+crop.slice(1);
-  const lblEl=document.getElementById('heatChartLabel');
-  if(lblEl)lblEl.textContent=`· ${cropName}`;
-  const sg=document.getElementById('sellGrid');
-  const bg=document.getElementById('buyGrid');
-  if(sg)sg.innerHTML=d.sell.map((x,i)=>`<div class="heat-cell" style="background:${gShade(d.sell.length-1-i,d.sell.length)}"><div class="heat-mkt">${x.m}</div><div class="heat-price">${x.p}</div><div class="heat-state">${x.s}</div></div>`).join('');
-  if(bg)bg.innerHTML=d.buy.map((x,i)=>`<div class="heat-cell" style="background:${bShade(d.buy.length-1-i,d.buy.length)}"><div class="heat-mkt">${x.m}</div><div class="heat-price">${x.p}</div><div class="heat-state">${x.s}</div></div>`).join('');
+  var cropName=crop.charAt(0).toUpperCase()+crop.slice(1);
+  var lblEl=document.getElementById('heatChartLabel');
+  if(lblEl)lblEl.textContent='\u00b7 '+cropName;
+  var sg=document.getElementById('sellGrid');
+  var bg=document.getElementById('buyGrid');
+  // Build from live price data when available
+  var liveMatches=LIVE_PRICES.filter(function(p){return p.n&&p.n.toLowerCase()===crop.toLowerCase()&&p.avg>0;});
+  if(liveMatches.length>=2){
+    var sorted=liveMatches.slice().sort(function(a,b){return b.avg-a.avg;});
+    var sellData=sorted.slice(0,4).map(function(p){return{m:p.mkt||p.state||'Market',p:fmt(p.avg),s:p.state||''};});
+    var buyData=sorted.slice().reverse().slice(0,4).map(function(p){return{m:p.mkt||p.state||'Market',p:fmt(p.avg),s:p.state||''};});
+    var bars=sorted.map(function(p){return Math.round(p.avg/1000);});
+    var labels=sorted.map(function(p){return p.mkt||p.state||'?';});
+    var liveD={sell:sellData,buy:buyData,bars:bars,labels:labels};
+    if(sg)sg.innerHTML=sellData.map(function(x,i){return'<div class="heat-cell" style="background:'+gShade(sellData.length-1-i,sellData.length)+'"><div class="heat-mkt">'+x.m+'</div><div class="heat-price">'+x.p+'</div><div class="heat-state">'+x.s+'</div></div>';}).join('');
+    if(bg)bg.innerHTML=buyData.map(function(x,i){return'<div class="heat-cell" style="background:'+bShade(buyData.length-1-i,buyData.length)+'"><div class="heat-mkt">'+x.m+'</div><div class="heat-price">'+x.p+'</div><div class="heat-state">'+x.s+'</div></div>';}).join('');
+    buildHeatChart(liveD,cropName);
+    return;
+  }
+  // Fallback to static HEAT data
+  var d=HEAT[crop]||HEAT.maize;
+  if(sg)sg.innerHTML=d.sell.map(function(x,i){return'<div class="heat-cell" style="background:'+gShade(d.sell.length-1-i,d.sell.length)+'"><div class="heat-mkt">'+x.m+'</div><div class="heat-price">'+x.p+'</div><div class="heat-state">'+x.s+'</div></div>';}).join('');
+  if(bg)bg.innerHTML=d.buy.map(function(x,i){return'<div class="heat-cell" style="background:'+bShade(d.buy.length-1-i,d.buy.length)+'"><div class="heat-mkt">'+x.m+'</div><div class="heat-price">'+x.p+'</div><div class="heat-state">'+x.s+'</div></div>';}).join('');
   buildHeatChart(d,cropName);
 }
 function buildHeatChart(d,label){
