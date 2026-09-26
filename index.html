@@ -905,7 +905,7 @@ tbody tr:hover td{background:var(--cream)}
   <div class="sec-hd">
     <div class="sec-hd-left">
       <h1 class="sec-title" style="font-size:20px">Crop price index</h1>
-      <div class="sec-sub">Community-verified market prices across Nigeria · Last updated 2 min ago</div>
+      <div class="sec-sub" id="pricePageSub">Community-verified market prices across Nigeria · <span id="price-last-updated">Loading…</span></div>
     </div>
     <span class="badge badge-live">● LIVE</span>
   </div>
@@ -1641,13 +1641,28 @@ function showApiStatus(state) {
   } else if (state === 'live') {
     el.textContent = '● LIVE';
     el.style.color = 'var(--lime)';
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-NG', {hour:'2-digit', minute:'2-digit'});
-    if(sub) sub.textContent = 'Live from database · Updated ' + timeStr + ' · Scroll to explore all crops';
+    /* Find most recent updated_at across all live prices */
+    var latestTs = LIVE_PRICES.reduce(function(best, p){
+      if(!p.updated) return best;
+      var t = new Date(p.updated).getTime();
+      return t > best ? t : best;
+    }, 0);
+    var updatedStr;
+    if(latestTs > 0){
+      var diffMin = Math.round((Date.now() - latestTs) / 60000);
+      updatedStr = diffMin < 1 ? 'just now' : diffMin < 60 ? diffMin + ' min ago' : new Date(latestTs).toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
+    } else {
+      updatedStr = new Date().toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
+    }
+    if(sub) sub.textContent = 'Live from database · Updated ' + updatedStr + ' · Scroll to explore all crops';
+    var plu = document.getElementById('price-last-updated');
+    if(plu) plu.textContent = 'Last updated ' + updatedStr;
   } else {
     el.textContent = '○ Estimates';
     el.style.color = 'rgba(255,255,255,.4)';
     if(sub) sub.textContent = 'Showing reference estimates — live prices loading…';
+    var pluOff = document.getElementById('price-last-updated');
+    if(pluOff) pluOff.textContent = 'Offline — retrying…';
   }
 }
 
