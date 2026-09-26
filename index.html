@@ -3356,8 +3356,8 @@ async function doLogin(){
     clearTimeout(timeout);
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Login failed');
-    AUTH_TOKEN = data.data.tokens.access;
-    currentUser = data.data.user;
+    AUTH_TOKEN = data.token;
+    currentUser = data.user;
     localStorage.setItem('agrios_token', AUTH_TOKEN);
     localStorage.setItem('agrios_user', JSON.stringify(currentUser));
     updateNavForUser(currentUser);
@@ -3413,8 +3413,8 @@ async function doRegister(){
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Registration failed');
-    AUTH_TOKEN = data.data.tokens.access;
-    currentUser = data.data.user;
+    AUTH_TOKEN = data.token;
+    currentUser = data.user;
     localStorage.setItem('agrios_token', AUTH_TOKEN);
     localStorage.setItem('agrios_user', JSON.stringify(currentUser));
     updateNavForUser(currentUser);
