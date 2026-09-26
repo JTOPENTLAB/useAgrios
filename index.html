@@ -2899,24 +2899,36 @@ function renderLenderAdmin(){
   var el=document.getElementById('lenderAdminList');
   if(!el)return;
   if(!_lenders.length){
-    el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0;color:var(--sage)">No lenders yet — add one above.</div></div></div>';
+    el.innerHTML='<div class="admin-row"><div class="admin-info"><div class="admin-sub" style="padding:8px 0;color:var(--sage)">No lenders yet \u2014 add one above.</div></div></div>';
     return;
   }
   el.innerHTML=_lenders.map(function(l){
-    var activeHtml=l.is_active
+    var activeBadge=l.is_active
       ?'<span style="font-size:11px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:20px">Active</span>'
       :'<span style="font-size:11px;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px">Inactive</span>';
+    var toggleLabel=l.is_active?'Deactivate':'Activate';
+    var toggleVal=l.is_active?'0':'1';
+    var toggleBg=l.is_active?'#fff7ed':'#f0fdf4';
+    var toggleColor=l.is_active?'#b45309':'#166534';
+    var toggleBorder=l.is_active?'#fed7aa':'#bbf7d0';
     return '<div class="admin-row">'
       +'<div class="admin-info">'
-      +'<div class="admin-main" style="display:flex;align-items:center;gap:8px">'+l.name+' '+activeHtml+'</div>'
-      +'<div class="admin-sub">Min score: '+l.min_score+' · Rate: '+l.rate_pa_pct+'% p.a. · Max: ₦'+Number(l.max_amount_ngn).toLocaleString('en-NG')+'</div>'
+      +'<div class="admin-main" style="display:flex;align-items:center;gap:8px">'+l.name+' '+activeBadge+'</div>'
+      +'<div class="admin-sub">Min score: '+l.min_score+' \u00b7 Rate: '+l.rate_pa_pct+'% p.a. \u00b7 Max: \u20a6'+Number(l.max_amount_ngn).toLocaleString('en-NG')+'</div>'
       +'</div>'
       +'<div class="admin-actions">'
-      +'<button class="btn-approve" style="background:#f0f9ff;color:#1558a8;border:1px solid #bfdbfe" onclick="editLender('+l.id+')">Edit</button>'
-      +'<button class="btn-reject" style="background:'+(l.is_active?'#fff7ed':'#f0fdf4')+';color:'+(l.is_active?'#b45309':'#166534')+';border:1px solid '+(l.is_active?'#fed7aa':'#bbf7d0')+"' onclick='toggleLender('+l.id+','+(l.is_active?'false':'true')+')'>'+(l.is_active?'Deactivate':'Activate')+'</button>'
+      +'<button class="btn-approve" style="background:#f0f9ff;color:#1558a8;border:1px solid #bfdbfe" data-lender-edit="'+l.id+'">Edit</button>'
+      +'<button class="btn-reject" style="background:'+toggleBg+';color:'+toggleColor+';border:1px solid '+toggleBorder+'" data-lender-toggle="'+l.id+'" data-lender-active="'+toggleVal+'">'+toggleLabel+'</button>'
       +'</div>'
       +'</div>';
   }).join('');
+  // Attach handlers via delegation on the container
+  el.onclick=function(e){
+    var editBtn=e.target.closest('[data-lender-edit]');
+    var toggleBtn=e.target.closest('[data-lender-toggle]');
+    if(editBtn)editLender(parseInt(editBtn.getAttribute('data-lender-edit')));
+    if(toggleBtn)toggleLender(parseInt(toggleBtn.getAttribute('data-lender-toggle')),toggleBtn.getAttribute('data-lender-active')==='1');
+  };
 }
 
 function openLenderModal(prefill){
