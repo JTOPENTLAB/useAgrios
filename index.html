@@ -2913,7 +2913,7 @@ function renderLenderAdmin(){
       +'</div>'
       +'<div class="admin-actions">'
       +'<button class="btn-approve" style="background:#f0f9ff;color:#1558a8;border:1px solid #bfdbfe" onclick="editLender('+l.id+')">Edit</button>'
-      +'<button class="btn-reject" style="background:'+(l.is_active?'#fff7ed':'#f0fdf4')+';color:'+(l.is_active?'#b45309':'#166534')+';border:1px solid '+(l.is_active?'#fed7aa':'#bbf7d0')+"' onclick="toggleLender("+l.id+','+(l.is_active?'false':'true')+")">"+(l.is_active?'Deactivate':'Activate')+'</button>'
+      +'<button class="btn-reject" style="background:'+(l.is_active?'#fff7ed':'#f0fdf4')+';color:'+(l.is_active?'#b45309':'#166534')+';border:1px solid '+(l.is_active?'#fed7aa':'#bbf7d0')+"' onclick='toggleLender('+l.id+','+(l.is_active?'false':'true')+')'>'+(l.is_active?'Deactivate':'Activate')+'</button>'
       +'</div>'
       +'</div>';
   }).join('');
