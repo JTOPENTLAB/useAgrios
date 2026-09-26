@@ -1358,8 +1358,8 @@ tbody tr:hover td{background:var(--cream)}
   </div>
   <div class="stat-grid" style="margin-bottom:20px">
     <div class="stat-card"><div class="stat-card-label">Nigeria non-oil exports H1 2025</div><div class="stat-card-val">$3.2B</div><div class="stat-card-change up">↑ from $2.7B</div></div>
-    <div class="stat-card"><div class="stat-card-label">Export price premium (avg)</div><div class="stat-card-val">28%</div><div class="stat-card-change up">Above local market</div></div>
-    <div class="stat-card"><div class="stat-card-label">Exportable crops tracked</div><div class="stat-card-val">8</div><div class="stat-card-change flat">Cocoa, sesame, cashew…</div></div>
+    <div class="stat-card"><div class="stat-card-label">Export price premium (avg)</div><div class="stat-card-val" id="es-premium">—</div><div class="stat-card-change up">Above local market</div></div>
+    <div class="stat-card"><div class="stat-card-label">Exportable crops tracked</div><div class="stat-card-val" id="es-crops">—</div><div class="stat-card-change flat" id="es-crops-names">Loading…</div></div>
     <div class="stat-card"><div class="stat-card-label">Verified export agents</div><div class="stat-card-val">34</div><div class="stat-card-change flat">Licensed & verified</div></div>
   </div>
   <div class="sec-hd"><div class="sec-title">Local vs international price comparison</div><span class="badge badge-green">Live data</span></div>
@@ -2427,18 +2427,33 @@ function loadTransportStats(){
       var mEl=document.getElementById('ts-monthly');
       var mSub=document.getElementById('ts-monthly-sub');
       if(vEl) vEl.textContent=(s.active_vehicles||0).toLocaleString();
-      if(vSub&&s.joined_today!=null) vSub.textContent='↑ '+s.joined_today+' joined today';
+      if(vSub) vSub.textContent=s.joined_today!=null?'↑ '+s.joined_today+' joined today':'Registered drivers';
       if(jEl) jEl.textContent=(s.open_jobs||0).toLocaleString();
-      if(jSub&&s.job_states!=null) jSub.textContent='Across '+s.job_states+' states';
+      if(jSub) jSub.textContent=s.job_states!=null?'Across '+s.job_states+' states':'Open transport jobs';
       if(pEl) pEl.textContent=s.avg_payout_ngn?'₦'+Math.round(s.avg_payout_ngn/1000)+'k':'—';
       if(mEl) mEl.textContent=(s.jobs_this_month||0).toLocaleString();
-      if(mSub&&s.monthly_change_pct!=null){
-        var c=s.monthly_change_pct;
-        mSub.textContent=(c>=0?'↑ ':'↓ ')+Math.abs(c)+'% vs last month';
-        mSub.className='stat-card-change '+(c>=0?'up':'dn');
+      if(mSub){
+        if(s.monthly_change_pct!=null){
+          var c=s.monthly_change_pct;
+          mSub.textContent=(c>=0?'↑ ':'↓ ')+Math.abs(c)+'% vs last month';
+          mSub.className='stat-card-change '+(c>=0?'up':'dn');
+        } else {
+          mSub.textContent='Jobs completed this month';
+          mSub.className='stat-card-change flat';
+        }
       }
     })
-    .catch(function(){/* stats unavailable — keep dashes */});
+    .catch(function(){
+      /* stats unavailable — clear loading placeholders */
+      ['ts-vehicles','ts-jobs','ts-payout','ts-monthly'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el&&el.textContent==='—')el.textContent='0';
+      });
+      ['ts-vehicles-sub','ts-jobs-sub','ts-monthly-sub'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el&&el.textContent==='Loading…')el.textContent='No data yet';
+      });
+    });
 }
 
 function buildJobGrid(){
@@ -2469,26 +2484,64 @@ function buildJobGrid(){
 }
 
 /* ===================== EXPORT TABLE ===================== */
+/* International benchmark prices — updated periodically, not daily */
+var EXPORT_BENCHMARKS={
+  'Cocoa':    {export_price:1180000,grade_required:'Grade 1 fermented, 7.5% max moisture',best_port:'Apapa, Lagos',      emoji:'🍫'},
+  'Sesame':   {export_price:1060000,grade_required:'99% purity, aflatoxin <10ppb',         best_port:'Apapa, Lagos',      emoji:'🌿'},
+  'Cashew':   {export_price:1540000,grade_required:'Grade W240/W320, max 5% defects',      best_port:'Tin Can Island',    emoji:'🥜'},
+  'Hibiscus': {export_price:920000, grade_required:'≤5% moisture, deep red',               best_port:'Kano dry port',     emoji:'🌺'},
+  'Soybean':  {export_price:165000, grade_required:'≥40% protein, non-GMO certificate',    best_port:'Beja dry port',     emoji:'🫘'},
+  'Groundnut':{export_price:155000, grade_required:'Sound, bold, uniform size',            best_port:'Apapa, Lagos',      emoji:'🥜'},
+  'Palm Oil': {export_price:1550000,grade_required:'Refined, FFA <3%',                     best_port:'Tin Can Island',    emoji:'🫒'},
+};
 function buildExportTable(){
-  const el=document.getElementById('exportTableBody');
+  var el=document.getElementById('exportTableBody');
   if(!el)return;
-  const data=LIVE_EXPORT.length?LIVE_EXPORT:[
-    {crop_name:'Cocoa',   emoji:'🍫',local_price:890000,export_price:1180000,premium_pct:32.5,grade_required:'Grade 1 fermented',best_port:'Apapa, Lagos'},
-    {crop_name:'Sesame',  emoji:'🌿',local_price:820000,export_price:1060000,premium_pct:29.3,grade_required:'99% purity, no aflatoxin',best_port:'Apapa, Lagos'},
-    {crop_name:'Cashew',  emoji:'🥜',local_price:1200000,export_price:1540000,premium_pct:28.3,grade_required:'Grade W240/W320',best_port:'Tin Can Island'},
-    {crop_name:'Hibiscus',emoji:'🌺',local_price:680000,export_price:920000,premium_pct:35.3,grade_required:'≤5% moisture, deep red',best_port:'Kano dry port'},
-    {crop_name:'Soybean', emoji:'🫘',local_price:135000,export_price:165000,premium_pct:22.2,grade_required:'≥40% protein, non-GMO',best_port:'Beja port, Kano'},
-  ];
-  el.innerHTML=data.map(e=>`
-    <tr>
-      <td><div class="td-crop-cell"><span class="td-icon">${e.emoji||'🌾'}</span>${e.crop_name}</div></td>
-      <td class="td-mono">₦${Number(e.local_price).toLocaleString('en-NG')}</td>
-      <td class="td-mono" style="color:var(--gm);font-weight:600">₦${Number(e.export_price).toLocaleString('en-NG')}</td>
-      <td><span class="badge badge-green">+${parseFloat(e.premium_pct).toFixed(1)}%</span></td>
-      <td style="color:var(--txt2);font-size:11px">${e.grade_required||'—'}</td>
-      <td style="color:var(--txt2);font-size:11px">${e.best_port||'—'}</td>
-      <td><button class="btn-sm btn-sm-g" onclick="openExportModal('connect')" style="font-weight:700;color:var(--gm);cursor:pointer;background:none;border:none;font-family:inherit;font-size:12px;text-decoration:underline">Connect →</button></td>
-    </tr>`).join('');
+  var rows=[];
+  /* Try to merge live local prices with international benchmarks */
+  if(LIVE_PRICES.length){
+    Object.keys(EXPORT_BENCHMARKS).forEach(function(cropName){
+      var bm=EXPORT_BENCHMARKS[cropName];
+      /* LIVE_PRICES entries have .n = crop name, .avg = average price */
+      var lp=LIVE_PRICES.find(function(p){return p.n&&p.n.toLowerCase()===cropName.toLowerCase();});
+      if(!lp)return; /* skip if crop not in live prices */
+      var localPrice=parseFloat(lp.avg)||0;
+      if(!localPrice)return;
+      var premiumPct=Math.round(((bm.export_price-localPrice)/localPrice)*1000)/10;
+      rows.push({crop_name:cropName,emoji:bm.emoji,local_price:localPrice,export_price:bm.export_price,premium_pct:premiumPct,grade_required:bm.grade_required,best_port:bm.best_port});
+    });
+    rows.sort(function(a,b){return b.premium_pct-a.premium_pct;});
+  }
+  /* Fall back to LIVE_EXPORT from API, or hardcoded baseline */
+  if(!rows.length){
+    var fallback=LIVE_EXPORT.length?LIVE_EXPORT:[
+      {crop_name:'Cocoa',   emoji:'🍫',local_price:890000,export_price:1180000,premium_pct:32.5,grade_required:'Grade 1 fermented',best_port:'Apapa, Lagos'},
+      {crop_name:'Sesame',  emoji:'🌿',local_price:820000,export_price:1060000,premium_pct:29.3,grade_required:'99% purity, no aflatoxin',best_port:'Apapa, Lagos'},
+      {crop_name:'Cashew',  emoji:'🥜',local_price:1200000,export_price:1540000,premium_pct:28.3,grade_required:'Grade W240/W320',best_port:'Tin Can Island'},
+      {crop_name:'Hibiscus',emoji:'🌺',local_price:680000,export_price:920000,premium_pct:35.3,grade_required:'≤5% moisture, deep red',best_port:'Kano dry port'},
+      {crop_name:'Soybean', emoji:'🫘',local_price:135000,export_price:165000,premium_pct:22.2,grade_required:'≥40% protein, non-GMO',best_port:'Beja port, Kano'},
+    ];
+    rows=fallback;
+  }
+  /* Update export stat cards */
+  var avgPrem=rows.length?Math.round(rows.reduce(function(s,r){return s+parseFloat(r.premium_pct);},0)/rows.length):null;
+  var epEl=document.getElementById('es-premium');
+  if(epEl)epEl.textContent=avgPrem!==null?avgPrem+'%':'—';
+  var ecEl=document.getElementById('es-crops');
+  if(ecEl)ecEl.textContent=rows.length||'—';
+  var enEl=document.getElementById('es-crops-names');
+  if(enEl)enEl.textContent=rows.length?rows.slice(0,3).map(function(r){return r.crop_name;}).join(', ')+'…':'Cocoa, sesame, cashew…';
+  el.innerHTML=rows.map(function(e){return(
+    '<tr>'+
+    '<td><div class="td-crop-cell"><span class="td-icon">'+(e.emoji||'🌾')+'</span>'+e.crop_name+'</div></td>'+
+    '<td class="td-mono">₦'+Number(e.local_price).toLocaleString('en-NG')+'</td>'+
+    '<td class="td-mono" style="color:var(--gm);font-weight:600">₦'+Number(e.export_price).toLocaleString('en-NG')+'</td>'+
+    '<td><span class="badge badge-green">+'+parseFloat(e.premium_pct).toFixed(1)+'%</span></td>'+
+    '<td style="color:var(--txt2);font-size:11px">'+(e.grade_required||'—')+'</td>'+
+    '<td style="color:var(--txt2);font-size:11px">'+(e.best_port||'—')+'</td>'+
+    '<td><button class="btn-sm btn-sm-g" onclick="openExportModal(\'connect\')" style="font-weight:700;color:var(--gm);cursor:pointer;background:none;border:none;font-family:inherit;font-size:12px;text-decoration:underline">Connect →</button></td>'+
+    '</tr>'
+  );}).join('');
 }
 
 /* ===================== ADMIN ===================== */
