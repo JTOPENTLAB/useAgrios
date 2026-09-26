@@ -2926,8 +2926,8 @@ function renderLenderAdmin(){
   el.onclick=function(e){
     var editBtn=e.target.closest('[data-lender-edit]');
     var toggleBtn=e.target.closest('[data-lender-toggle]');
-    if(editBtn)editLender(parseInt(editBtn.getAttribute('data-lender-edit')));
-    if(toggleBtn)toggleLender(parseInt(toggleBtn.getAttribute('data-lender-toggle')),toggleBtn.getAttribute('data-lender-active')==='1');
+    if(editBtn)editLender(editBtn.getAttribute('data-lender-edit'));
+    if(toggleBtn)toggleLender(toggleBtn.getAttribute('data-lender-toggle'),toggleBtn.getAttribute('data-lender-active')==='1');
   };
 }
 
